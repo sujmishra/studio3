@@ -35,8 +35,18 @@
 
 package com.aptana.syncing.core.model;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.eclipse.core.runtime.IPath;
+import org.tmatesoft.sqljet.core.SqlJetException;
+import org.tmatesoft.sqljet.core.SqlJetTransactionMode;
+import org.tmatesoft.sqljet.core.table.ISqlJetCursor;
+import org.tmatesoft.sqljet.core.table.ISqlJetTable;
+import org.tmatesoft.sqljet.core.table.SqlJetDb;
+
+import com.aptana.ide.syncing.core.SyncingPlugin;
 
 /**
  * @author Max Stepanov
@@ -44,8 +54,14 @@ import java.util.Map;
  */
 /* package */ final class ItemStateStorage {
 
+	private static final String TABLE_NAME = "states";
+	private static final String INDEX_NAME = "full_id";
+	private static final String TABLE_SCHEMA = "CREATE TABLE "+TABLE_NAME+" (left_uri TEXT NOT NULL, right_uri TEXT NOT NULL, left_state TEXT, right_state TEXT)";
+	private static final String INDEX_SCHEMA = "CREATE INDEX "+INDEX_NAME+" ON "+TABLE_NAME+"(left_uri, right_uri)";
+	
 	private static ItemStateStorage instance;
-	private Map<SyncIdentifier, ItemState> cache = new HashMap<SyncIdentifier, ItemState>();
+	private Map<SyncIdentifier, ItemStatePair> cache = new HashMap<SyncIdentifier, ItemStatePair>();
+	private SqlJetDb db;
 	
 	/**
 	 * 
@@ -60,29 +76,238 @@ import java.util.Map;
 		return instance;
 	}
 
-	public ItemState getState(SyncIdentifier id) {
-		ItemState state = cache.get(id);
+	public ItemStatePair getState(SyncIdentifier id) {
+		boolean swap = !id.normalized();
+		if (swap) {
+			id = id.swap();
+		}
+		ItemStatePair state = cache.get(id);
 		if (state == null && !cache.containsKey(id)) {
-			cache.put(id, state = loadStateInternal(id));
+			state = loadStateInternal(id);
+			//cache.put(id, state);
+		}
+		if (swap) {
+			state = state != null ? state.swap() : state;
 		}
 		return state;
 	}
 
-	public void saveState(SyncIdentifier id, ItemState state) {
-		ItemState prevState = cache.get(id);
-		cache.put(id, state);
+	public void saveState(SyncIdentifier id, ItemStatePair state) {
+		if (!id.normalized()) {
+			id = id.swap();
+			state = state != null ? state.swap() : state;
+		}
+		ItemStatePair prevState = cache.get(id);
+		//cache.put(id, state);
 		if (prevState == null || !prevState.equals(state)) {
 			saveStateInternal(id, state);
 		}
 	}
 
-	private ItemState loadStateInternal(SyncIdentifier id) {
-		return null; // TODO: no persistence yet
+	private synchronized ItemStatePair loadStateInternal(SyncIdentifier id) {
+		try {
+			initDB();
+			db.beginTransaction(SqlJetTransactionMode.READ_ONLY);
+			try {
+				ISqlJetTable table = db.getTable(TABLE_NAME);
+				ISqlJetCursor cursor = table.lookup(INDEX_NAME, id.left.toString(), id.right.toString());
+				if (cursor.first()) {
+					ItemState left = ItemState.fromString(cursor.getString(2));
+					ItemState right = ItemState.fromString(cursor.getString(3));
+					return new ItemStatePair(left, right);
+				}
+			} catch (SqlJetException e) {
+				db.rollback();
+				throw e;
+			} finally {
+				db.commit();
+			}
+		} catch (SqlJetException e) {
+			SyncingPlugin.log(e);
+		}
+		return null;
 	}
 	
-	private void saveStateInternal(SyncIdentifier id, ItemState state) {
-		// TODO
+	private synchronized void saveStateInternal(SyncIdentifier id, ItemStatePair state) {
+		try {
+			initDB();
+			db.beginTransaction(SqlJetTransactionMode.WRITE);
+			try {
+				ISqlJetTable table = db.getTable(TABLE_NAME);
+				if (state == null || state.isNull()) {
+					ISqlJetCursor cursor = table.lookup(INDEX_NAME, id.left.toString(), id.right.toString());
+					if (cursor.first()) {
+						cursor.delete();
+					}
+				} else {
+					table.insert(id.left.toString(), id.right.toString(), state.left != null ? state.left.toString() : null, state.right != null ? state.right.toString() : null);
+				}
+			} catch (SqlJetException e) {
+				db.rollback();
+				throw e;
+			} finally {
+				db.commit();
+			}
+		} catch (SqlJetException e) {
+			SyncingPlugin.log(e);
+		}
 	}
 	
+	private synchronized void initDB() throws SqlJetException {
+		if (db != null) {
+			return;
+		}
+		IPath path = SyncingPlugin.getDefault().getStateLocation().append("db").addFileExtension("sqlite");
+		try {
+			db = SqlJetDb.open(path.toFile(), true);
+			db.getOptions().setAutovacuum(true);
+			db.beginTransaction(SqlJetTransactionMode.EXCLUSIVE);
+			try {
+				db.getOptions().setUserVersion(this.hashCode());
+				db.createTable(TABLE_SCHEMA);
+				db.createIndex(INDEX_SCHEMA);
+			} catch(SqlJetException e) {
+				db.rollback();
+				throw e;
+			} finally {
+				db.commit();
+			}
+		} catch (SqlJetException e) {
+			close();
+			throw e;
+		}
+	}
+	
+	public synchronized void close() {
+		if (db != null) {
+			try {
+				db.close();
+			} catch (SqlJetException e) {
+				SyncingPlugin.log(e);
+			}
+			db = null;
+		}
+	}
+	
+}
+
+/* package */ final class SyncIdentifier {
+
+	protected final URI left;
+	protected final URI right;
+	
+	protected SyncIdentifier(URI left, URI right) {
+		this.left = left;
+		this.right = right;
+	}
+	
+	protected SyncIdentifier swap() {
+		return new SyncIdentifier(right, left);
+	}
+	
+	protected boolean normalized() {
+		return left.compareTo(right) < 0;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((left == null) ? 0 : left.hashCode());
+		result = prime * result + ((right == null) ? 0 : right.hashCode());
+		return result;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!(obj instanceof SyncIdentifier)) {
+			return false;
+		}
+		SyncIdentifier other = (SyncIdentifier) obj;
+		if (left == null) {
+			if (other.left != null) {
+				return false;
+			}
+		} else if (!left.equals(other.left)) {
+			return false;
+		}
+		if (right == null) {
+			if (other.right != null) {
+				return false;
+			}
+		} else if (!right.equals(other.right)) {
+			return false;
+		}
+		return true;
+	}
+}
+
+/* package */ final class ItemStatePair {
+	
+	protected final ItemState left;
+	protected final ItemState right;
+	
+	protected ItemStatePair(ItemState left, ItemState right) {
+		this.left = left;
+		this.right = right;
+	}
+	
+	protected ItemStatePair swap() {
+		return new ItemStatePair(right, left);
+	}
+	
+	protected boolean isNull() {
+		return left == null && right == null;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((left == null) ? 0 : left.hashCode());
+		result = prime * result + ((right == null) ? 0 : right.hashCode());
+		return result;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!(obj instanceof ItemStatePair)) {
+			return false;
+		}
+		ItemStatePair other = (ItemStatePair) obj;
+		if (left == null) {
+			if (other.left != null) {
+				return false;
+			}
+		} else if (!left.equals(other.left)) {
+			return false;
+		}
+		if (right == null) {
+			if (other.right != null) {
+				return false;
+			}
+		} else if (!right.equals(other.right)) {
+			return false;
+		}
+		return true;
+	}
 
 }

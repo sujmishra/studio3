@@ -56,11 +56,13 @@ public final class SyncPair {
 		SAME, LEFT_TO_RIGHT, RIGHT_TO_LEFT, AMBIGUOUS, INCONSISTENT
 	}
 	
-	private IFileStore leftFileStore;
-	private IFileStore rightFileStore;
-	
-	private SyncState leftState;
-	private SyncState rightState;
+	private final IFileStore leftFileStore;
+	private final IFileStore rightFileStore;
+
+	private IFileInfo leftFileInfo;
+	private IFileInfo rightFileInfo;
+
+	private SyncState state;
 	
 	private Direction defaultDirection;
 	private Direction forceDirection;
@@ -78,25 +80,24 @@ public final class SyncPair {
 	public SyncPair(IFileStore leftFileStore, IFileInfo leftFileInfo, IFileStore rightFileStore, IFileInfo rightFileInfo) {
 		this.leftFileStore = leftFileStore;
 		this.rightFileStore = rightFileStore;
-		if (leftFileInfo != null) {
-			leftState = SyncState.get(leftFileStore, leftFileInfo, rightFileStore.toURI().toString());
-		}
-		if (rightFileInfo != null) {
-			leftState = SyncState.get(rightFileStore, rightFileInfo, leftFileStore.toURI().toString());
-		}
+		this.leftFileInfo = leftFileInfo;
+		this.rightFileInfo = rightFileInfo;
 	}
 	
 	public synchronized Direction calculateDirection(IProgressMonitor monitor) throws CoreException {
 		if (defaultDirection == null) {
-			if (leftState == null) {
-				leftState = SyncState.get(leftFileStore, leftFileStore.fetchInfo(IExtendedFileStore.DETAILED, monitor), rightFileStore.toURI().toString());
-			}
-			if (rightState == null) {
-				rightState = SyncState.get(rightFileStore, rightFileStore.fetchInfo(IExtendedFileStore.DETAILED, monitor), leftFileStore.toURI().toString());
+			if (state == null) {
+				if (leftFileInfo == null) {
+					leftFileInfo = leftFileStore.fetchInfo(IExtendedFileStore.DETAILED, monitor);
+				}
+				if (rightFileInfo == null) {
+					rightFileInfo = rightFileStore.fetchInfo(IExtendedFileStore.DETAILED, monitor);
+				}
+				state = SyncState.get(leftFileStore, leftFileInfo, rightFileStore, rightFileInfo);
 			}
 			// ignore permissions changes for now
-			int left = leftState.getState() & ~SyncState.PERMISSIONS_CHANGED;
-			int right = rightState.getState() & ~SyncState.PERMISSIONS_CHANGED;
+			int left = state.getLeftState() & ~SyncState.PERMISSIONS_CHANGED;
+			int right = state.getRightState() & ~SyncState.PERMISSIONS_CHANGED;
 			if (left == SyncState.UNMODIFIED
 					&& right == SyncState.UNMODIFIED) {
 				// both sides are unmodified
@@ -170,16 +171,25 @@ public final class SyncPair {
 		calculateDirection(monitor);
 		switch(getDirection()) {
 		case SAME:
+			if (state.getLeftState() == SyncState.ADDED || state.getRightState() == SyncState.ADDED) {
+				SyncState.save(state, leftFileInfo, rightFileInfo);
+			}
 			break;
 		case LEFT_TO_RIGHT:
-			SyncUtils.copy(leftFileStore, rightFileStore, IExtendedFileInfo.SET_PERMISSIONS, monitor);
-			SyncState.save(rightState, rightFileStore.fetchInfo(IExtendedFileStore.DETAILED, monitor));
-			defaultDirection = null;
+			if (!leftFileInfo.exists()) {
+				rightFileStore.delete(EFS.NONE, monitor);
+			} else {
+				SyncUtils.copy(leftFileStore, leftFileInfo, rightFileStore, IExtendedFileInfo.SET_PERMISSIONS, monitor);
+			}
+			SyncState.save(state, leftFileInfo, rightFileStore.fetchInfo(IExtendedFileStore.DETAILED, monitor));
 			break;
 		case RIGHT_TO_LEFT:
-			SyncUtils.copy(rightFileStore, leftFileStore, IExtendedFileInfo.SET_PERMISSIONS, monitor);
-			SyncState.save(leftState, leftFileStore.fetchInfo(IExtendedFileStore.DETAILED, monitor));
-			defaultDirection = null;
+			if (!rightFileInfo.exists()) {
+				leftFileStore.delete(EFS.NONE, monitor);
+			} else {
+				SyncUtils.copy(rightFileStore, rightFileInfo, leftFileStore, IExtendedFileInfo.SET_PERMISSIONS, monitor);
+			}
+			SyncState.save(state, leftFileStore.fetchInfo(IExtendedFileStore.DETAILED, monitor), rightFileInfo);
 			break;
 		case AMBIGUOUS:
 		case INCONSISTENT:
@@ -190,17 +200,15 @@ public final class SyncPair {
 	}
 
 	private Direction compareFileInfos() {
-		IFileInfo left = leftState.getFileInfo();
-		IFileInfo right = rightState.getFileInfo();
-		if (!left.exists()) {
+		if (!leftFileInfo.exists()) {
 			return Direction.RIGHT_TO_LEFT;
-		} else if (!right.exists()) {
+		} else if (!rightFileInfo.exists()) {
 			return Direction.LEFT_TO_RIGHT;
-		} else if (left.isDirectory() != right.isDirectory()
-				|| left.getAttribute(EFS.ATTRIBUTE_SYMLINK) != right.getAttribute(EFS.ATTRIBUTE_SYMLINK)) {
+		} else if (leftFileInfo.isDirectory() != rightFileInfo.isDirectory()
+				|| leftFileInfo.getAttribute(EFS.ATTRIBUTE_SYMLINK) != rightFileInfo.getAttribute(EFS.ATTRIBUTE_SYMLINK)) {
 			return Direction.INCONSISTENT;
-		} else if (left.getLength() == right.getLength()
-				&& left.getLastModified() == right.getLastModified()) {
+		} else if (leftFileInfo.getLength() == rightFileInfo.getLength()
+				&& leftFileInfo.getLastModified() == rightFileInfo.getLastModified()) {
 			return Direction.SAME;
 		}
 		return Direction.AMBIGUOUS;

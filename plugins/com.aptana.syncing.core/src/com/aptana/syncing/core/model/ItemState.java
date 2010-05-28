@@ -55,6 +55,14 @@ package com.aptana.syncing.core.model;
 	 */
 	protected ItemState() {
 	}
+	
+	private ItemState(short type, long length, long modificationTime, long permissions) {
+		this.type = type;
+		this.length = length;
+		this.modificationTime = modificationTime;
+		this.permissions = permissions;
+		
+	}
 
 	/**
 	 * @return the modificationTime
@@ -146,6 +154,64 @@ package com.aptana.syncing.core.model;
 			return false;
 		}
 		return true;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		StringBuffer sb = new StringBuffer();
+		switch (type) {
+		case TYPE_FILE:
+			sb.append('F');
+			break;
+		case TYPE_FOLDER:
+			sb.append('D');
+			break;
+		case TYPE_SYMLINK:
+			sb.append('S');
+			break;
+		default:
+			sb.append('X');
+			break;
+		}
+		sb.append(';');
+		sb.append(Long.toHexString(length)).append(';');
+		sb.append(Long.toHexString(modificationTime)).append(';');
+		sb.append(Long.toHexString(permissions));
+		return sb.toString();
+	}
+	
+	public static ItemState fromString(String string) {
+		if (string != null && string.length() > 0) {
+			String[] list = string.split(";");
+			if (list.length == 4 && list[0].length() > 0) {
+				short type;
+				switch(list[0].charAt(0)) {
+				case 'F':
+					type = TYPE_FILE;
+					break;
+				case 'D':
+					type = TYPE_FOLDER;
+					break;
+				case 'S':
+					type = TYPE_SYMLINK;
+					break;
+				default:
+					return null;
+				}
+				try {
+					long length = Long.parseLong(list[1], 16);
+					long modificationTime = Long.parseLong(list[2], 16);
+					long permissions = Long.parseLong(list[3], 16);
+					return new ItemState(type, length, modificationTime, permissions);
+				} catch (NumberFormatException e) {
+				}
+				
+			}
+		}
+		return null;
 	}
 	
 }

@@ -66,24 +66,27 @@ public final class SyncUtils {
 	private SyncUtils() {
 	}
 
-	public static void copy(IFileStore source, IFileStore destination, int options, IProgressMonitor monitor) throws CoreException {
+	public static void copy(IFileStore source, IFileInfo sourceInfo, IFileStore destination, int options, IProgressMonitor monitor) throws CoreException {
 		try {
 			checkCanceled(monitor);
-			monitor.beginTask("", 3);
-			final IFileInfo sourceInfo = source.fetchInfo(IExtendedFileStore.DETAILED, subMonitorFor(monitor, 1));
+			monitor.beginTask("", sourceInfo == null ? 3 : 2);
+			if (sourceInfo == null) {
+				sourceInfo = source.fetchInfo(IExtendedFileStore.DETAILED, subMonitorFor(monitor, 1));
+			}
 			checkCanceled(monitor);
 			if (sourceInfo.isDirectory()) {
-				destination.mkdir(EFS.SHALLOW, subMonitorFor(monitor, 1));
+				destination.mkdir(EFS.NONE, subMonitorFor(monitor, 2));
 			} else {
 				final byte[] buffer = new byte[8192];
 				long length = sourceInfo.getLength();
 				int totalWork = (length == -1) ? IProgressMonitor.UNKNOWN : 1 + (int) (length / buffer.length);
-				monitor.beginTask(MessageFormat.format("Copying {0}", source.toString()), totalWork);
 				InputStream in = null;
 				OutputStream out = null;
 				try {
 					in = source.openInputStream(EFS.NONE, subMonitorFor(monitor, 0));
 					out = destination.openOutputStream(EFS.NONE, subMonitorFor(monitor, 0));
+					IProgressMonitor subMonitor = subMonitorFor(monitor, 2);
+					subMonitor.beginTask(MessageFormat.format("Copying {0}", source.toString()), totalWork);
 					while (true) {
 						int bytesRead = -1;
 						try {
@@ -98,8 +101,9 @@ public final class SyncUtils {
 						} catch (IOException e) {
 							error(MessageFormat.format("Failed writing to {0}", destination.toString()), e);
 						}
-						monitor.worked(1);
+						subMonitor.worked(1);
 					}
+					subMonitor.done();
 				} finally {
 					safeClose(in);
 					safeClose(out);	

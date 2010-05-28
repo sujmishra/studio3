@@ -45,9 +45,11 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Plugin;
+import org.eclipse.core.runtime.Status;
 import org.osgi.framework.BundleContext;
 
 import com.aptana.core.CorePlugin;
+import com.aptana.syncing.core.model.SyncState;
 
 /**
  * The activator class controls the plug-in life cycle
@@ -124,6 +126,7 @@ public class SyncingPlugin extends Plugin {
 	public void stop(BundleContext context) throws Exception {
 		ResourcesPlugin.getWorkspace().removeSaveParticipant(this);
         ResourcesPlugin.getWorkspace().removeSaveParticipant(CorePlugin.getDefault());
+        SyncState.flush();
 		plugin = null;
 		super.stop(context);
 	}
@@ -147,6 +150,18 @@ public class SyncingPlugin extends Plugin {
 
 	public static void log(IStatus status) {
 		getDefault().getLog().log(status);
+	}
+
+	public static void log(Throwable e) {
+		log(new Status(IStatus.ERROR, PLUGIN_ID, IStatus.ERROR, e.getLocalizedMessage(), e));
+	}
+
+	public static void log(String msg) {
+		log(new Status(IStatus.INFO, PLUGIN_ID, IStatus.OK, msg, null));
+	}
+
+	public static void log(String msg, Throwable e) {
+		log(new Status(IStatus.INFO, PLUGIN_ID, IStatus.OK, msg, e));
 	}
 
 	private class WorkspaceSaveParticipant implements ISaveParticipant {

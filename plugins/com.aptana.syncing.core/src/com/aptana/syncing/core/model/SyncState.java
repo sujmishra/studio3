@@ -59,74 +59,38 @@ public final class SyncState {
 	public static final short REMOVED = 0x20;
 	
 	private final SyncIdentifier id;
-	private final short state;
-	private final IFileInfo fileInfo;
+	private final short leftState;
+	private final short rightState;
 	
 	/**
 	 * 
 	 */
-	private SyncState(SyncIdentifier id, short state, IFileInfo fileInfo) {
+	private SyncState(SyncIdentifier id, IFileInfo leftFileInfo, IFileInfo rightFileInfo) {
 		this.id = id;
-		this.state = state;
-		this.fileInfo = fileInfo;
-	}
-		
-	/**
-	 * @return the state
-	 */
-	public short getState() {
-		return state;
+		this.leftState = getState(id, true, leftFileInfo);
+		this.rightState = getState(id, false, rightFileInfo);
 	}
 
 	/**
-	 * @return the id
+	 * 
+	 * @return
 	 */
 	public SyncIdentifier getSyncIdentifier() {
 		return id;
 	}
 
 	/**
-	 * @return the fileInfo
+	 * @return the leftState
 	 */
-	public IFileInfo getFileInfo() {
-		return fileInfo;
+	public short getLeftState() {
+		return leftState;
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
+	/**
+	 * @return the rightState
 	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + state;
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		return result;
-	}
-
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof SyncState)) {
-			return false;
-		}
-		SyncState other = (SyncState) obj;
-		if (state != other.state) {
-			return false;
-		}
-		if (id == null) {
-			if (other.id != null) {
-				return false;
-			}
-		} else if (!id.equals(other.id)) {
-			return false;
-		}
-		return true;
+	public short getRightState() {
+		return rightState;
 	}
 
 	/* (non-Javadoc)
@@ -135,83 +99,83 @@ public final class SyncState {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("SyncState [uri=").append(id.getTarget()).append(", context=").append(id.getContext()).append("]=");
+		builder.append('(');
+		stateToString(leftState, builder);
+		builder.append(")(");
+		stateToString(rightState, builder);
+		builder.append(')');
+		return builder.toString();
+	}
+	
+	private static void stateToString(short state, StringBuilder sb) {
 		switch (state) {
 		case UNMODIFIED:
-			builder.append("UNMODIFIED");
+			sb.append("UNMODIFIED");
 			break;
 		case TYPE_CHANGED:
-			builder.append("TYPE_CHANGED");
+			sb.append("TYPE_CHANGED");
 			break;
 		case ADDED:
-			builder.append("ADDED");
+			sb.append("ADDED");
 			break;
 		case REMOVED:
-			builder.append("REMOVED");
+			sb.append("REMOVED");
 			break;
 		default:
 			if ((state & LENGTH_CHANGED) != 0) {
-				builder.append("LENGTH_CHANGED").append(',');
+				sb.append("LENGTH_CHANGED").append(',');
 			}
 			if ((state & MODIFICATION_TIME_CHANGED) != 0) {
-				builder.append("MODIFICATION_TIME_CHANGED").append(',');
+				sb.append("MODIFICATION_TIME_CHANGED").append(',');
 			}
 			if ((state & PERMISSIONS_CHANGED) != 0) {
-				builder.append("PERMISSIONS_CHANGED").append(',');
+				sb.append("PERMISSIONS_CHANGED").append(',');
 			}
-			builder.setLength(builder.length()-1);
-		}
-		return builder.toString();
+			sb.setLength(sb.length()-1);
+		}		
 	}
 
 	/**
 	 * 
 	 * @param id
-	 * @param fileInfo
+	 * @param leftFileInfo
+	 * @param rightFileInfo
 	 * @return
 	 */
-	public static SyncState get(SyncIdentifier id, IFileInfo fileInfo) {
-		return new SyncState(id, getState(id, fileInfo), fileInfo);
+	public static SyncState get(SyncIdentifier id, IFileInfo leftFileInfo, IFileInfo rightFileInfo) {
+		return new SyncState(id, leftFileInfo, rightFileInfo);
 	}
 
 	/**
 	 * 
-	 * @param fileStore
-	 * @param fileInfo
-	 * @param context
+	 * @param leftFileStore
+	 * @param leftFileInfo
+	 * @param rightFileStore
+	 * @param rightFileInfo
 	 * @return
 	 */
-	public static SyncState get(IFileStore fileStore, IFileInfo fileInfo, String context) {
-		return get(new SyncIdentifier(getURI(fileStore), context), fileInfo);
+	public static SyncState get(IFileStore leftFileStore, IFileInfo leftFileInfo, IFileStore rightFileStore, IFileInfo rightFileInfo) {
+		return get(new SyncIdentifier(getURI(leftFileStore), getURI(rightFileStore)), leftFileInfo, rightFileInfo);
 	}
-	
+
 	/**
 	 * 
 	 * @param id
-	 * @param fileInfo
+	 * @param leftFileInfo
+	 * @param rightFileInfo
 	 */
-	public static void save(SyncIdentifier id, IFileInfo fileInfo) {
-		ItemState itemState = null;
-		if (fileInfo != null && fileInfo.exists()) {
-			itemState = new ItemState();
-			if (fileInfo.isDirectory()) {
-				itemState.setType(ItemState.TYPE_FOLDER);
-			} else if (fileInfo.getAttribute(EFS.ATTRIBUTE_SYMLINK)) {
-				itemState.setType(ItemState.TYPE_SYMLINK);
-			} else {
-				itemState.setType(ItemState.TYPE_FILE);
-			}
-			itemState.setLength(fileInfo.getLength());
-			itemState.setModificationTime(fileInfo.getLastModified());
-			if (fileInfo instanceof IExtendedFileInfo) {
-				itemState.setPermissions(((IExtendedFileInfo) fileInfo).getPermissions());
-			}
+	public static void save(SyncIdentifier id, IFileInfo leftFileInfo, IFileInfo rightFileInfo) {
+		ItemState left = createItemState(leftFileInfo);
+		ItemState right = createItemState(rightFileInfo);
+		ItemStatePair itemStatePair = null;
+		if (left != null || right != null) {
+			itemStatePair = new ItemStatePair(left, right);
 		}
-		ItemStateStorage.getInstance().saveState(id, itemState);
+		ItemStateStorage.getInstance().saveState(id, itemStatePair);
 	}
 	
-	public static void save(SyncState state, IFileInfo fileInfo) {
-		save(state.getSyncIdentifier(), fileInfo);
+	public static void save(SyncState state, IFileInfo leftFileInfo, IFileInfo rightFileInfo) {
+		save(state.getSyncIdentifier(), leftFileInfo, rightFileInfo);
 	}
 
 
@@ -223,9 +187,13 @@ public final class SyncState {
 		return uri;
 	}
 
-	private static short getState(SyncIdentifier id, IFileInfo fileInfo) {
+	private static short getState(SyncIdentifier id, boolean left, IFileInfo fileInfo) {
 		short state;
-		ItemState itemState = ItemStateStorage.getInstance().getState(id);
+		ItemStatePair itemStatePair = ItemStateStorage.getInstance().getState(id);
+		ItemState itemState = null;
+		if (itemStatePair != null) {
+			itemState = left ? itemStatePair.left : itemStatePair.right;
+		}
 		if (itemState == null) {
 			state = fileInfo.exists() ? ADDED : UNMODIFIED;
 		} else if (!fileInfo.exists()){
@@ -250,6 +218,30 @@ public final class SyncState {
 			}
 		}
 		return state;
+	}
+	
+	private static ItemState createItemState(IFileInfo fileInfo) {
+		ItemState itemState = null;
+		if (fileInfo != null && fileInfo.exists()) {
+			itemState = new ItemState();
+			if (fileInfo.isDirectory()) {
+				itemState.setType(ItemState.TYPE_FOLDER);
+			} else if (fileInfo.getAttribute(EFS.ATTRIBUTE_SYMLINK)) {
+				itemState.setType(ItemState.TYPE_SYMLINK);
+			} else {
+				itemState.setType(ItemState.TYPE_FILE);
+			}
+			itemState.setLength(fileInfo.getLength());
+			itemState.setModificationTime(fileInfo.getLastModified());
+			if (fileInfo instanceof IExtendedFileInfo) {
+				itemState.setPermissions(((IExtendedFileInfo) fileInfo).getPermissions());
+			}
+		}
+		return itemState;
+	}
+	
+	public static void flush() {
+		ItemStateStorage.getInstance().close();
 	}
 	
 }
