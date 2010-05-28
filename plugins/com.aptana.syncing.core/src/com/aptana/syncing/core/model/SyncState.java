@@ -227,7 +227,7 @@ public final class SyncState {
 		short state;
 		ItemState itemState = ItemStateStorage.getInstance().getState(id);
 		if (itemState == null) {
-			state = ADDED;
+			state = fileInfo.exists() ? ADDED : UNMODIFIED;
 		} else if (!fileInfo.exists()){
 			state = REMOVED;
 		} else if (fileInfo.isDirectory() != (itemState.getType() == ItemState.TYPE_FOLDER)

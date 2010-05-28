@@ -68,14 +68,14 @@ public final class SyncPair {
 	/**
 	 * 
 	 */
-	protected SyncPair(IFileStore leftFileStore, IFileStore rightFileStore) {
+	public SyncPair(IFileStore leftFileStore, IFileStore rightFileStore) {
 		this(leftFileStore, null, rightFileStore, null);
 	}
 
 	/**
 	 * 
 	 */
-	protected SyncPair(IFileStore leftFileStore, IFileInfo leftFileInfo, IFileStore rightFileStore, IFileInfo rightFileInfo) {
+	public SyncPair(IFileStore leftFileStore, IFileInfo leftFileInfo, IFileStore rightFileStore, IFileInfo rightFileInfo) {
 		this.leftFileStore = leftFileStore;
 		this.rightFileStore = rightFileStore;
 		if (leftFileInfo != null) {
@@ -174,10 +174,12 @@ public final class SyncPair {
 		case LEFT_TO_RIGHT:
 			SyncUtils.copy(leftFileStore, rightFileStore, IExtendedFileInfo.SET_PERMISSIONS, monitor);
 			SyncState.save(rightState, rightFileStore.fetchInfo(IExtendedFileStore.DETAILED, monitor));
+			defaultDirection = null;
 			break;
 		case RIGHT_TO_LEFT:
 			SyncUtils.copy(rightFileStore, leftFileStore, IExtendedFileInfo.SET_PERMISSIONS, monitor);
 			SyncState.save(leftState, leftFileStore.fetchInfo(IExtendedFileStore.DETAILED, monitor));
+			defaultDirection = null;
 			break;
 		case AMBIGUOUS:
 		case INCONSISTENT:
@@ -190,11 +192,14 @@ public final class SyncPair {
 	private Direction compareFileInfos() {
 		IFileInfo left = leftState.getFileInfo();
 		IFileInfo right = rightState.getFileInfo();
-		if (left.isDirectory() != right.isDirectory()
+		if (!left.exists()) {
+			return Direction.RIGHT_TO_LEFT;
+		} else if (!right.exists()) {
+			return Direction.LEFT_TO_RIGHT;
+		} else if (left.isDirectory() != right.isDirectory()
 				|| left.getAttribute(EFS.ATTRIBUTE_SYMLINK) != right.getAttribute(EFS.ATTRIBUTE_SYMLINK)) {
 			return Direction.INCONSISTENT;
-		}
-		if (left.getLength() == right.getLength()
+		} else if (left.getLength() == right.getLength()
 				&& left.getLastModified() == right.getLastModified()) {
 			return Direction.SAME;
 		}

@@ -33,56 +33,38 @@
  * Any modifications to this file must keep this entire header intact.
  */
 
-package com.aptana.syncing.core.model;
+package com.aptana.syncing.core.tests;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.File;
+
+import org.eclipse.core.runtime.Path;
+
+import com.aptana.ide.core.io.LocalConnectionPoint;
 
 /**
  * @author Max Stepanov
  *
  */
-/* package */ final class ItemStateStorage {
-
-	private static ItemStateStorage instance;
-	private Map<SyncIdentifier, ItemState> cache = new HashMap<SyncIdentifier, ItemState>();
+public class Local2LocalSyncingTest extends CommonSyncingTest {
 	
-	/**
-	 * 
+	/* (non-Javadoc)
+	 * @see com.aptana.syncing.core.tests.CommonSyncingTest#setUp()
 	 */
-	private ItemStateStorage() {
-	}
-	
-	public static ItemStateStorage getInstance() {
-		if (instance == null) {
-			instance = new ItemStateStorage();
-		}
-		return instance;
-	}
+	@Override
+	protected void setUp() throws Exception {
+		File root = File.createTempFile(getClass().getName(), ".tmp");
+		root.delete();
+		root = root.getParentFile();
 
-	public ItemState getState(SyncIdentifier id) {
-		ItemState state = cache.get(id);
-		if (state == null && !cache.containsKey(id)) {
-			cache.put(id, state = loadStateInternal(id));
-		}
-		return state;
-	}
+		LocalConnectionPoint localcp = new LocalConnectionPoint();
+		localcp.setPath(Path.fromOSString(root.getAbsolutePath()));
+		leftCP = localcp;
 
-	public void saveState(SyncIdentifier id, ItemState state) {
-		ItemState prevState = cache.get(id);
-		cache.put(id, state);
-		if (prevState == null || !prevState.equals(state)) {
-			saveStateInternal(id, state);
-		}
+		localcp = new LocalConnectionPoint();
+		localcp.setPath(Path.fromOSString(root.getAbsolutePath()));
+		rightCP = localcp;
+		
+		super.setUp();
 	}
-
-	private ItemState loadStateInternal(SyncIdentifier id) {
-		return null; // TODO: no persistence yet
-	}
-	
-	private void saveStateInternal(SyncIdentifier id, ItemState state) {
-		// TODO
-	}
-	
 
 }
