@@ -53,6 +53,7 @@ import com.aptana.ide.syncing.core.SyncingPlugin;
  *
  */
 /* package */ final class ItemStateStorage {
+	// TODO: cleanup unused(deleted) states (hook siteCOnnection removal?)
 
 	private static final String TABLE_NAME = "states";
 	private static final String INDEX_NAME = "full_id";
@@ -98,6 +99,7 @@ import com.aptana.ide.syncing.core.SyncingPlugin;
 			state = state != null ? state.swap() : state;
 		}
 		ItemStatePair prevState = cache.get(id);
+		// TODO enable cache after making it LRU-like
 		//cache.put(id, state);
 		if (prevState == null || !prevState.equals(state)) {
 			saveStateInternal(id, state);
