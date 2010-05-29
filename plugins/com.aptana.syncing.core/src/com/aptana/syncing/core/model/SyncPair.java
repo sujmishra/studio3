@@ -200,8 +200,10 @@ public final class SyncPair {
 		} else if (leftFileInfo.isDirectory() != rightFileInfo.isDirectory()
 				|| leftFileInfo.getAttribute(EFS.ATTRIBUTE_SYMLINK) != rightFileInfo.getAttribute(EFS.ATTRIBUTE_SYMLINK)) {
 			return Direction.INCONSISTENT;
-		} else if (leftFileInfo.getLength() == rightFileInfo.getLength()
-				&& leftFileInfo.getLastModified() == rightFileInfo.getLastModified()) {
+		} else if (leftFileInfo.isDirectory()
+				|| leftFileInfo.getAttribute(EFS.ATTRIBUTE_SYMLINK)
+				|| (leftFileInfo.getLength() == rightFileInfo.getLength()
+						&& leftFileInfo.getLastModified() == rightFileInfo.getLastModified())) {
 			return Direction.SAME;
 		}
 		return Direction.AMBIGUOUS;
