@@ -107,7 +107,7 @@ public final class SyncPair {
 			} else 	if (left == SyncState.ADDED && right == SyncState.ADDED) {
 				defaultDirection = compareFileInfos();
 			} else if (left == SyncState.TYPE_CHANGED || right == SyncState.TYPE_CHANGED) {
-				defaultDirection = Direction.INCONSISTENT;
+				defaultDirection = compareFileInfos();
 			} else if (left == SyncState.UNMODIFIED) {
 				// right is modified
 				if (right == SyncState.ADDED) {
@@ -124,13 +124,6 @@ public final class SyncPair {
 				}
 			} else {
 				// both sized are modified
-				if (left == SyncState.ADDED && right == SyncState.REMOVED) {
-					defaultDirection = Direction.LEFT_TO_RIGHT;
-				} else if (left == SyncState.REMOVED && right == SyncState.ADDED) {
-					defaultDirection = Direction.RIGHT_TO_LEFT;					
-				} else if (left == SyncState.REMOVED || right == SyncState.REMOVED) {
-					defaultDirection = Direction.AMBIGUOUS;					
-				}
 				defaultDirection = Direction.AMBIGUOUS;
 			}
 			// TODO: process permission changes

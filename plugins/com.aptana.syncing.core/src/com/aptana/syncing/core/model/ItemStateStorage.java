@@ -134,11 +134,13 @@ import com.aptana.ide.syncing.core.SyncingPlugin;
 			db.beginTransaction(SqlJetTransactionMode.WRITE);
 			try {
 				ISqlJetTable table = db.getTable(TABLE_NAME);
+				ISqlJetCursor cursor = table.lookup(INDEX_NAME, id.left.toString(), id.right.toString());
 				if (state == null || state.isNull()) {
-					ISqlJetCursor cursor = table.lookup(INDEX_NAME, id.left.toString(), id.right.toString());
 					if (cursor.first()) {
 						cursor.delete();
 					}
+				} else if (cursor.first()) {
+					cursor.update(id.left.toString(), id.right.toString(), state.left != null ? state.left.toString() : null, state.right != null ? state.right.toString() : null);
 				} else {
 					table.insert(id.left.toString(), id.right.toString(), state.left != null ? state.left.toString() : null, state.right != null ? state.right.toString() : null);
 				}
@@ -157,9 +159,8 @@ import com.aptana.ide.syncing.core.SyncingPlugin;
 		if (db != null) {
 			return;
 		}
-		IPath path = SyncingPlugin.getDefault().getStateLocation().append("db").addFileExtension("sqlite");
 		try {
-			db = SqlJetDb.open(path.toFile(), true);
+			db = SqlJetDb.open(getDBPath().toFile(), true);
 			db.getOptions().setAutovacuum(true);
 			db.beginTransaction(SqlJetTransactionMode.EXCLUSIVE);
 			try {
@@ -178,6 +179,10 @@ import com.aptana.ide.syncing.core.SyncingPlugin;
 		}
 	}
 	
+	public static IPath getDBPath() {
+		return SyncingPlugin.getDefault().getStateLocation().append("db").addFileExtension("sqlite");
+	}
+	
 	public synchronized void close() {
 		if (db != null) {
 			try {
@@ -188,7 +193,12 @@ import com.aptana.ide.syncing.core.SyncingPlugin;
 			db = null;
 		}
 	}
-	
+
+	public synchronized void clear() {
+		close();
+		getDBPath().toFile().delete();
+	}
+
 }
 
 /* package */ final class SyncIdentifier {

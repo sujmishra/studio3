@@ -243,5 +243,9 @@ public final class SyncState {
 	public static void flush() {
 		ItemStateStorage.getInstance().close();
 	}
-	
+
+	public static void clear() {
+		ItemStateStorage.getInstance().clear();
+	}
+
 }
