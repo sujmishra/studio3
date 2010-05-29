@@ -52,6 +52,7 @@ import com.aptana.ide.core.io.ConnectionContext;
 import com.aptana.ide.core.io.CoreIOPlugin;
 import com.aptana.ide.core.io.IConnectionPoint;
 import com.aptana.syncing.core.model.SyncPair;
+import com.aptana.syncing.core.model.SyncState;
 import com.aptana.syncing.core.model.SyncPair.Direction;
 
 /**
@@ -100,6 +101,7 @@ public abstract class CommonSyncingTest extends TestCase {
 	protected void tearDown() throws Exception {
 		tearDownSide(leftCP, leftFileStore);
 		tearDownSide(rightCP, rightFileStore);
+		SyncState.clear();
 	}
 
 	private IFileStore setUpSide(IConnectionPoint cp) throws CoreException {
@@ -267,6 +269,284 @@ public abstract class CommonSyncingTest extends TestCase {
 		assertDirection(Direction.RIGHT_TO_LEFT);
 		assertTrue(synchronize());
 		assertDirection(Direction.SAME); // verify that state is consistent
+	}
+
+	public final void testDeletedFolderBoth() throws CoreException {
+		createFolder(leftFileStore);
+		createFolder(rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		delete(leftFileStore);
+		delete(rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME); // verify that state is consistent
+	}
+
+	public final void testReplaceFolderWithFileLeft() throws CoreException, IOException {
+		createFolder(leftFileStore);
+		createFolder(rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		delete(leftFileStore);
+		writeFile(leftFileStore, TEXT1);
+		assertDirection(Direction.INCONSISTENT);
+		assertFalse(synchronize());
+		assertDirection(Direction.INCONSISTENT); // verify that state is consistent
+	}
+
+	public final void testReplaceFolderWithFileRight() throws CoreException, IOException {
+		createFolder(leftFileStore);
+		createFolder(rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		delete(rightFileStore);
+		writeFile(rightFileStore, TEXT1);
+		assertDirection(Direction.INCONSISTENT);
+		assertFalse(synchronize());
+		assertDirection(Direction.INCONSISTENT); // verify that state is consistent
+	}
+
+	public final void testReplaceFolderWithFileBothSame() throws CoreException, IOException {
+		createFolder(leftFileStore);
+		createFolder(rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		delete(leftFileStore);
+		delete(rightFileStore);
+		writeFile(leftFileStore, TEXT1);
+		copyFile(leftFileStore, rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME); // verify that state is consistent
+	}
+
+	public final void testReplaceFolderWithFileBothDifferent() throws CoreException, IOException {
+		createFolder(leftFileStore);
+		createFolder(rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		delete(leftFileStore);
+		delete(rightFileStore);
+		writeFile(leftFileStore, TEXT1);
+		writeFile(rightFileStore, TEXT2);
+		assertDirection(Direction.AMBIGUOUS);
+		assertFalse(synchronize());
+		assertDirection(Direction.AMBIGUOUS); // verify that state is consistent
+	}
+
+	public final void testDeleteFolderLeftReplaceFolderWithFileRight() throws CoreException, IOException {
+		createFolder(leftFileStore);
+		createFolder(rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		delete(leftFileStore);
+		delete(rightFileStore);
+		writeFile(rightFileStore, TEXT2);
+		assertDirection(Direction.RIGHT_TO_LEFT);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME); // verify that state is consistent
+	}
+
+	public final void testDeleteFolderRightReplaceFolderWithFileLeft() throws CoreException, IOException {
+		createFolder(leftFileStore);
+		createFolder(rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		delete(leftFileStore);
+		delete(rightFileStore);
+		writeFile(leftFileStore, TEXT2);
+		assertDirection(Direction.LEFT_TO_RIGHT);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME); // verify that state is consistent
+	}
+
+	public final void testDeletedFileLeft() throws CoreException, IOException {
+		writeFile(leftFileStore, TEXT1);
+		copyFile(leftFileStore, rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		delete(leftFileStore);
+		assertDirection(Direction.LEFT_TO_RIGHT);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME); // verify that state is consistent
+	}
+
+	public final void testDeletedFileRight() throws CoreException, IOException {
+		writeFile(leftFileStore, TEXT1);
+		copyFile(leftFileStore, rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		delete(rightFileStore);
+		assertDirection(Direction.RIGHT_TO_LEFT);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME); // verify that state is consistent
+	}
+
+	public final void testReplaceFileWithFolderLeft() throws CoreException, IOException {
+		writeFile(leftFileStore, TEXT1);
+		copyFile(leftFileStore, rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		delete(leftFileStore);
+		createFolder(leftFileStore);
+		assertDirection(Direction.INCONSISTENT);
+		assertFalse(synchronize());
+		assertDirection(Direction.INCONSISTENT); // verify that state is consistent
+	}
+
+	public final void testReplaceFileWithFolderRight() throws CoreException, IOException {
+		writeFile(leftFileStore, TEXT1);
+		copyFile(leftFileStore, rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		delete(rightFileStore);
+		createFolder(rightFileStore);
+		assertDirection(Direction.INCONSISTENT);
+		assertFalse(synchronize());
+		assertDirection(Direction.INCONSISTENT); // verify that state is consistent
+	}
+
+	public final void testReplaceFileWithFolderBoth() throws CoreException, IOException {
+		writeFile(leftFileStore, TEXT1);
+		copyFile(leftFileStore, rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		delete(leftFileStore);
+		delete(rightFileStore);
+		createFolder(leftFileStore);
+		createFolder(rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME); // verify that state is consistent
+	}
+
+	public final void testModifyFileLeft() throws CoreException, IOException {
+		writeFile(leftFileStore, TEXT1);
+		copyFile(leftFileStore, rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		writeFile(leftFileStore, TEXT2);
+		assertDirection(Direction.LEFT_TO_RIGHT);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME); // verify that state is consistent
+	}
+
+	public final void testModifyFileRight() throws CoreException, IOException {
+		writeFile(leftFileStore, TEXT1);
+		copyFile(leftFileStore, rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		writeFile(rightFileStore, TEXT2);
+		assertDirection(Direction.RIGHT_TO_LEFT);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME); // verify that state is consistent
+	}
+
+	public final void testModifyFileBoth() throws CoreException, IOException {
+		writeFile(leftFileStore, TEXT1);
+		copyFile(leftFileStore, rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		writeFile(leftFileStore, TEXT2);
+		writeFile(rightFileStore, TEXT3);
+		assertDirection(Direction.AMBIGUOUS);
+		assertFalse(synchronize());
+		assertDirection(Direction.AMBIGUOUS); // verify that state is consistent
+	}
+
+	public final void testModifyFileLeftDeleteFileRight() throws CoreException, IOException {
+		writeFile(leftFileStore, TEXT1);
+		copyFile(leftFileStore, rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		writeFile(leftFileStore, TEXT2);
+		delete(rightFileStore);
+		assertDirection(Direction.AMBIGUOUS);
+		assertFalse(synchronize());
+		assertDirection(Direction.AMBIGUOUS); // verify that state is consistent
+	}
+
+	public final void testModifyFileRightDeleteFileLeft() throws CoreException, IOException {
+		writeFile(leftFileStore, TEXT1);
+		copyFile(leftFileStore, rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		delete(leftFileStore);
+		writeFile(rightFileStore, TEXT2);
+		assertDirection(Direction.AMBIGUOUS);
+		assertFalse(synchronize());
+		assertDirection(Direction.AMBIGUOUS); // verify that state is consistent
+	}
+
+	public final void testModifyFileLeftReplaceFileWithFolderRight() throws CoreException, IOException {
+		writeFile(leftFileStore, TEXT1);
+		copyFile(leftFileStore, rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		writeFile(leftFileStore, TEXT2);
+		delete(rightFileStore);
+		createFolder(rightFileStore);
+		assertDirection(Direction.INCONSISTENT);
+		assertFalse(synchronize());
+		assertDirection(Direction.INCONSISTENT); // verify that state is consistent
+	}
+
+	public final void testModifyFileRightReplaceFileWithFolderLeft() throws CoreException, IOException {
+		writeFile(leftFileStore, TEXT1);
+		copyFile(leftFileStore, rightFileStore);
+		assertDirection(Direction.SAME);
+		assertTrue(synchronize());
+		assertDirection(Direction.SAME);
+		// end of initial state
+		delete(leftFileStore);
+		createFolder(leftFileStore);
+		writeFile(rightFileStore, TEXT2);
+		assertDirection(Direction.INCONSISTENT);
+		assertFalse(synchronize());
+		assertDirection(Direction.INCONSISTENT); // verify that state is consistent
+	}
+
+	public final void testSwapLeftRight() throws CoreException, IOException {
+		writeFile(leftFileStore, TEXT1);
+		assertEquals(Direction.LEFT_TO_RIGHT, new SyncPair(leftFileStore, rightFileStore).calculateDirection(new NullProgressMonitor()));
+		assertEquals(Direction.RIGHT_TO_LEFT, new SyncPair(rightFileStore, leftFileStore).calculateDirection(new NullProgressMonitor()));
 	}
 
 }
