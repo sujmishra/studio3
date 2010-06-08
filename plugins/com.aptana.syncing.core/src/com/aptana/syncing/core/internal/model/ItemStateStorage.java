@@ -33,9 +33,8 @@
  * Any modifications to this file must keep this entire header intact.
  */
 
-package com.aptana.syncing.core.model;
+package com.aptana.syncing.core.internal.model;
 
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,8 +51,8 @@ import com.aptana.ide.syncing.core.SyncingPlugin;
  * @author Max Stepanov
  *
  */
-/* package */ final class ItemStateStorage {
-	// TODO: cleanup unused(deleted) states (hook siteCOnnection removal?)
+public final class ItemStateStorage {
+	// TODO: cleanup unused(deleted) states (hook siteConnection removal?)
 
 	private static final String TABLE_NAME = "states";
 	private static final String INDEX_NAME = "full_id";
@@ -203,123 +202,3 @@ import com.aptana.ide.syncing.core.SyncingPlugin;
 
 }
 
-/* package */ final class SyncIdentifier {
-
-	protected final URI left;
-	protected final URI right;
-	
-	protected SyncIdentifier(URI left, URI right) {
-		this.left = left;
-		this.right = right;
-	}
-	
-	protected SyncIdentifier swap() {
-		return new SyncIdentifier(right, left);
-	}
-	
-	protected boolean normalized() {
-		return left.compareTo(right) < 0;
-	}
-
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((left == null) ? 0 : left.hashCode());
-		result = prime * result + ((right == null) ? 0 : right.hashCode());
-		return result;
-	}
-
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof SyncIdentifier)) {
-			return false;
-		}
-		SyncIdentifier other = (SyncIdentifier) obj;
-		if (left == null) {
-			if (other.left != null) {
-				return false;
-			}
-		} else if (!left.equals(other.left)) {
-			return false;
-		}
-		if (right == null) {
-			if (other.right != null) {
-				return false;
-			}
-		} else if (!right.equals(other.right)) {
-			return false;
-		}
-		return true;
-	}
-}
-
-/* package */ final class ItemStatePair {
-	
-	protected final ItemState left;
-	protected final ItemState right;
-	
-	protected ItemStatePair(ItemState left, ItemState right) {
-		this.left = left;
-		this.right = right;
-	}
-	
-	protected ItemStatePair swap() {
-		return new ItemStatePair(right, left);
-	}
-	
-	protected boolean isNull() {
-		return left == null && right == null;
-	}
-
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((left == null) ? 0 : left.hashCode());
-		result = prime * result + ((right == null) ? 0 : right.hashCode());
-		return result;
-	}
-
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (!(obj instanceof ItemStatePair)) {
-			return false;
-		}
-		ItemStatePair other = (ItemStatePair) obj;
-		if (left == null) {
-			if (other.left != null) {
-				return false;
-			}
-		} else if (!left.equals(other.left)) {
-			return false;
-		}
-		if (right == null) {
-			if (other.right != null) {
-				return false;
-			}
-		} else if (!right.equals(other.right)) {
-			return false;
-		}
-		return true;
-	}
-
-}

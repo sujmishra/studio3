@@ -33,13 +33,13 @@
  * Any modifications to this file must keep this entire header intact.
  */
 
-package com.aptana.syncing.core.model;
+package com.aptana.syncing.core.internal.model;
 
 /**
  * @author Max Stepanov
  *
  */
-/* package */ final class ItemState {
+public final class ItemState {
 
 	public static final short TYPE_FILE = 0;
 	public static final short TYPE_FOLDER = 1;
@@ -53,7 +53,7 @@ package com.aptana.syncing.core.model;
 	/**
 	 * 
 	 */
-	protected ItemState() {
+	public ItemState() {
 	}
 	
 	private ItemState(short type, long length, long modificationTime, long permissions) {
