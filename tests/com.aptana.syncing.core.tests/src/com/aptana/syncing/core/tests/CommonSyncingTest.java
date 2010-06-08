@@ -549,4 +549,16 @@ public abstract class CommonSyncingTest extends TestCase {
 		assertEquals(Direction.RIGHT_TO_LEFT, new SyncPair(rightFileStore, leftFileStore).calculateDirection(new NullProgressMonitor()));
 	}
 
+	public final void testNonexistingPathSynchronizationShouldFail() throws CoreException, IOException {
+		writeFile(leftFileStore, TEXT1);
+		rightFileStore = rightFileStore.getChild("nonexisting");
+		assertDirection(Direction.LEFT_TO_RIGHT);
+		try {
+			synchronize();
+			assertFalse("<unreachable>", true); //$NON-NLS-1$
+		} catch (CoreException e) {	
+		}
+		assertDirection(Direction.LEFT_TO_RIGHT); // verify that state is consistent
+	}
+
 }
