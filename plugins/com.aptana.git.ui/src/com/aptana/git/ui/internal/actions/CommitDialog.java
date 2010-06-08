@@ -135,7 +135,6 @@ public class CommitDialog extends StatusDialog
 		validate();
 		PlatformUI.getWorkbench().getDisplay().asyncExec(new Runnable()
 		{
-			
 			@Override
 			public void run()
 			{
@@ -143,8 +142,6 @@ public class CommitDialog extends StatusDialog
 				packTable(unstagedTable);
 			}
 		});
-		
-
 		return container;
 	}
 
@@ -287,10 +284,12 @@ public class CommitDialog extends StatusDialog
 		data.widthHint = 250;
 		table.setLayoutData(data);
 		String[] titles = { " ", Messages.CommitDialog_PathColumnLabel }; //$NON-NLS-1$
+		int[] widths = new int[] { 20, 250 };
 		for (int i = 0; i < titles.length; i++)
 		{
 			TableColumn column = new TableColumn(table, SWT.NONE);
 			column.setText(titles[i]);
+			column.setWidth(widths[i]);
 		}
 		List<ChangedFile> changedFiles = gitRepository.index().changedFiles();
 		Collections.sort(changedFiles);
@@ -428,6 +427,10 @@ public class CommitDialog extends StatusDialog
 				Table table = (Table) e.getSource();
 				Point point = new Point(e.x, e.y);
 				TableItem item = table.getItem(point);
+				if (item == null)
+				{
+					return;
+				}
 				// did user click on file image? If so, toggle staged/unstage
 				Rectangle imageBounds = item.getBounds(0);
 				if (imageBounds.contains(point))
@@ -475,7 +478,6 @@ public class CommitDialog extends StatusDialog
 				// Truncate middle of string
 				Table theTable = (Table) event.widget;
 				int width = theTable.getColumn(event.index).getWidth();
-
 				Point p = event.gc.stringExtent(text); // is text wider than available width?
 				if (p.x > width)
 				{
@@ -488,8 +490,22 @@ public class CommitDialog extends StatusDialog
 					// lengths work better..
 					while (event.gc.stringExtent(beginning + "..." + end).x > width) //$NON-NLS-1$
 					{
-						beginning = beginning.substring(0, beginning.length() - 1);
-						end = end.substring(1);
+						if (beginning.length() > 0)
+						{
+							beginning = beginning.substring(0, beginning.length() - 1);
+						}
+						else
+						{
+							break;
+						}
+						if (end.length() > 0)
+						{
+							end = end.substring(1);
+						}
+						else
+						{
+							break;
+						}
 					}
 					text = beginning + "..." + end; //$NON-NLS-1$
 				}
@@ -518,8 +534,8 @@ public class CommitDialog extends StatusDialog
 
 						IPath workingDirectory = gitRepository.workingDirectory();
 
-						IFile file = ResourcesPlugin.getWorkspace().getRoot()
-								.getFileForLocation(workingDirectory.append(filePath));
+						IFile file = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(
+								workingDirectory.append(filePath));
 						if (file != null)
 						{
 							files.add(file);
