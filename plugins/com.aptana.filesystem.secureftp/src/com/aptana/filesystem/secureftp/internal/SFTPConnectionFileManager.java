@@ -205,7 +205,17 @@ public class SFTPConnectionFileManager extends BaseFTPConnectionFileManager impl
 				Policy.checkCanceled(monitor);
 				monitor.subTask(Messages.SFTPConnectionFileManager_Authenticating);
 				try {
-					ftpClient.connect();
+					for (int i = RETRY-1; i >= 0; --i) {
+						try {
+							ftpClient.connect();
+							break;
+						} catch (IOException e) {
+							if (i == 0) {
+								throw e; 
+							}
+							Thread.sleep(RETRY_DELAY);
+						}
+					}
 				} catch (SSHFTPException e) {
 					Policy.checkCanceled(monitor);
 					if (keyFilePath != null) {
