@@ -40,7 +40,7 @@ package com.aptana.syncing.core.internal.model;
  * @author Max Stepanov
  *
  */
-public final class ItemStatePair {
+/* package */ final class ItemStatePair {
 	
 	public final ItemState left;
 	public final ItemState right;

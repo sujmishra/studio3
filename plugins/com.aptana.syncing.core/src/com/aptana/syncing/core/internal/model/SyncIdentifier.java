@@ -41,7 +41,7 @@ import java.net.URI;
  * @author Max Stepanov
  *
  */
-public final class SyncIdentifier {
+/* package */ final class SyncIdentifier {
 
 	protected final URI left;
 	protected final URI right;

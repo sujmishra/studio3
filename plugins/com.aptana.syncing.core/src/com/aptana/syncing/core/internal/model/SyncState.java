@@ -33,7 +33,7 @@
  * Any modifications to this file must keep this entire header intact.
  */
 
-package com.aptana.syncing.core.model;
+package com.aptana.syncing.core.internal.model;
 
 import java.net.URI;
 
@@ -43,10 +43,6 @@ import org.eclipse.core.filesystem.IFileStore;
 
 import com.aptana.ide.core.io.vfs.IExtendedFileInfo;
 import com.aptana.ide.core.io.vfs.IExtendedFileStore;
-import com.aptana.syncing.core.internal.model.ItemState;
-import com.aptana.syncing.core.internal.model.ItemStatePair;
-import com.aptana.syncing.core.internal.model.ItemStateStorage;
-import com.aptana.syncing.core.internal.model.SyncIdentifier;
 
 /**
  * @author Max Stepanov

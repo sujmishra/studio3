@@ -33,7 +33,7 @@
  * Any modifications to this file must keep this entire header intact.
  */
 
-package com.aptana.syncing.core.model;
+package com.aptana.syncing.core.internal.model;
 
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileInfo;
@@ -156,10 +156,24 @@ public final class SyncPair {
 	 * @param forceDirection the forceDirection to set
 	 */
 	public void setForceDirection(Direction forceDirection) {
-		Assert.isLegal(forceDirection == Direction.SAME || forceDirection == Direction.LEFT_TO_RIGHT || forceDirection == Direction.RIGHT_TO_LEFT, "Invalid force direction");
+		Assert.isLegal(forceDirection == null || forceDirection == Direction.SAME || forceDirection == Direction.LEFT_TO_RIGHT || forceDirection == Direction.RIGHT_TO_LEFT, "Invalid force direction");
 		this.forceDirection = forceDirection;
 	}
 	
+	/**
+	 * @return the leftFileInfo
+	 */
+	public IFileInfo getLeftFileInfo() {
+		return leftFileInfo;
+	}
+
+	/**
+	 * @return the rightFileInfo
+	 */
+	public IFileInfo getRightFileInfo() {
+		return rightFileInfo;
+	}
+
 	public synchronized boolean synchronize(IProgressMonitor monitor) throws CoreException {
 		calculateDirection(monitor);
 		switch(getDirection()) {

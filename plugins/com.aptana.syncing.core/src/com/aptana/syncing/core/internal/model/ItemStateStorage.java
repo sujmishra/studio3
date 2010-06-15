@@ -51,7 +51,7 @@ import com.aptana.ide.syncing.core.SyncingPlugin;
  * @author Max Stepanov
  *
  */
-public final class ItemStateStorage {
+/* package */ final class ItemStateStorage {
 	// TODO: cleanup unused(deleted) states (hook siteConnection removal?)
 
 	private static final String TABLE_NAME = "states";

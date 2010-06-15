@@ -39,7 +39,7 @@ package com.aptana.syncing.core.internal.model;
  * @author Max Stepanov
  *
  */
-public final class ItemState {
+/* package */ final class ItemState {
 
 	public static final short TYPE_FILE = 0;
 	public static final short TYPE_FOLDER = 1;
