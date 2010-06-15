@@ -51,9 +51,9 @@ import org.eclipse.core.runtime.Path;
 import com.aptana.ide.core.io.ConnectionContext;
 import com.aptana.ide.core.io.CoreIOPlugin;
 import com.aptana.ide.core.io.IConnectionPoint;
-import com.aptana.syncing.core.model.SyncPair;
-import com.aptana.syncing.core.model.SyncState;
-import com.aptana.syncing.core.model.SyncPair.Direction;
+import com.aptana.syncing.core.internal.model.SyncPair;
+import com.aptana.syncing.core.internal.model.SyncState;
+import com.aptana.syncing.core.internal.model.SyncPair.Direction;
 
 /**
  * @author Max Stepanov

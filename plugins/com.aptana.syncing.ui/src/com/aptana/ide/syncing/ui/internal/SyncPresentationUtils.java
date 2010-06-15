@@ -68,6 +68,8 @@ public final class SyncPresentationUtils {
 	        if (fileInfo != null) {
 	            rawSize = fileInfo.getLength();
 	        }
+	    } else if (element instanceof IFileInfo) {
+	    	rawSize = ((IFileInfo) element).getLength();
 	    }
 	
 	    if (rawSize >= 0) {
@@ -128,6 +130,8 @@ public final class SyncPresentationUtils {
 	        if (fileInfo != null) {
 	            timestamp = fileInfo.getLastModified();
 	        }
+	    } else if (element instanceof IFileInfo) {
+	    	timestamp = ((IFileInfo) element).getLastModified();
 	    }
 	    if (timestamp >= 0) {
 	        SimpleDateFormat formatter = new SimpleDateFormat("MM/dd/yyyy hh:mm a"); //$NON-NLS-1$
