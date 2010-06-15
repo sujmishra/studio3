@@ -49,7 +49,9 @@ import org.eclipse.core.runtime.Status;
 import org.osgi.framework.BundleContext;
 
 import com.aptana.core.CorePlugin;
-import com.aptana.syncing.core.model.SyncState;
+import com.aptana.syncing.core.internal.model.SyncManager;
+import com.aptana.syncing.core.internal.model.SyncState;
+import com.aptana.syncing.core.model.ISyncManager;
 
 /**
  * The activator class controls the plug-in life cycle
@@ -147,6 +149,14 @@ public class SyncingPlugin extends Plugin {
 	public static ISiteConnectionManager getSiteConnectionManager() {
 		return SiteConnectionManager.getInstance();
 	}
+
+	/**
+	* Returns the Sync Manager instance
+	* @return
+	*/
+	public static ISyncManager getSyncManager() {
+		return SyncManager.getInstance();
+		}
 
 	public static void log(IStatus status) {
 		getDefault().getLog().log(status);
