@@ -162,6 +162,11 @@ import com.aptana.ide.syncing.core.SyncingPlugin;
 		}
 		try {
 			db = SqlJetDb.open(getDBPath().toFile(), true);
+			try {
+				db.getTable(TABLE_NAME);
+				return;
+			} catch (SqlJetException e) {
+			}
 			db.getOptions().setAutovacuum(true);
 			db.beginTransaction(SqlJetTransactionMode.EXCLUSIVE);
 			try {
