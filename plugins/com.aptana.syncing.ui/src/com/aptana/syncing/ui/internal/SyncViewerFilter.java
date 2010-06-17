@@ -33,42 +33,50 @@
  * Any modifications to this file must keep this entire header intact.
  */
 
-package com.aptana.syncing.core.model;
+package com.aptana.syncing.ui.internal;
 
-import java.util.Set;
+import org.eclipse.jface.viewers.Viewer;
+import org.eclipse.jface.viewers.ViewerFilter;
 
-import org.eclipse.core.filesystem.IFileInfo;
-import org.eclipse.core.runtime.IPath;
+import com.aptana.syncing.core.model.ISyncItem;
+import com.aptana.syncing.core.model.ISyncItem.Status;
+import com.aptana.syncing.core.model.ISyncItem.Type;
 
 /**
  * @author Max Stepanov
  *
  */
-public interface ISyncItem {
+public class SyncViewerFilter extends ViewerFilter {
+	
+	/* (non-Javadoc)
+	 * @see org.eclipse.jface.viewers.ViewerFilter#select(org.eclipse.jface.viewers.Viewer, java.lang.Object, java.lang.Object)
+	 */
+	@Override
+	public boolean select(Viewer viewer, Object parentElement, Object element) {
+		if (element instanceof ISyncItem) {
+			boolean result = include((ISyncItem) element);
+			return result;
+		}
+		return true;
+	}
+	
+	private boolean include(ISyncItem syncItem) {
+		if (syncItem.getStatus() == Status.NONE) {
+			if (syncItem.getType() == Type.FOLDER) {
+				ISyncItem[] children = syncItem.getChildItems();
+				if (children != null) {
+					for (ISyncItem i : children) {
+						if (include(i)) {
+							return true;
+						}
+					}
+				} else {
+					return true;
+				}
+			}
+			return false;
+		}
+		return true;
+	}
 
-	public enum Type {
-		UNSUPPORTED, FILE, FOLDER
-	}
-	
-	public enum Status {
-		NONE, LEFT_TO_RIGHT, RIGHT_TO_LEFT, CONFLICT
-	}
-	
-	public enum Operation {
-		NONE, LEFT_TO_RIGHT, RIGHT_TO_LEFT
-	}
-	
-	public Type getType();
-	public String getName();
-	public IPath getPath();
-	
-	public IFileInfo getLeftFileInfo();
-	public IFileInfo getRightFileInfo();
-	
-	public ISyncItem[] getChildItems();
-	
-	public Status getStatus();
-	public Operation getOperation();
-	public Set<Operation> getAllowedOperations();
-	public void setOperation(Operation operation);
 }

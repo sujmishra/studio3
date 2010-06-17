@@ -37,10 +37,12 @@ package com.aptana.syncing.ui.internal;
 
 import org.eclipse.jface.viewers.DecoratingLabelProvider;
 import org.eclipse.jface.viewers.ITableLabelProvider;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
 
+import com.aptana.ide.syncing.ui.SyncingUIPlugin;
 import com.aptana.ide.syncing.ui.internal.SyncPresentationUtils;
 import com.aptana.syncing.core.model.ISyncItem;
 import com.aptana.syncing.core.model.ISyncItem.Type;
@@ -50,6 +52,12 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
  *
  */
 public class SyncViewerLabelProvider extends DecoratingLabelProvider implements ITableLabelProvider {
+
+	private static final Color SYNC_LEFT_COLOR = new Color(null, 188, 242, 255);
+	private static final Color SYNC_RIGHT_COLOR = new Color(null, 204, 255, 204);
+	private static final Color SYNC_CONFLICT_COLOR = new Color(null, 255, 216, 216);
+
+	private boolean flatMode;
 
 	/**
 	 * 
@@ -66,9 +74,20 @@ public class SyncViewerLabelProvider extends DecoratingLabelProvider implements 
         switch (columnIndex) {
         case 0:
             return getImage(element);
+        case 1:
+        	return getOperationImage((ISyncItem) element);
         default:
             return null;
         }
+	}
+
+	/* (non-Javadoc)
+	 * @see org.eclipse.jface.viewers.DecoratingLabelProvider#getText(java.lang.Object)
+	 */
+	@Override
+	public String getText(Object element) {
+		ISyncItem syncItem = (ISyncItem) element;
+		return flatMode ? syncItem.getPath().toPortableString() : super.getText(element);
 	}
 
 	/* (non-Javadoc)
@@ -81,24 +100,71 @@ public class SyncViewerLabelProvider extends DecoratingLabelProvider implements 
         case 0:
         	return getText(element);
         case 2:
-        	if (syncItem.getType() == Type.FILE) {
+        	if (syncItem.getType() == Type.FILE && syncItem.getLeftFileInfo().exists()) {
         		return SyncPresentationUtils.getFileSize(syncItem.getLeftFileInfo());
         	}
+        	break;
         case 3:
-        	if (syncItem.getType() == Type.FILE) {
+        	if (syncItem.getType() == Type.FILE && syncItem.getRightFileInfo().exists()) {
         		return SyncPresentationUtils.getFileSize(syncItem.getRightFileInfo());
         	}
+        	break;
         case 4:
-        	if (syncItem.getType() == Type.FILE) {
+        	if (syncItem.getType() == Type.FILE && syncItem.getLeftFileInfo().exists()) {
         		return SyncPresentationUtils.getLastModified(syncItem.getLeftFileInfo());
         	}
+        	break;
         case 5:
-        	if (syncItem.getType() == Type.FILE) {
+        	if (syncItem.getType() == Type.FILE && syncItem.getRightFileInfo().exists()) {
         		return SyncPresentationUtils.getLastModified(syncItem.getRightFileInfo());
         	}
+        	break;
         default:
-            return ""; //$NON-NLS-1$
+        	break;
         }
+        return ""; //$NON-NLS-1$
+	}
+	
+	/* (non-Javadoc)
+	 * @see org.eclipse.jface.viewers.DecoratingLabelProvider#getBackground(java.lang.Object)
+	 */
+	@Override
+	public Color getBackground(Object element) {
+		ISyncItem syncItem = (ISyncItem) element;
+		switch (syncItem.getStatus()) {
+		case LEFT_TO_RIGHT:
+			return SYNC_RIGHT_COLOR;
+		case RIGHT_TO_LEFT:
+			return SYNC_LEFT_COLOR;
+		case CONFLICT:
+			return SYNC_CONFLICT_COLOR;
+		case NONE:
+		default:
+			return null;
+		}
+	}
+
+	private Image getOperationImage(ISyncItem syncItem) {
+		switch (syncItem.getOperation()) {
+		case LEFT_TO_RIGHT:
+			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right.png");
+		case RIGHT_TO_LEFT:
+			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left.png");
+		case NONE:
+			if (syncItem.getType() == Type.UNSUPPORTED) {
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_unsupported.png");				
+			}
+			return null;
+		default:
+			return null;
+		}
+	}
+
+	/**
+	 * @param flatMode the flatMode to set
+	 */
+	public void setFlatMode(boolean flatMode) {
+		this.flatMode = flatMode;
 	}
 
 }

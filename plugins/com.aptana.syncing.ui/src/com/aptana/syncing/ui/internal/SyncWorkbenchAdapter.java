@@ -73,7 +73,10 @@ public final class SyncWorkbenchAdapter implements IWorkbenchAdapter {
 		if (object instanceof ISyncSession) {
 			return ((ISyncSession) object).getItems();
 		} else if (object instanceof ISyncItem) {
-			return ((ISyncItem) object).getChildItems();
+			Object[] children = ((ISyncItem) object).getChildItems();
+			if (children != null) {
+				return children;
+			}
 		}
 		return EMPTY;
 	}

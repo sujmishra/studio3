@@ -51,7 +51,15 @@ public class SyncViewerSorter extends ViewerSorter {
 	@Override
 	public int category(Object element) {
 		if (element instanceof ISyncItem) {
-			return ((ISyncItem) element).getType().hashCode();
+			switch (((ISyncItem) element).getType()) {
+			case FOLDER:
+				return 1;
+			case FILE:
+				return 2;
+			case UNSUPPORTED:
+			default:
+				return 3;
+			}
 		}
 		return super.category(element);
 	}

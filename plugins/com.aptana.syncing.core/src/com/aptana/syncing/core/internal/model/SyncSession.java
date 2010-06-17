@@ -155,6 +155,7 @@ import com.aptana.syncing.core.model.ISyncSession;
 				}
 			}
 			items.clear();
+			Stack<IPath> childPaths = new Stack<IPath>();
 			for (String name : leftMap.keySet()) {
 				SyncPair syncPair = new SyncPair(left.getChild(name), leftMap.get(name), right.getChild(name), rightMap.get(name));
 				syncPair.calculateDirection(monitor);
@@ -162,9 +163,12 @@ import com.aptana.syncing.core.model.ISyncSession;
 				items.add(item);
 				if (syncPair.getLeftFileInfo().isDirectory() && syncPair.getRightFileInfo().isDirectory()) {
 					itemsMap.put(item.getPath(), item);
-					paths.add(item.getPath());
+					childPaths.add(item.getPath());
 					
 				}
+			}
+			while (!childPaths.isEmpty()) {
+				paths.add(childPaths.pop());
 			}
 			ISyncItem[] list = items.toArray(new ISyncItem[items.size()]);
 			if (path.isEmpty()) {

@@ -53,7 +53,7 @@ import com.aptana.syncing.core.internal.SyncUtils;
 public final class SyncPair {
 
 	public enum Direction {
-		SAME, LEFT_TO_RIGHT, RIGHT_TO_LEFT, AMBIGUOUS, INCONSISTENT
+		NONE, SAME, LEFT_TO_RIGHT, RIGHT_TO_LEFT, AMBIGUOUS, INCONSISTENT
 	}
 	
 	private final IFileStore leftFileStore;
@@ -156,7 +156,7 @@ public final class SyncPair {
 	 * @param forceDirection the forceDirection to set
 	 */
 	public void setForceDirection(Direction forceDirection) {
-		Assert.isLegal(forceDirection == null || forceDirection == Direction.SAME || forceDirection == Direction.LEFT_TO_RIGHT || forceDirection == Direction.RIGHT_TO_LEFT, "Invalid force direction");
+		Assert.isLegal(forceDirection == null || forceDirection == Direction.NONE || forceDirection == Direction.SAME || forceDirection == Direction.LEFT_TO_RIGHT || forceDirection == Direction.RIGHT_TO_LEFT, "Invalid force direction");
 		this.forceDirection = forceDirection;
 	}
 	

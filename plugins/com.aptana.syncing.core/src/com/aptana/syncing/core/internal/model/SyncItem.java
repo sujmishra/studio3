@@ -35,6 +35,9 @@
 
 package com.aptana.syncing.core.internal.model;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileInfo;
 import org.eclipse.core.runtime.IPath;
@@ -71,7 +74,7 @@ import com.aptana.syncing.core.model.ISyncItem;
 	 */
 	@Override
 	public ISyncItem[] getChildItems() {
-		return childItems != null ? childItems : EMPTY_LIST;
+		return childItems;
 	}
 
 	/* (non-Javadoc)
@@ -117,6 +120,63 @@ import com.aptana.syncing.core.model.ISyncItem;
 	}
 
 	/* (non-Javadoc)
+	 * @see com.aptana.syncing.core.model.ISyncItem#getAllowedOperations()
+	 */
+	@Override
+	public Set<Operation> getAllowedOperations() {
+		Set<Operation> set = new HashSet<Operation>();
+		set.add(Operation.NONE);
+		if (syncPair.getLeftFileInfo().exists() && !syncPair.getRightFileInfo().isDirectory()) {
+			set.add(Operation.LEFT_TO_RIGHT);
+		}
+		if (syncPair.getRightFileInfo().exists() && !syncPair.getLeftFileInfo().isDirectory()) {
+			set.add(Operation.RIGHT_TO_LEFT);
+		}
+		return set;
+	}
+
+	/* (non-Javadoc)
+	 * @see com.aptana.syncing.core.model.ISyncItem#setOperation(com.aptana.syncing.core.model.ISyncItem.Operation)
+	 */
+	@Override
+	public void setOperation(Operation operation) {
+		switch (operation) {
+		case LEFT_TO_RIGHT:
+			syncPair.setForceDirection(Direction.LEFT_TO_RIGHT);
+			break;
+		case RIGHT_TO_LEFT:
+			syncPair.setForceDirection(Direction.RIGHT_TO_LEFT);
+			break;
+		case NONE:
+			syncPair.setForceDirection(Direction.NONE);
+			break;
+		default:
+			syncPair.setForceDirection(null);
+			break;
+		}
+	}
+
+	/* (non-Javadoc)
+	 * @see com.aptana.syncing.core.model.ISyncItem#getStatus()
+	 */
+	@Override
+	public Status getStatus() {
+		switch(syncPair.getDefaultDirection()) {
+		case SAME:
+			return Status.NONE;
+		case LEFT_TO_RIGHT:
+			return Status.LEFT_TO_RIGHT;
+		case RIGHT_TO_LEFT:
+			return Status.RIGHT_TO_LEFT;
+		case AMBIGUOUS:
+		case INCONSISTENT:
+			return Status.CONFLICT;
+		default:
+			return null;
+		}
+	}
+
+	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncItem#getPath()
 	 */
 	@Override
@@ -132,7 +192,7 @@ import com.aptana.syncing.core.model.ISyncItem;
 		if (syncPair.getDirection() == Direction.INCONSISTENT) {
 			return Type.UNSUPPORTED;
 		}
-		if (syncPair.getLeftFileInfo().isDirectory()) {
+		if (syncPair.getLeftFileInfo().isDirectory() || syncPair.getRightFileInfo().isDirectory()) {
 			return Type.FOLDER;
 		}
 		if (syncPair.getLeftFileInfo().getAttribute(EFS.ATTRIBUTE_SYMLINK)) {
@@ -142,19 +202,13 @@ import com.aptana.syncing.core.model.ISyncItem;
 	}
 
 	/* (non-Javadoc)
-	 * @see com.aptana.syncing.core.model.ISyncItem#hasChanges()
+	 * @see java.lang.Object#toString()
 	 */
 	@Override
-	public boolean hasChanges() {
-		return syncPair.getDefaultDirection() != Direction.SAME;
-	}
-
-	/* (non-Javadoc)
-	 * @see com.aptana.syncing.core.model.ISyncItem#resetOperation()
-	 */
-	@Override
-	public void resetOperation() {
-		syncPair.setForceDirection(null);
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("SyncItem [path=").append(path).append("]");
+		return builder.toString();
 	}
 
 }

@@ -35,22 +35,38 @@
 
 package com.aptana.syncing.ui.dialogs;
 
-import org.eclipse.core.runtime.CoreException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.ProgressMonitorWrapper;
+import org.eclipse.jface.action.Action;
+import org.eclipse.jface.action.IAction;
+import org.eclipse.jface.action.IToolBarManager;
+import org.eclipse.jface.action.Separator;
+import org.eclipse.jface.action.ToolBarManager;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.dialogs.TitleAreaDialog;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.GridLayoutFactory;
+import org.eclipse.jface.viewers.DoubleClickEvent;
+import org.eclipse.jface.viewers.IDoubleClickListener;
+import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.TreeViewer;
+import org.eclipse.jface.viewers.Viewer;
+import org.eclipse.jface.viewers.ViewerCell;
+import org.eclipse.jface.viewers.ViewerFilter;
 import org.eclipse.jface.wizard.ProgressMonitorPart;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.MouseAdapter;
+import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.graphics.Point;
-import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
 
@@ -59,7 +75,14 @@ import com.aptana.ide.syncing.core.SyncingPlugin;
 import com.aptana.ide.ui.io.navigator.FileTreeContentProvider;
 import com.aptana.syncing.core.events.ISyncSessionListener;
 import com.aptana.syncing.core.events.SyncItemEvent;
+import com.aptana.syncing.core.model.ISyncItem;
 import com.aptana.syncing.core.model.ISyncSession;
+import com.aptana.syncing.core.model.ISyncItem.Operation;
+import com.aptana.syncing.core.model.ISyncItem.Status;
+import com.aptana.syncing.core.model.ISyncItem.Type;
+import com.aptana.syncing.ui.internal.FlatTreeContentProvider;
+import com.aptana.syncing.ui.internal.SyncStatusViewerFilter;
+import com.aptana.syncing.ui.internal.SyncViewerFilter;
 import com.aptana.syncing.ui.internal.SyncViewerLabelProvider;
 import com.aptana.syncing.ui.internal.SyncViewerSorter;
 import com.aptana.ui.IDialogConstants;
@@ -71,10 +94,31 @@ import com.aptana.ui.io.epl.AccumulatingProgressMonitor;
  */
 public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener {
 
+	private class FilterAction extends Action {
+
+		public FilterAction(String text) {
+			super(text, AS_RADIO_BUTTON);
+		}
+
+		@Override
+		public void run() {
+			updateFilters();
+		}
+	}
+	
 	private TreeViewer treeViewer;
 	private ISyncSession session;
 	private ProgressMonitorPart progressMonitorPart;
 	private IProgressMonitor progressMonitorWrapper;
+			
+	private SyncViewerLabelProvider labelProvider;
+	
+	private IAction hideSameAction;
+	private IAction flatModeAction;
+	private IAction allFilterAction;
+	private IAction incomingFilterAction;
+	private IAction outgoingFilterAction;
+	private IAction conflictsFilterAction;
 	
 	/**
 	 * @param parentShell
@@ -119,10 +163,13 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 				.spacing(convertHorizontalDLUsToPixels(IDialogConstants.HORIZONTAL_SPACING), convertVerticalDLUsToPixels(IDialogConstants.VERTICAL_SPACING))
 				.create());
 		
-		treeViewer = new TreeViewer(container, SWT.VIRTUAL);
+		ToolBarManager toolBarManager = new ToolBarManager(SWT.HORIZONTAL | SWT.FLAT | SWT.RIGHT);
+		ToolBar toolBar = toolBarManager.createControl(container);
+		toolBar.setLayoutData(GridDataFactory.fillDefaults().grab(true, false).align(SWT.END, SWT.FILL).create());
+		
+		treeViewer = new TreeViewer(container, SWT.VIRTUAL | SWT.MULTI);
 		treeViewer.getControl().setLayoutData(GridDataFactory.fillDefaults().grab(true, true).create());
-		treeViewer.setContentProvider(new FileTreeContentProvider());
-		treeViewer.setLabelProvider(new SyncViewerLabelProvider());
+		treeViewer.setLabelProvider(labelProvider = new SyncViewerLabelProvider());
 		treeViewer.setComparator(new SyncViewerSorter());
 		
 		Tree tree = treeViewer.getTree();
@@ -172,8 +219,36 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 					((GridData) progressMonitorPart.getLayoutData()).exclude = true;
 					progressMonitorPart.getParent().layout();
 				}
+				treeViewer.refresh(true);
 			}
 		}, progressMonitorPart.getDisplay());
+		
+		tree.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseDown(MouseEvent e) {
+				ViewerCell cell = treeViewer.getCell(new Point(e.x, e.y));
+				if (cell != null && cell.getColumnIndex() == 1) {
+					changeOperationForItem((ISyncItem) cell.getElement());
+				}
+			}
+		});
+		treeViewer.addDoubleClickListener(new IDoubleClickListener() {
+			@Override
+			public void doubleClick(DoubleClickEvent event) {
+				ISyncItem syncItem = (ISyncItem) ((IStructuredSelection) event.getSelection()).getFirstElement();
+				if (syncItem.getStatus() == Status.CONFLICT) {
+					MessageDialog.openInformation(getShell(), "TODO", "I will show you the diff!");
+				} else {
+					changeOperationForItem(syncItem);
+				}
+			}
+		});
+		
+		createActions();
+		fillToolBar(toolBarManager);
+		
+		updateFilters();
+		updatePresentationMode();
 		
 		return dialogArea;
 	}
@@ -193,6 +268,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	 */
 	@Override
 	public boolean close() {
+		session.removeListener(this);
 		showProgress(false);
 		return super.close();
 	}
@@ -231,14 +307,33 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	private void handleEventUI(SyncItemEvent event) {
 		switch (event.getKind()) {
 		case SyncItemEvent.ITEMS_ADDED:
-			treeViewer.add(event.getSource(), event.getItems());
-			break;
 		case SyncItemEvent.ITEMS_REMOVED:
+			treeViewer.refresh(event.getSource());
+			treeViewer.setExpandedState(event.getSource(), true);
 			break;
 		case SyncItemEvent.ITEMS_UPDATED:
+			treeViewer.update(event.getItems(), null);
 			break;
 		}
-
+	}
+	
+	private void changeOperationForItem(ISyncItem syncItem) {
+		Set<Operation> allowed = syncItem.getAllowedOperations();
+		allowed.remove(syncItem.getOperation());
+		switch (syncItem.getOperation()) {
+		case LEFT_TO_RIGHT:
+			syncItem.setOperation(allowed.contains(Operation.RIGHT_TO_LEFT) ? Operation.RIGHT_TO_LEFT : Operation.NONE);
+			break;
+		case RIGHT_TO_LEFT:
+			syncItem.setOperation(Operation.NONE);
+			break;
+		case NONE:
+			syncItem.setOperation(allowed.contains(Operation.LEFT_TO_RIGHT) ? Operation.LEFT_TO_RIGHT : allowed.contains(Operation.RIGHT_TO_LEFT) ? Operation.RIGHT_TO_LEFT : Operation.NONE);
+			break;
+		default:
+			break;
+		}
+		treeViewer.update(syncItem, null);
 	}
 
 	public void setSiteConnection(ISiteConnection siteConnection) {
@@ -252,6 +347,82 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 			session = SyncingPlugin.getSyncManager().createSyncSession(siteConnection);
 			SyncingPlugin.getSyncManager().runFetchTree(session);
 		}
+	}
+	
+	private void createActions() {
+		hideSameAction = new Action("Hide Identical Files", Action.AS_CHECK_BOX) {
+			@Override
+			public void run() {
+				updateFilters();
+			}
+		};
+		hideSameAction.setChecked(true);
+		
+		flatModeAction = new Action("Flat Mode", Action.AS_CHECK_BOX) {
+			@Override
+			public void run() {
+				try {
+					treeViewer.getTree().setRedraw(false);
+					updateFilters();
+					updatePresentationMode();
+				} finally {
+					treeViewer.getTree().setRedraw(true);
+				}
+			}
+		};
+		
+		incomingFilterAction = new FilterAction("Incoming Only");
+		outgoingFilterAction = new FilterAction("Outgoing Only");
+		conflictsFilterAction = new FilterAction("Conflicts Only");
+		allFilterAction = new FilterAction("All");
+		allFilterAction.setChecked(true);
+	}
+	
+	private void fillToolBar(IToolBarManager toolBarManager) {
+		toolBarManager.add(hideSameAction);
+		toolBarManager.add(flatModeAction);
+		toolBarManager.add(new Separator());
+		toolBarManager.add(incomingFilterAction);
+		toolBarManager.add(outgoingFilterAction);
+		toolBarManager.add(allFilterAction);
+		toolBarManager.add(conflictsFilterAction);
+		toolBarManager.update(true);
+	}
+	
+	private void updateFilters() {
+		List<ViewerFilter> filters = new ArrayList<ViewerFilter>();
+		if (incomingFilterAction.isChecked()) {
+			filters.add(new SyncStatusViewerFilter(Status.RIGHT_TO_LEFT));
+		} else if (outgoingFilterAction.isChecked()) {
+			filters.add(new SyncStatusViewerFilter(Status.LEFT_TO_RIGHT));			
+		} else if (conflictsFilterAction.isChecked()) {
+			filters.add(new SyncStatusViewerFilter(Status.CONFLICT));			
+		}
+		if (hideSameAction.isChecked()) {
+			filters.add(new SyncViewerFilter());
+		}
+		if (flatModeAction.isChecked()) {
+			filters.add(new ViewerFilter() {
+				@Override
+				public boolean select(Viewer viewer, Object parentElement, Object element) {
+					if (element instanceof ISyncItem) {
+						return ((ISyncItem) element).getType() != Type.FOLDER;
+					}
+					return true;
+				}
+			});
+		}
+		treeViewer.setFilters(filters.toArray(new ViewerFilter[filters.size()]));
+	}
+	
+	private void updatePresentationMode() {
+		labelProvider.setFlatMode(flatModeAction.isChecked());
+		if (flatModeAction.isChecked()) {
+			treeViewer.setContentProvider(new FlatTreeContentProvider(new FileTreeContentProvider()));
+		} else {
+			treeViewer.setContentProvider(new FileTreeContentProvider());
+		}
+		treeViewer.expandAll();
 	}
 
 }

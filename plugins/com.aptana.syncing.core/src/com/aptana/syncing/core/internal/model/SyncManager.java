@@ -35,6 +35,9 @@
 
 package com.aptana.syncing.core.internal.model;
 
+import java.util.WeakHashMap;
+import java.util.Map.Entry;
+
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -53,6 +56,7 @@ import com.aptana.syncing.core.model.ISyncSession;
 public final class SyncManager implements ISyncManager {
 
 	private static SyncManager instance;
+	private WeakHashMap<ISiteConnection, ISyncSession> sessions = new WeakHashMap<ISiteConnection, ISyncSession>();
 		
 	/**
 	 * 
@@ -72,7 +76,7 @@ public final class SyncManager implements ISyncManager {
 	 */
 	@Override
 	public ISyncSession getSyncSession(ISiteConnection siteConnection) {
-		return null; // TODO
+		return sessions.get(siteConnection);
 	}
 
 	/* (non-Javadoc)
@@ -80,7 +84,22 @@ public final class SyncManager implements ISyncManager {
 	 */
 	@Override
 	public ISyncSession createSyncSession(ISiteConnection siteConnection) {
-		return new SyncSession(siteConnection.getSource(), siteConnection.getDestination());
+		ISyncSession session =  new SyncSession(siteConnection.getSource(), siteConnection.getDestination());
+		//sessions.put(siteConnection, session);
+		return session;
+	}
+
+	/* (non-Javadoc)
+	 * @see com.aptana.syncing.core.model.ISyncManager#cleanSession(com.aptana.syncing.core.model.ISyncSession)
+	 */
+	@Override
+	public void cleanSession(ISyncSession session) {
+		for (Entry<ISiteConnection, ISyncSession> i : sessions.entrySet()) {
+			if (i.getValue() == session) {
+				sessions.remove(i.getKey());
+				break;
+			}
+		}
 	}
 
 	/* (non-Javadoc)
