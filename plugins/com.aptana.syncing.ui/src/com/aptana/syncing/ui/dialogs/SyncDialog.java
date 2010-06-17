@@ -43,13 +43,17 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.ProgressMonitorWrapper;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
+import org.eclipse.jface.action.IMenuListener;
+import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
+import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.action.ToolBarManager;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.dialogs.TitleAreaDialog;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.GridLayoutFactory;
+import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.DoubleClickEvent;
 import org.eclipse.jface.viewers.IDoubleClickListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
@@ -65,6 +69,7 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.Tree;
@@ -72,6 +77,7 @@ import org.eclipse.swt.widgets.TreeColumn;
 
 import com.aptana.ide.syncing.core.ISiteConnection;
 import com.aptana.ide.syncing.core.SyncingPlugin;
+import com.aptana.ide.syncing.ui.SyncingUIPlugin;
 import com.aptana.ide.ui.io.navigator.FileTreeContentProvider;
 import com.aptana.syncing.core.events.ISyncSessionListener;
 import com.aptana.syncing.core.events.SyncItemEvent;
@@ -96,8 +102,9 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 
 	private class FilterAction extends Action {
 
-		public FilterAction(String text) {
+		public FilterAction(String text, ImageDescriptor imageDescriptor) {
 			super(text, AS_RADIO_BUTTON);
+			setImageDescriptor(imageDescriptor);
 		}
 
 		@Override
@@ -199,6 +206,10 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		column = new TreeColumn(tree, SWT.LEFT);
 		column.setText("Remote Time");
 		column.setWidth(140);
+		
+		MenuManager menuManager = new MenuManager("#PopupMenu");
+		tree.setMenu(menuManager.createContextMenu(tree));
+		menuManager.setRemoveAllWhenShown(true);
 
 		progressMonitorPart = new ProgressMonitorPart(container, GridLayoutFactory.fillDefaults().create());
 		progressMonitorPart.setLayoutData(GridDataFactory.fillDefaults().grab(true, false).exclude(true).create());
@@ -241,6 +252,13 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 				} else {
 					changeOperationForItem(syncItem);
 				}
+			}
+		});
+		
+		menuManager.addMenuListener(new IMenuListener() {
+			@Override
+			public void menuAboutToShow(IMenuManager manager) {
+				fillContextMenu(manager);
 			}
 		});
 		
@@ -351,6 +369,9 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	
 	private void createActions() {
 		hideSameAction = new Action("Hide Identical Files", Action.AS_CHECK_BOX) {
+			{
+				setImageDescriptor(SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/filter.png"));
+			}
 			@Override
 			public void run() {
 				updateFilters();
@@ -359,6 +380,9 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		hideSameAction.setChecked(true);
 		
 		flatModeAction = new Action("Flat Mode", Action.AS_CHECK_BOX) {
+			{
+				setImageDescriptor(SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/flat.png"));
+			}
 			@Override
 			public void run() {
 				try {
@@ -371,10 +395,10 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 			}
 		};
 		
-		incomingFilterAction = new FilterAction("Incoming Only");
-		outgoingFilterAction = new FilterAction("Outgoing Only");
-		conflictsFilterAction = new FilterAction("Conflicts Only");
-		allFilterAction = new FilterAction("All");
+		incomingFilterAction = new FilterAction("Incoming Only", SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/incoming.png"));
+		outgoingFilterAction = new FilterAction("Outgoing Only", SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/outgoing.png"));
+		conflictsFilterAction = new FilterAction("Conflicts Only", SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/conflict.png"));
+		allFilterAction = new FilterAction("All", SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/both.png"));
 		allFilterAction.setChecked(true);
 	}
 	
@@ -383,10 +407,17 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		toolBarManager.add(flatModeAction);
 		toolBarManager.add(new Separator());
 		toolBarManager.add(incomingFilterAction);
-		toolBarManager.add(outgoingFilterAction);
 		toolBarManager.add(allFilterAction);
+		toolBarManager.add(outgoingFilterAction);
 		toolBarManager.add(conflictsFilterAction);
 		toolBarManager.update(true);
+	}
+	
+	private void fillContextMenu(IMenuManager menuManager) {
+		menuManager.add(new Action("TODO") {
+		});
+		menuManager.add(new Action("Dummy action") {
+		});
 	}
 	
 	private void updateFilters() {
