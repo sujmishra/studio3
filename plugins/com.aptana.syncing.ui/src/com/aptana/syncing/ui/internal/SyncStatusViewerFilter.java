@@ -40,6 +40,7 @@ import org.eclipse.jface.viewers.ViewerFilter;
 
 import com.aptana.syncing.core.model.ISyncItem;
 import com.aptana.syncing.core.model.ISyncItem.Status;
+import com.aptana.syncing.core.model.ISyncItem.Type;
 
 /**
  * @author Max Stepanov
@@ -60,7 +61,26 @@ public class SyncStatusViewerFilter extends ViewerFilter {
 	@Override
 	public boolean select(Viewer viewer, Object parentElement, Object element) {
 		if (element instanceof ISyncItem) {
-			return ((ISyncItem) element).getStatus() == status;
+			return include((ISyncItem) element);
+		}
+		return false;
+	}
+
+	private boolean include(ISyncItem syncItem) {
+		if (syncItem.getStatus() == status) {
+			return true;
+		}
+		if (syncItem.getType() == Type.FOLDER) {
+			ISyncItem[] children = syncItem.getChildItems();
+			if (children != null) {
+				for (ISyncItem i : children) {
+					if (include(i)) {
+						return true;
+					}
+				}
+			} else {
+				return true;
+			}
 		}
 		return false;
 	}

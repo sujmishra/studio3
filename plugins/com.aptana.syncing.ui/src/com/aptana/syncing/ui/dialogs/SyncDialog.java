@@ -453,7 +453,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 				@Override
 				public boolean select(Viewer viewer, Object parentElement, Object element) {
 					if (element instanceof ISyncItem) {
-						return ((ISyncItem) element).getType() != Type.FOLDER;
+						return ((ISyncItem) element).getType() != Type.FOLDER || ((ISyncItem) element).getStatus() != Status.NONE;
 					}
 					return true;
 				}
