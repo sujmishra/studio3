@@ -85,20 +85,24 @@ public final class SyncManager implements ISyncManager {
 	@Override
 	public ISyncSession createSyncSession(ISiteConnection siteConnection) {
 		ISyncSession session =  new SyncSession(siteConnection.getSource(), siteConnection.getDestination());
-		//sessions.put(siteConnection, session);
+		sessions.put(siteConnection, session);
 		return session;
 	}
 
 	/* (non-Javadoc)
-	 * @see com.aptana.syncing.core.model.ISyncManager#cleanSession(com.aptana.syncing.core.model.ISyncSession)
+	 * @see com.aptana.syncing.core.model.ISyncManager#closeSession(com.aptana.syncing.core.model.ISyncSession)
 	 */
 	@Override
-	public void cleanSession(ISyncSession session) {
+	public void closeSession(ISyncSession session) {
 		for (Entry<ISiteConnection, ISyncSession> i : sessions.entrySet()) {
 			if (i.getValue() == session) {
 				sessions.remove(i.getKey());
 				break;
 			}
+		}
+		Job job = findSessionJob(session);
+		if (job != null) {
+			job.cancel();
 		}
 	}
 

@@ -69,13 +69,11 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
 
-import com.aptana.ide.syncing.core.ISiteConnection;
 import com.aptana.ide.syncing.core.SyncingPlugin;
 import com.aptana.ide.syncing.ui.SyncingUIPlugin;
 import com.aptana.ide.ui.io.navigator.FileTreeContentProvider;
@@ -88,6 +86,7 @@ import com.aptana.syncing.core.model.ISyncItem.Status;
 import com.aptana.syncing.core.model.ISyncItem.Type;
 import com.aptana.syncing.ui.internal.FlatTreeContentProvider;
 import com.aptana.syncing.ui.internal.SyncStatusViewerFilter;
+import com.aptana.syncing.ui.internal.SyncUIManager;
 import com.aptana.syncing.ui.internal.SyncViewerFilter;
 import com.aptana.syncing.ui.internal.SyncViewerLabelProvider;
 import com.aptana.syncing.ui.internal.SyncViewerSorter;
@@ -100,6 +99,8 @@ import com.aptana.ui.io.epl.AccumulatingProgressMonitor;
  */
 public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener {
 
+	public static final String TITLE = "Synchronization Dialog";
+	
 	private class FilterAction extends Action {
 
 		public FilterAction(String text, ImageDescriptor imageDescriptor) {
@@ -110,6 +111,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		@Override
 		public void run() {
 			updateFilters();
+			treeViewer.expandAll();
 		}
 	}
 	
@@ -142,7 +144,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	@Override
 	protected void configureShell(Shell newShell) {
 		super.configureShell(newShell);
-		newShell.setText("Synchronization Dialog");
+		newShell.setText(TITLE);
 	}
 
 	/* (non-Javadoc)
@@ -230,6 +232,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 					((GridData) progressMonitorPart.getLayoutData()).exclude = true;
 					progressMonitorPart.getParent().layout();
 				}
+				getButton(IDialogConstants.OK_ID).setText("Synchronize");
 				treeViewer.refresh(true);
 			}
 		}, progressMonitorPart.getDisplay());
@@ -288,14 +291,35 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	public boolean close() {
 		session.removeListener(this);
 		showProgress(false);
+		if (!SyncingPlugin.getSyncManager().isSessionInProgress(session)) {
+			SyncingPlugin.getSyncManager().closeSession(session);
+		}
+		SyncUIManager.getInstance().onCloseUI(session);
 		return super.close();
+	}
+
+	/* (non-Javadoc)
+	 * @see org.eclipse.jface.dialogs.Dialog#cancelPressed()
+	 */
+	@Override
+	protected void cancelPressed() {
+		if (SyncingPlugin.getSyncManager().isSessionInProgress(session)
+				&& MessageDialog.openQuestion(getShell(), "Confirmation", "Do you really want to stop synchronization ?")) {
+			SyncingPlugin.getSyncManager().closeSession(session);
+		}
+		super.cancelPressed();
 	}
 
 	private void postCreate() {
 		session.addListener(this);
 		if (SyncingPlugin.getSyncManager().isSessionInProgress(session)) {
 			showProgress(true);
+			getButton(IDialogConstants.OK_ID).setText("Run In Background");
+		} else {
+			getButton(IDialogConstants.OK_ID).setText("Synchronize");
 		}
+		setButtonLayoutData(getButton(IDialogConstants.OK_ID));
+		((Composite) getButtonBar()).layout();
 		treeViewer.setInput(session);
 	}
 	
@@ -354,17 +378,8 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		treeViewer.update(syncItem, null);
 	}
 
-	public void setSiteConnection(ISiteConnection siteConnection) {
-		session = SyncingPlugin.getSyncManager().getSyncSession(siteConnection);
-		/*if (session != null) {
-			if (!MessageDialog.openQuestion(getShell(), "Question", "Do you want to use saved synchronization state?")) {
-				session = null;
-			}
-		}*/
-		if (session == null) {
-			session = SyncingPlugin.getSyncManager().createSyncSession(siteConnection);
-			SyncingPlugin.getSyncManager().runFetchTree(session);
-		}
+	public void setSession(ISyncSession session) {
+		this.session = session;
 	}
 	
 	private void createActions() {
@@ -375,6 +390,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 			@Override
 			public void run() {
 				updateFilters();
+				treeViewer.expandAll();
 			}
 		};
 		hideSameAction.setChecked(true);

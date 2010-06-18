@@ -42,7 +42,7 @@ import org.eclipse.ui.IWorkbenchPart;
 
 import com.aptana.ide.syncing.core.ISiteConnection;
 import com.aptana.ide.syncing.ui.navigator.ProjectSiteConnection;
-import com.aptana.syncing.ui.dialogs.SyncDialog;
+import com.aptana.syncing.ui.internal.SyncUIManager;
 
 /**
  * 
@@ -52,16 +52,12 @@ import com.aptana.syncing.ui.dialogs.SyncDialog;
 public class SynchronizeAction implements IObjectActionDelegate {
 
 	private ISiteConnection fConnection;
-	private IWorkbenchPart fPart;
 
 	public void setActivePart(IAction action, IWorkbenchPart targetPart) {
-		fPart = targetPart;
 	}
 
 	public void run(IAction action) {
-		SyncDialog dlg = new SyncDialog(fPart.getSite().getShell());
-		dlg.setSiteConnection(fConnection);
-		dlg.open();
+		SyncUIManager.getInstance().startSynchronization(fConnection, true);
 	}
 
 	public void selectionChanged(IAction action, ISelection selection) {

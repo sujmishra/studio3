@@ -131,11 +131,20 @@ import com.aptana.syncing.core.model.ISyncSession;
 		Map<String, IFileInfo> rightMap = new HashMap<String, IFileInfo>();
 		List<SyncItem> items = new ArrayList<SyncItem>();
 		while (!paths.isEmpty()) {
+			if (monitor.isCanceled()) {
+				return;
+			}
 			IPath path = paths.pop();
 			IFileStore left = leftConnectionPoint.getRoot().getFileStore(path);
 			IFileStore right = rightConnectionPoint.getRoot().getFileStore(path);
 			IFileInfo[] leftInfos = left.childInfos(IExtendedFileStore.DETAILED, progress.newChild(5, SubMonitor.SUPPRESS_NONE));
+			if (monitor.isCanceled()) {
+				return;
+			}
 			IFileInfo[] rightInfos = right.childInfos(IExtendedFileStore.DETAILED, progress.newChild(5, SubMonitor.SUPPRESS_NONE));
+			if (monitor.isCanceled()) {
+				return;
+			}
 			leftMap.clear();
 			rightMap.clear();
 			for (IFileInfo i : leftInfos) {
@@ -165,6 +174,11 @@ import com.aptana.syncing.core.model.ISyncSession;
 					itemsMap.put(item.getPath(), item);
 					childPaths.add(item.getPath());
 					
+				} else {
+					item.setChildItems(SyncItem.EMPTY_LIST);
+				}
+				if (monitor.isCanceled()) {
+					return;
 				}
 			}
 			while (!childPaths.isEmpty()) {

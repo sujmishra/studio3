@@ -48,7 +48,7 @@ public interface ISyncManager {
 
 	public ISyncSession getSyncSession(ISiteConnection siteConnection);
 	public ISyncSession createSyncSession(ISiteConnection siteConnection);
-	public void cleanSession(ISyncSession session);
+	public void closeSession(ISyncSession session);
 	
 	public Job runFetchTree(ISyncSession session);
 	
