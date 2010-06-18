@@ -174,6 +174,10 @@ public class SyncingPlugin extends Plugin {
 		log(new Status(IStatus.INFO, PLUGIN_ID, IStatus.OK, msg, e));
 	}
 
+	public static void logError(String msg, Exception e) {
+        log(new Status(IStatus.ERROR, PLUGIN_ID, IStatus.OK, msg, e));
+    }
+
 	private class WorkspaceSaveParticipant implements ISaveParticipant {
 
 		/* (non-Javadoc)

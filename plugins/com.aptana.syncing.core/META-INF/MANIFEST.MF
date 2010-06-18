@@ -17,5 +17,7 @@ Bundle-ActivationPolicy: lazy
 Export-Package: com.aptana.ide.syncing.core,
  com.aptana.ide.syncing.core.events,
  com.aptana.syncing.core.events,
- com.aptana.syncing.core.model
+ com.aptana.syncing.core.model,
+ com.aptana.ide.syncing.core.old,
+ com.aptana.ide.syncing.core.old.handlers
 Eclipse-ExtensibleAPI: true

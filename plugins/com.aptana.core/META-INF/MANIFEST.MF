@@ -11,5 +11,6 @@ Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Bundle-ActivationPolicy: lazy
 Export-Package: com.aptana.core,
  com.aptana.core.progress,
+ com.aptana.core.resources,
  com.aptana.core.util
 Eclipse-ExtensibleAPI: true
