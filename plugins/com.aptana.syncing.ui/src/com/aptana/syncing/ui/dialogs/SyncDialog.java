@@ -85,12 +85,14 @@ import com.aptana.syncing.core.model.ISyncItem.Operation;
 import com.aptana.syncing.core.model.ISyncItem.Status;
 import com.aptana.syncing.core.model.ISyncItem.Type;
 import com.aptana.syncing.ui.internal.FlatTreeContentProvider;
+import com.aptana.syncing.ui.internal.SearchViewerFilter;
 import com.aptana.syncing.ui.internal.SyncStatusViewerFilter;
 import com.aptana.syncing.ui.internal.SyncUIManager;
 import com.aptana.syncing.ui.internal.SyncViewerFilter;
 import com.aptana.syncing.ui.internal.SyncViewerLabelProvider;
 import com.aptana.syncing.ui.internal.SyncViewerSorter;
 import com.aptana.ui.IDialogConstants;
+import com.aptana.ui.actions.SearchToolbarControl;
 import com.aptana.ui.io.epl.AccumulatingProgressMonitor;
 
 /**
@@ -128,6 +130,8 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	private IAction incomingFilterAction;
 	private IAction outgoingFilterAction;
 	private IAction conflictsFilterAction;
+	
+	private ViewerFilter searchFilter;
 	
 	/**
 	 * @param parentShell
@@ -311,6 +315,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	}
 
 	private void postCreate() {
+		getShell().setDefaultButton(null);
 		session.addListener(this);
 		if (SyncingPlugin.getSyncManager().isSessionInProgress(session)) {
 			showProgress(true);
@@ -426,6 +431,13 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		toolBarManager.add(allFilterAction);
 		toolBarManager.add(outgoingFilterAction);
 		toolBarManager.add(conflictsFilterAction);
+		toolBarManager.add(new Separator());
+		toolBarManager.add(new SearchToolbarControl() {
+			@Override
+			public void search(String text, boolean isCaseSensitive, boolean isRegularExpression) {
+				setSearchFilter(text.isEmpty() ? null : new SearchViewerFilter(text, isCaseSensitive, isRegularExpression));
+			}
+		});
 		toolBarManager.update(true);
 	}
 	
@@ -459,7 +471,23 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 				}
 			});
 		}
+		if (searchFilter != null) {
+			filters.add(searchFilter);
+		}
 		treeViewer.setFilters(filters.toArray(new ViewerFilter[filters.size()]));
+	}
+	
+	private void setSearchFilter(final ViewerFilter filter) {
+		this.searchFilter = filter;
+		getShell().getDisplay().timerExec(500, new Runnable() {
+			@Override
+			public void run() {
+				if (searchFilter == filter) {
+					updateFilters();
+					treeViewer.expandAll();
+				}
+			}
+		});
 	}
 	
 	private void updatePresentationMode() {
