@@ -40,7 +40,9 @@ import java.util.Set;
 
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileInfo;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IProgressMonitor;
 
 import com.aptana.syncing.core.internal.model.SyncPair.Direction;
 import com.aptana.syncing.core.model.ISyncItem;
@@ -199,6 +201,14 @@ import com.aptana.syncing.core.model.ISyncItem;
 			return Type.UNSUPPORTED;
 		}
 		return Type.FILE;
+	}
+
+	/* (non-Javadoc)
+	 * @see com.aptana.syncing.core.model.ISyncItem#synchronize(org.eclipse.core.runtime.IProgressMonitor)
+	 */
+	@Override
+	public boolean synchronize(IProgressMonitor monitor) throws CoreException {
+		return syncPair.synchronize(monitor);
 	}
 
 	/* (non-Javadoc)

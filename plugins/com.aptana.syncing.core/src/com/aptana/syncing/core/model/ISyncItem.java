@@ -38,7 +38,9 @@ package com.aptana.syncing.core.model;
 import java.util.Set;
 
 import org.eclipse.core.filesystem.IFileInfo;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IProgressMonitor;
 
 /**
  * @author Max Stepanov
@@ -71,4 +73,6 @@ public interface ISyncItem {
 	public Operation getOperation();
 	public Set<Operation> getAllowedOperations();
 	public void setOperation(Operation operation);
+	
+	public boolean synchronize(IProgressMonitor monitor) throws CoreException;
 }

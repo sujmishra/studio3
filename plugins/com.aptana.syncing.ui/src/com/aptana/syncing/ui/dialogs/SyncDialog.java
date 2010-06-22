@@ -117,7 +117,31 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		}
 	}
 	
-	private TreeViewer treeViewer;
+	private class SyncTreeViewer extends TreeViewer {
+
+		public SyncTreeViewer(Composite parent, int style) {
+			super(parent, style);
+		}
+
+		public Object[] getAllSortedChildren() {
+			List<Object> list = new ArrayList<Object>();
+			for (Object element : getSortedChildren(getInput())) {
+				list.add(element);
+				addChildren(element, list);				
+			}
+			return list.toArray();
+		}		
+
+		private void addChildren(Object parent, List<Object> list) {
+			for (Object element : getSortedChildren(parent)) {
+				list.add(element);
+				addChildren(element, list);
+			}
+		}
+
+	}
+	
+	private SyncTreeViewer treeViewer;
 	private ISyncSession session;
 	private ProgressMonitorPart progressMonitorPart;
 	private IProgressMonitor progressMonitorWrapper;
@@ -180,7 +204,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		ToolBar toolBar = toolBarManager.createControl(container);
 		toolBar.setLayoutData(GridDataFactory.fillDefaults().grab(true, false).align(SWT.END, SWT.FILL).create());
 		
-		treeViewer = new TreeViewer(container, SWT.VIRTUAL | SWT.MULTI);
+		treeViewer = new SyncTreeViewer(container, SWT.VIRTUAL | SWT.MULTI);
 		treeViewer.getControl().setLayoutData(GridDataFactory.fillDefaults().grab(true, true).create());
 		treeViewer.setLabelProvider(labelProvider = new SyncViewerLabelProvider());
 		treeViewer.setComparator(new SyncViewerSorter());
@@ -295,7 +319,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	public boolean close() {
 		session.removeListener(this);
 		showProgress(false);
-		if (!SyncingPlugin.getSyncManager().isSessionInProgress(session)) {
+		if (!SyncingPlugin.getSyncManager().isSyncInProgress(session)) {
 			SyncingPlugin.getSyncManager().closeSession(session);
 		}
 		SyncUIManager.getInstance().onCloseUI(session);
@@ -303,21 +327,36 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	}
 
 	/* (non-Javadoc)
+	 * @see org.eclipse.jface.dialogs.Dialog#okPressed()
+	 */
+	@Override
+	protected void okPressed() {
+		if (!SyncingPlugin.getSyncManager().isSyncInProgress(session)) {
+			List<ISyncItem> list = getActiveItems();
+			session.setSyncItems(list.toArray(new ISyncItem[list.size()]));
+			super.okPressed();
+		} else {
+			super.cancelPressed();
+		}
+	}
+
+	/* (non-Javadoc)
 	 * @see org.eclipse.jface.dialogs.Dialog#cancelPressed()
 	 */
 	@Override
 	protected void cancelPressed() {
-		if (SyncingPlugin.getSyncManager().isSessionInProgress(session)
-				&& MessageDialog.openQuestion(getShell(), "Confirmation", "Do you really want to stop synchronization ?")) {
-			SyncingPlugin.getSyncManager().closeSession(session);
+		if (SyncingPlugin.getSyncManager().isSyncInProgress(session)
+				&& !MessageDialog.openQuestion(getShell(), "Confirmation", "Do you really want to stop synchronization ?")) {
+			return;
 		}
+		SyncingPlugin.getSyncManager().closeSession(session);
 		super.cancelPressed();
 	}
 
 	private void postCreate() {
 		getShell().setDefaultButton(null);
 		session.addListener(this);
-		if (SyncingPlugin.getSyncManager().isSessionInProgress(session)) {
+		if (SyncingPlugin.getSyncManager().isSyncInProgress(session)) {
 			showProgress(true);
 			getButton(IDialogConstants.OK_ID).setText("Run In Background");
 		} else {
@@ -381,6 +420,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 			break;
 		}
 		treeViewer.update(syncItem, null);
+		updateState();
 	}
 
 	public void setSession(ISyncSession session) {
@@ -475,6 +515,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 			filters.add(searchFilter);
 		}
 		treeViewer.setFilters(filters.toArray(new ViewerFilter[filters.size()]));
+		updateState();
 	}
 	
 	private void setSearchFilter(final ViewerFilter filter) {
@@ -498,6 +539,29 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 			treeViewer.setContentProvider(new FileTreeContentProvider());
 		}
 		treeViewer.expandAll();
+		updateState();
+	}
+	
+	private List<ISyncItem> getActiveItems() {
+		List<ISyncItem> items = new ArrayList<ISyncItem>();
+		for (Object element : treeViewer.getAllSortedChildren()) {
+			if (element instanceof ISyncItem) {
+				ISyncItem syncItem = (ISyncItem) element;
+				if (syncItem.getOperation() != Operation.NONE) {
+					items.add(syncItem);
+				}
+			}
+		}
+		return items;
+	}
+	
+	private void updateState() {
+		if (treeViewer.getInput() == null || SyncingPlugin.getSyncManager().isSyncInProgress(session)) {
+			return;
+		}
+		List<ISyncItem> items = getActiveItems();
+		getButton(IDialogConstants.OK_ID).setEnabled(!items.isEmpty());
+		// TODO: show stats
 	}
 
 }
