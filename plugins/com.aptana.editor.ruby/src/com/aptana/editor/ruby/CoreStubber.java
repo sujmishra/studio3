@@ -20,7 +20,6 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
-import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.jobs.Job;
@@ -40,6 +39,7 @@ import com.aptana.index.core.IndexManager;
 public class CoreStubber extends Job
 {
 
+	private static final String GEM_COMMAND = "gem"; //$NON-NLS-1$
 	private static final String RUBY_EXE = "ruby"; //$NON-NLS-1$
 	private static final String VERSION_SWITCH = "-v"; //$NON-NLS-1$
 
@@ -141,15 +141,15 @@ public class CoreStubber extends Job
 
 	public static Set<IPath> getGemPaths()
 	{
-		IPath gemCommand = ExecutableUtil.find("gem", true, null);
-		String command = "gem";
+		IPath gemCommand = ExecutableUtil.find(GEM_COMMAND, true, null);
+		String command = GEM_COMMAND;
 		if (gemCommand != null)
 		{
 			command = gemCommand.toOSString();
 		}
 		// FIXME Not finding my user gem path on Windows...
 		String gemEnvOutput = ProcessUtil.outputForCommand(command, null, ShellExecutable.getEnvironment(),
-				"env", "gempath"); //$NON-NLS-1$
+				"env", "gempath"); //$NON-NLS-1$ //$NON-NLS-2$
 		if (gemEnvOutput == null)
 		{
 			return Collections.emptySet();
@@ -160,7 +160,7 @@ public class CoreStubber extends Job
 		{
 			for (String gemPath : gemPaths)
 			{
-				IPath gemsPath = new Path(gemPath).append("gems");
+				IPath gemsPath = new Path(gemPath).append("gems"); //$NON-NLS-1$
 				paths.add(gemsPath);
 			}
 		}
@@ -277,6 +277,7 @@ public class CoreStubber extends Job
 	{
 
 		private final Set<IFileStore> files;
+		private ArrayList<String> fileURIs;
 		private Index index;
 
 		public IndexFileStoresJob(String message, Index index, Set<IFileStore> files)
@@ -360,9 +361,26 @@ public class CoreStubber extends Job
 
 		private void filterFiles()
 		{
+			try
+			{
+				Set<String> documents = index.queryDocumentNames(null);
+				for (String docName : documents)
+				{
+					if (!fileExists(docName))
+					{
+						index.remove(docName);
+					}
+				}
+			}
+			catch (IOException e)
+			{
+				IndexActivator.logError("Error occurred while removing stale index entries", e);
+			}
+
+			IEclipsePreferences prefs = new InstanceScope().getNode(Activator.PLUGIN_ID);
 			// We store something in the prefs for the last timestamp, since we can't go off timestamp of disk index.
-			long indexLastModified = Platform.getPreferencesService().getLong(Activator.PLUGIN_ID,
-					getIndexTimestampKey(), -1, null);
+			// Now we filter files to only those that have been added/changed since last index.
+			long indexLastModified = prefs.getLong(getIndexTimestampKey(), -1);
 			Iterator<IFileStore> iter = files.iterator();
 			while (iter.hasNext())
 			{
@@ -374,6 +392,24 @@ public class CoreStubber extends Job
 			}
 		}
 
+		private boolean fileExists(String lastString)
+		{
+			return Collections.binarySearch(getFileURIs(), lastString) >= 0;
+		}
+
+		protected List<? extends String> getFileURIs()
+		{
+			if (fileURIs == null)
+			{
+				fileURIs = new ArrayList<String>();
+				for (IFileStore store : files)
+				{
+					fileURIs.add(store.toURI().getPath());
+				}
+				Collections.sort(fileURIs);
+			}
+			return fileURIs;
+		}
 	}
 
 }
