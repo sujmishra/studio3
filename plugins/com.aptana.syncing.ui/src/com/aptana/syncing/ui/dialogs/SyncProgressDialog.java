@@ -52,8 +52,10 @@ import org.eclipse.swt.widgets.TableColumn;
 import com.aptana.ide.syncing.core.SyncingPlugin;
 import com.aptana.syncing.core.events.ISyncSessionListener;
 import com.aptana.syncing.core.events.SyncItemEvent;
+import com.aptana.syncing.core.model.ISyncItem;
 import com.aptana.syncing.core.model.ISyncSession;
 import com.aptana.syncing.ui.internal.SyncProgressViewerLabelProvider;
+import com.aptana.syncing.ui.internal.SyncProgressViewerSorter;
 import com.aptana.syncing.ui.internal.SyncUIManager;
 import com.aptana.ui.IDialogConstants;
 
@@ -115,6 +117,7 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 		tableViewer.getControl().setLayoutData(GridDataFactory.fillDefaults().grab(true, true).create());
 		tableViewer.setLabelProvider(new SyncProgressViewerLabelProvider());
 		tableViewer.setContentProvider(new ArrayContentProvider());
+		tableViewer.setSorter(new SyncProgressViewerSorter());
 		
 		Table table = tableViewer.getTable();
 		table.setHeaderVisible(true);
@@ -129,7 +132,7 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 		column.setWidth(30);
 
 		column = new TableColumn(table, SWT.LEAD);
-		column.setWidth(100);
+		column.setWidth(400);
 		
 		return dialogArea;
 	}
@@ -154,6 +157,7 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 	}
 
 	private void postCreate() {
+		session.addListener(this);
 		tableViewer.setInput(session.getSyncItems());
 	}
 
@@ -203,8 +207,10 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 			tableViewer.refresh(event.getSource());
 			break;
 		case SyncItemEvent.ITEMS_UPDATED:
-			tableViewer.update(event.getItems(), null);
-			System.out.println("Update "+event.getItems()[0]);
+			ISyncItem[] items = event.getItems();
+			tableViewer.update(items, null);
+			tableViewer.refresh(false);
+			tableViewer.reveal(items[items.length-1]);
 			break;
 		}
 	}

@@ -133,11 +133,13 @@ public final class SyncManager implements ISyncManager {
 				} catch (CoreException e) {
 					monitor.done();
 					((SyncSession) session).setStage(Stage.CANCELLED);
+					closeSession(session);
 					return e.getStatus();
 				}
 				monitor.done();
 				if (monitor.isCanceled()) {
 					((SyncSession) session).setStage(Stage.CANCELLED);
+					closeSession(session);
 					return Status.CANCEL_STATUS;
 				}
 				((SyncSession) session).setStage(Stage.FETCHED);
@@ -210,6 +212,7 @@ public final class SyncManager implements ISyncManager {
 				monitor.done();
 				if (monitor.isCanceled()) {
 					((SyncSession) session).setStage(Stage.CANCELLED);
+					closeSession(session);
 					return Status.CANCEL_STATUS;
 				}
 				((SyncSession) session).setStage(Stage.SYNCED);

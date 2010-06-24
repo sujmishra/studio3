@@ -365,6 +365,9 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		setButtonLayoutData(getButton(IDialogConstants.OK_ID));
 		((Composite) getButtonBar()).layout();
 		treeViewer.setInput(session);
+		if (hideSameAction.isChecked()) {
+			treeViewer.expandAll();
+		}
 	}
 	
 	private void showProgress(boolean show) {

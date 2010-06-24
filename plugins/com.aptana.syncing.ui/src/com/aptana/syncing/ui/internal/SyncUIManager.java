@@ -160,7 +160,7 @@ public final class SyncUIManager {
 			dlg.setSession(session);
 			uiSessions.add(session);
 			if (dlg.open() == Window.OK) {
-				startSynchronization(session, true);
+				startSynchronization(session, false);
 			}
 		}
 	}

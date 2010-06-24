@@ -259,10 +259,12 @@ import com.aptana.syncing.core.model.ISyncItem;
 
 		private ISyncSessionListener listener;
 		private int totalWork = Integer.MAX_VALUE;
+		private int worked = 0;
 		
 		protected ProgressMonitor(IProgressMonitor monitor, ISyncSessionListener listener) {
 			super(monitor);
 			this.listener = listener;
+			notifyListener();
 		}
 		
 		private void notifyListener() {
@@ -297,7 +299,8 @@ import com.aptana.syncing.core.model.ISyncItem;
 		 */
 		@Override
 		public void internalWorked(double work) {
-			syncProgress = (int) ((work*100)/totalWork);
+			worked += work;
+			syncProgress = (int) ((worked*100)/totalWork);
 			notifyListener();
 			super.internalWorked(work);
 		}
@@ -307,7 +310,8 @@ import com.aptana.syncing.core.model.ISyncItem;
 		 */
 		@Override
 		public void worked(int work) {
-			syncProgress = (work*100)/totalWork;
+			worked += work;
+			syncProgress = (worked*100)/totalWork;
 			notifyListener();
 			super.worked(work);
 		}

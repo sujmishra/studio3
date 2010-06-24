@@ -35,18 +35,16 @@
 
 package com.aptana.syncing.ui.internal;
 
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.viewers.DecoratingLabelProvider;
 import org.eclipse.jface.viewers.ITableLabelProvider;
-import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
 
 import com.aptana.ide.syncing.ui.SyncingUIPlugin;
-import com.aptana.ide.syncing.ui.internal.SyncPresentationUtils;
 import com.aptana.syncing.core.model.ISyncItem;
-import com.aptana.syncing.core.model.ISyncItem.Status;
-import com.aptana.syncing.core.model.ISyncItem.Type;
+import com.aptana.syncing.core.model.ISyncItem.SyncStatus;
 
 /**
  * @author Max Stepanov
@@ -71,7 +69,7 @@ public class SyncProgressViewerLabelProvider extends DecoratingLabelProvider imp
         case 0:
             return getImage(element);
         case 1:
-        	return getOperationImage((ISyncItem) element);
+        	return getStatusImage((ISyncItem) element);
         default:
             return null;
         }
@@ -94,28 +92,46 @@ public class SyncProgressViewerLabelProvider extends DecoratingLabelProvider imp
         switch (columnIndex) {
         case 0:
         	return getText(element);
+        case 2:
+        	return getResultText((ISyncItem) element);
         default:
         	break;
         }
         return ""; //$NON-NLS-1$
 	}
 	
-	private Image getOperationImage(ISyncItem syncItem) {
-		switch (syncItem.getOperation()) {
-		case LEFT_TO_RIGHT:
-			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right.png");
-		case RIGHT_TO_LEFT:
-			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left.png");
-		case NONE:
-			if (syncItem.getType() == Type.UNSUPPORTED) {
-				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_unsupported.png");
-			} else if (syncItem.getStatus() == Status.CONFLICT) {
-				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_conflict.png");
-			}
+	private Image getStatusImage(ISyncItem syncItem) {
+		SyncStatus result = syncItem.getSyncResult();
+		if (result == null) {
 			return null;
+		}
+		switch (result) {
+		case SUCCEEDED:
+			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_ok.png");
+		case FAILED:
+			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_failed.png");
+		case IN_PROGRESS:
+			switch (syncItem.getOperation()) {
+			case LEFT_TO_RIGHT:
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right.png");
+			case RIGHT_TO_LEFT:
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left.png");
+			}
 		default:
 			return null;
 		}
+	}
+	
+	private String getResultText(ISyncItem syncItem) {
+		if (syncItem.getSyncResult() == SyncStatus.FAILED) {
+			CoreException exception = syncItem.getSyncError();
+			if (exception != null) {
+				return exception.getMessage();
+			}
+		} else if (syncItem.getSyncResult() == SyncStatus.IN_PROGRESS) {
+			return ""+syncItem.getSyncProgress();
+		}
+		return "";
 	}
 
 }

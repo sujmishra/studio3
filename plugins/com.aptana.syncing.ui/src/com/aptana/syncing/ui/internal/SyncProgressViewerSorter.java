@@ -33,51 +33,46 @@
  * Any modifications to this file must keep this entire header intact.
  */
 
-package com.aptana.syncing.core.internal.model;
+package com.aptana.syncing.ui.internal;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Stack;
+import org.eclipse.jface.viewers.Viewer;
+import org.eclipse.jface.viewers.ViewerSorter;
 
 import com.aptana.syncing.core.model.ISyncItem;
+import com.aptana.syncing.core.model.ISyncItem.SyncStatus;
 
 /**
  * @author Max Stepanov
  *
  */
-/* package */ final class SyncDispatcher {
+public class SyncProgressViewerSorter extends ViewerSorter {
 
-	private Stack<ISyncItem> items = new Stack<ISyncItem>();
-	private List<ISyncItem> active = new ArrayList<ISyncItem>();
-	
-	/**
-	 * 
+	/* (non-Javadoc)
+	 * @see org.eclipse.jface.viewers.ViewerComparator#category(java.lang.Object)
 	 */
-	public SyncDispatcher(ISyncItem[] items) {
-		for (int i = items.length-1; i >=0; --i) {
-			this.items.add(items[i]);
+	@Override
+	public int category(Object element) {
+		if (element instanceof ISyncItem) {
+			SyncStatus result = ((ISyncItem) element).getSyncResult();
+			if (result == SyncStatus.SUCCEEDED || result == SyncStatus.FAILED) {
+				return 1;
+			} else if (result == SyncStatus.IN_PROGRESS) {
+				return 2;
+			} else {
+				return 3;
+			}
 		}
+		return super.category(element);
 	}
-	
-	public synchronized ISyncItem next() {
-		if (items.isEmpty()) {
-			return null;
-		}
-		ISyncItem next = items.pop();
-		active.add(next);
-		return next;
-	}
-	
-	public synchronized int getRemainingCount() {
-		return items.size() + active.size();
-	}
-	
-	public synchronized void done(ISyncItem item) {
-		active.remove(item);
-	}
-	
-	public synchronized ISyncItem[] getActiveItems() {
-		return active.toArray(new ISyncItem[active.size()]);
+
+	/* (non-Javadoc)
+	 * @see org.eclipse.jface.viewers.ViewerComparator#compare(org.eclipse.jface.viewers.Viewer, java.lang.Object, java.lang.Object)
+	 */
+	@Override
+	public int compare(Viewer viewer, Object e1, Object e2) {
+        int cat1 = category(e1);
+        int cat2 = category(e2);
+		return cat1 - cat2;
 	}
 
 }
