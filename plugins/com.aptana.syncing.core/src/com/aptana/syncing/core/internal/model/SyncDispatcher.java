@@ -1,5 +1,5 @@
 /**
- * This file Copyright (c) 2005-2009 Aptana, Inc. This program is
+ * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
  * dual-licensed under both the Aptana Public License and the GNU General
  * Public license. You may elect to use one or the other of these licenses.
  * 
@@ -33,37 +33,51 @@
  * Any modifications to this file must keep this entire header intact.
  */
 
-package com.aptana.syncing.core.model;
+package com.aptana.syncing.core.internal.model;
 
-import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IProgressMonitor;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
 
-import com.aptana.ide.core.io.IConnectionPoint;
-import com.aptana.syncing.core.events.ISyncSessionListener;
+import com.aptana.syncing.core.model.ISyncItem;
 
 /**
  * @author Max Stepanov
  *
  */
-public interface ISyncSession {
+/* package */ final class SyncDispatcher {
+
+	private Stack<ISyncItem> items = new Stack<ISyncItem>();
+	private List<ISyncItem> active = new ArrayList<ISyncItem>();
 	
-	public enum Stage {
-		INITIAL, FETCHING, FETCHED, SYNCING, SYNCED, CANCELLED
+	/**
+	 * 
+	 */
+	public SyncDispatcher(ISyncItem[] items) {
+		for (ISyncItem i : items) {
+			this.items.add(i);
+		}
+	}
+	
+	public synchronized ISyncItem next() {
+		if (items.isEmpty()) {
+			return null;
+		}
+		ISyncItem next = items.pop();
+		active.add(next);
+		return next;
+	}
+	
+	public synchronized int getRemainingCount() {
+		return items.size() + active.size();
+	}
+	
+	public synchronized void done(ISyncItem item) {
+		active.remove(item);
+	}
+	
+	public synchronized ISyncItem[] getActiveItems() {
+		return active.toArray(new ISyncItem[active.size()]);
 	}
 
-	public IConnectionPoint getSourceConnectionPoint();
-	public IConnectionPoint getDestinationConnectionPoint();
-	
-	public void addListener(ISyncSessionListener listener);
-	public void removeListener(ISyncSessionListener listener);
-		
-	public void fetchTree(IProgressMonitor monitor) throws CoreException;
-	public void synchronize(ISyncItem[] items, IProgressMonitor monitor) throws CoreException;
-	
-	public ISyncItem[] getItems();
-	
-	public Stage getStage();
-	
-	public void setSyncItems(ISyncItem[] items);
-	public ISyncItem[] getSyncItems();
 }

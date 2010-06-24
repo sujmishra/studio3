@@ -69,6 +69,15 @@ import com.aptana.syncing.core.model.ISyncSession;
 	private IConnectionPoint rightConnectionPoint;
 	private ISyncItem[] rootItems = SyncItem.EMPTY_LIST;
 	private ListenerList listeners = new ListenerList();
+	private ISyncItem[] syncItems;
+	private Stage stage = Stage.INITIAL;
+	
+	private ISyncSessionListener syncItemListener = new ISyncSessionListener() {
+		@Override
+		public void handleEvent(SyncItemEvent event) {
+			notifyListeners(event);
+		}
+	};
 	
 	/**
 	 * 
@@ -199,6 +208,18 @@ import com.aptana.syncing.core.model.ISyncSession;
 	}
 
 	/* (non-Javadoc)
+	 * @see com.aptana.syncing.core.model.ISyncSession#synchronize(com.aptana.syncing.core.model.ISyncItem[], org.eclipse.core.runtime.IProgressMonitor)
+	 */
+	@Override
+	public void synchronize(ISyncItem[] items, IProgressMonitor monitor) throws CoreException {
+		SubMonitor progress = SubMonitor.convert(monitor, items.length);
+		for (ISyncItem item : items) {
+			((SyncItem) item).synchronize(progress.newChild(1, SubMonitor.SUPPRESS_NONE), syncItemListener);
+		}
+		monitor.done();
+	}
+
+	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncSession#getItems()
 	 */
 	@Override
@@ -227,6 +248,37 @@ import com.aptana.syncing.core.model.ISyncSession;
 	}
 
 	/* (non-Javadoc)
+	 * @see com.aptana.syncing.core.model.ISyncSession#getStage()
+	 */
+	@Override
+	public Stage getStage() {
+		return stage;
+	}
+
+	/**
+	 * @param stage the stage to set
+	 */
+	public void setStage(Stage stage) {
+		this.stage = stage;
+	}
+
+	/* (non-Javadoc)
+	 * @see com.aptana.syncing.core.model.ISyncSession#getSyncItems()
+	 */
+	@Override
+	public ISyncItem[] getSyncItems() {
+		return syncItems;
+	}
+
+	/* (non-Javadoc)
+	 * @see com.aptana.syncing.core.model.ISyncSession#setSyncItems(com.aptana.syncing.core.model.ISyncItem[])
+	 */
+	@Override
+	public void setSyncItems(ISyncItem[] syncItems) {
+		this.syncItems = syncItems;
+	}
+
+	/* (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
@@ -237,5 +289,4 @@ import com.aptana.syncing.core.model.ISyncSession;
 				.append(rightConnectionPoint).append("]");
 		return builder.toString();
 	}
-
 }

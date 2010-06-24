@@ -46,13 +46,20 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
+import org.eclipse.jface.action.Action;
+import org.eclipse.jface.window.Window;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.progress.IProgressConstants;
 import org.eclipse.ui.progress.WorkbenchJob;
 
 import com.aptana.ide.syncing.core.ISiteConnection;
 import com.aptana.ide.syncing.core.SyncingPlugin;
+import com.aptana.ide.syncing.ui.SyncingUIPlugin;
 import com.aptana.syncing.core.model.ISyncSession;
+import com.aptana.syncing.core.model.ISyncSession.Stage;
 import com.aptana.syncing.ui.dialogs.SyncDialog;
+import com.aptana.syncing.ui.dialogs.SyncProgressDialog;
 import com.aptana.ui.PopupSchedulingRule;
 
 /**
@@ -79,48 +86,82 @@ public final class SyncUIManager {
 		return instance;
 	}
 	
-	public void startSynchronization(ISiteConnection siteConnection, boolean showUI) {
+	public void initiateSynchronization(ISiteConnection siteConnection, boolean showUI) {
 		ISyncSession session = SyncingPlugin.getSyncManager().getSyncSession(siteConnection);
 		if (session == null) {
 			session = SyncingPlugin.getSyncManager().createSyncSession(siteConnection);
 			Job job = SyncingPlugin.getSyncManager().runFetchTree(session);
-			job.setProperty(PROP_SESSION, session);
-			job.addJobChangeListener(new JobChangeAdapter() {
-				@Override
-				public void done(final IJobChangeEvent event) {
-					if (event.getResult().isOK()) {
-						WorkbenchJob uiJob = new WorkbenchJob(MessageFormat.format("Opening {0}", SyncDialog.TITLE)) {
-							@Override
-							public IStatus runInUIThread(IProgressMonitor monitor) {
-								showUI((ISyncSession) event.getJob().getProperty(PROP_SESSION));
-								return Status.OK_STATUS;
-							}
-						};
-						uiJob.setSystem(true);
-						uiJob.setPriority(Job.INTERACTIVE);
-						uiJob.setRule(PopupSchedulingRule.INSTANCE);
-						uiJob.schedule();
-					}
-				}
-			});
+			setupJob(job, session);
 			if (!showUI) {
 				return;
 			}
 		}
 		showUI(session);
 	}
-	
+
+	public void startSynchronization(ISyncSession session, boolean showUI) {
+		Job job = SyncingPlugin.getSyncManager().synchronize(session);
+		setupJob(job, session);
+		if (showUI) {
+			showUI(session);
+		}
+	}
+
 	public synchronized void onCloseUI(ISyncSession session) {
 		uiSessions.remove(session);
+	}
+	
+	private void setupJob(final Job job, ISyncSession session) {
+		job.setProperty(PROP_SESSION, session);
+		job.setProperty(IProgressConstants.ACTION_PROPERTY, new Action() {
+			@Override
+			public void run() {
+				showUI(job);
+			}
+		});
+		job.setProperty(IProgressConstants.ICON_PROPERTY, SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/sync.png"));
+		job.setProperty(IProgressConstants.NO_IMMEDIATE_ERROR_PROMPT_PROPERTY, Boolean.TRUE);
+		job.addJobChangeListener(new JobChangeAdapter() {
+			@Override
+			public void done(final IJobChangeEvent event) {
+				if (event.getResult().isOK()) {
+					WorkbenchJob uiJob = new WorkbenchJob(MessageFormat.format("Opening {0}", SyncDialog.TITLE)) {
+						@Override
+						public IStatus runInUIThread(IProgressMonitor monitor) {
+							showUI(event.getJob());
+							return Status.OK_STATUS;
+						}
+					};
+					uiJob.setSystem(true);
+					uiJob.setPriority(Job.INTERACTIVE);
+					uiJob.setRule(PopupSchedulingRule.INSTANCE);
+					uiJob.schedule();
+				}
+			}
+		});		
+	}
+	
+	private void showUI(Job job) {
+		showUI((ISyncSession) job.getProperty(PROP_SESSION));
 	}
 	
 	private synchronized void showUI(final ISyncSession session) {
 		if (uiSessions.contains(session)) {
 			return;
 		}
-		SyncDialog dlg = new SyncDialog(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell());
-		dlg.setSession(session);
-		uiSessions.add(session);
-		dlg.open();
+		Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
+		if (session.getStage() == Stage.SYNCING || session.getStage() == Stage.SYNCED) {
+			SyncProgressDialog dlg = new SyncProgressDialog(shell);
+			dlg.setSession(session);
+			uiSessions.add(session);
+			dlg.open();
+		} else {
+			SyncDialog dlg = new SyncDialog(shell);
+			dlg.setSession(session);
+			uiSessions.add(session);
+			if (dlg.open() == Window.OK) {
+				startSynchronization(session, true);
+			}
+		}
 	}
 }

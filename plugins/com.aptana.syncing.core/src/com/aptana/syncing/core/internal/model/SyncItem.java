@@ -43,7 +43,10 @@ import org.eclipse.core.filesystem.IFileInfo;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.ProgressMonitorWrapper;
 
+import com.aptana.syncing.core.events.ISyncSessionListener;
+import com.aptana.syncing.core.events.SyncItemEvent;
 import com.aptana.syncing.core.internal.model.SyncPair.Direction;
 import com.aptana.syncing.core.model.ISyncItem;
 
@@ -58,6 +61,9 @@ import com.aptana.syncing.core.model.ISyncItem;
 	private IPath path;
 	private SyncPair syncPair;
 	private ISyncItem[] childItems;
+	private SyncStatus syncStatus;
+	private int syncProgress;
+	private CoreException syncError;
 	
 	/**
 	 * 
@@ -203,12 +209,40 @@ import com.aptana.syncing.core.model.ISyncItem;
 		return Type.FILE;
 	}
 
+
 	/* (non-Javadoc)
-	 * @see com.aptana.syncing.core.model.ISyncItem#synchronize(org.eclipse.core.runtime.IProgressMonitor)
+	 * @see com.aptana.syncing.core.model.ISyncItem#getSyncProgress()
 	 */
 	@Override
-	public boolean synchronize(IProgressMonitor monitor) throws CoreException {
-		return syncPair.synchronize(monitor);
+	public int getSyncProgress() {
+		return syncProgress;
+	}
+
+	/* (non-Javadoc)
+	 * @see com.aptana.syncing.core.model.ISyncItem#getSyncResult()
+	 */
+	@Override
+	public SyncStatus getSyncResult() {
+		return syncStatus;
+	}
+
+	/* (non-Javadoc)
+	 * @see com.aptana.syncing.core.model.ISyncItem#getSyncError()
+	 */
+	@Override
+	public CoreException getSyncError() {
+		return syncError;
+	}
+
+	public SyncStatus synchronize(IProgressMonitor monitor, ISyncSessionListener listener) {
+		try {
+			syncStatus = SyncStatus.IN_PROGRESS;
+			syncStatus = syncPair.synchronize(new ProgressMonitor(monitor, listener)) ? SyncStatus.SUCCEEDED : SyncStatus.FAILED;
+		} catch (CoreException e) {
+			syncError = e;
+			syncStatus = SyncStatus.FAILED;			
+		}
+		return syncStatus;
 	}
 
 	/* (non-Javadoc)
@@ -219,6 +253,65 @@ import com.aptana.syncing.core.model.ISyncItem;
 		StringBuilder builder = new StringBuilder();
 		builder.append("SyncItem [path=").append(path).append("]");
 		return builder.toString();
+	}
+
+	private class ProgressMonitor extends ProgressMonitorWrapper {
+
+		private ISyncSessionListener listener;
+		private int totalWork = Integer.MAX_VALUE;
+		
+		protected ProgressMonitor(IProgressMonitor monitor, ISyncSessionListener listener) {
+			super(monitor);
+			this.listener = listener;
+		}
+		
+		private void notifyListener() {
+			if (listener != null) {
+				listener.handleEvent(new SyncItemEvent(SyncItem.this, SyncItemEvent.ITEMS_UPDATED, new ISyncItem[] { SyncItem.this }));
+			}
+		}
+
+		/* (non-Javadoc)
+		 * @see org.eclipse.core.runtime.ProgressMonitorWrapper#beginTask(java.lang.String, int)
+		 */
+		@Override
+		public void beginTask(String name, int totalWork) {
+			this.totalWork = totalWork;
+			syncProgress = 0;
+			notifyListener();
+			super.beginTask(name, totalWork);
+		}
+
+		/* (non-Javadoc)
+		 * @see org.eclipse.core.runtime.ProgressMonitorWrapper#done()
+		 */
+		@Override
+		public void done() {
+			syncProgress = 100;
+			notifyListener();
+			super.done();
+		}
+
+		/* (non-Javadoc)
+		 * @see org.eclipse.core.runtime.ProgressMonitorWrapper#internalWorked(double)
+		 */
+		@Override
+		public void internalWorked(double work) {
+			syncProgress = (int) ((work*100)/totalWork);
+			notifyListener();
+			super.internalWorked(work);
+		}
+
+		/* (non-Javadoc)
+		 * @see org.eclipse.core.runtime.ProgressMonitorWrapper#worked(int)
+		 */
+		@Override
+		public void worked(int work) {
+			syncProgress = (work*100)/totalWork;
+			notifyListener();
+			super.worked(work);
+		}
+		
 	}
 
 }

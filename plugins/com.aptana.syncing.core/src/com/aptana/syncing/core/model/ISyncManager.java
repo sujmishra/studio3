@@ -51,8 +51,9 @@ public interface ISyncManager {
 	public void closeSession(ISyncSession session);
 	
 	public Job runFetchTree(ISyncSession session);
+	public Job synchronize(ISyncSession session);
 	
-	public boolean isSessionInProgress(ISyncSession session);
+	public boolean isSyncInProgress(ISyncSession session);
 	
 	public void addProgressMonitorListener(ISyncSession session, IProgressMonitor monitor);
 	public void removeProgressMonitorListener(ISyncSession session, IProgressMonitor monitor);

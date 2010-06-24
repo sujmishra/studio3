@@ -40,7 +40,6 @@ import java.util.Set;
 import org.eclipse.core.filesystem.IFileInfo;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
-import org.eclipse.core.runtime.IProgressMonitor;
 
 /**
  * @author Max Stepanov
@@ -60,6 +59,10 @@ public interface ISyncItem {
 		NONE, LEFT_TO_RIGHT, RIGHT_TO_LEFT
 	}
 	
+	public enum SyncStatus {
+		IN_PROGRESS, SUCCEEDED, FAILED
+	}
+	
 	public Type getType();
 	public String getName();
 	public IPath getPath();
@@ -74,5 +77,7 @@ public interface ISyncItem {
 	public Set<Operation> getAllowedOperations();
 	public void setOperation(Operation operation);
 	
-	public boolean synchronize(IProgressMonitor monitor) throws CoreException;
+	public SyncStatus getSyncResult();
+	public int getSyncProgress();
+	public CoreException getSyncError();
 }

@@ -42,19 +42,24 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.jobs.Job;
 
 import com.aptana.core.progress.JobProgressMonitor;
 import com.aptana.ide.syncing.core.ISiteConnection;
+import com.aptana.syncing.core.model.ISyncItem;
 import com.aptana.syncing.core.model.ISyncManager;
 import com.aptana.syncing.core.model.ISyncSession;
+import com.aptana.syncing.core.model.ISyncSession.Stage;
 
 /**
  * @author Max Stepanov
  *
  */
 public final class SyncManager implements ISyncManager {
-
+	
+	private static final int CONCURRENT_JOBS = 4;
+	
 	private static SyncManager instance;
 	private WeakHashMap<ISiteConnection, ISyncSession> sessions = new WeakHashMap<ISiteConnection, ISyncSession>();
 		
@@ -111,6 +116,7 @@ public final class SyncManager implements ISyncManager {
 	 */
 	@Override
 	public Job runFetchTree(final ISyncSession session) {
+		((SyncSession) session).setStage(Stage.FETCHING);
 		Job job = new Job("Fetching synchronization data for "+session.toString()) {
 			@Override
 			public boolean belongsTo(Object family) {
@@ -126,12 +132,15 @@ public final class SyncManager implements ISyncManager {
 					}
 				} catch (CoreException e) {
 					monitor.done();
+					((SyncSession) session).setStage(Stage.CANCELLED);
 					return e.getStatus();
 				}
 				monitor.done();
 				if (monitor.isCanceled()) {
+					((SyncSession) session).setStage(Stage.CANCELLED);
 					return Status.CANCEL_STATUS;
 				}
+				((SyncSession) session).setStage(Stage.FETCHED);
 				return Status.OK_STATUS;
 			}
 		};
@@ -142,21 +151,138 @@ public final class SyncManager implements ISyncManager {
 		return job;
 	}
 	
+	/* (non-Javadoc)
+	 * @see com.aptana.syncing.core.model.ISyncManager#synchronize(com.aptana.syncing.core.model.ISyncSession)
+	 */
+	@Override
+	public Job synchronize(final ISyncSession session) {		
+		((SyncSession) session).setStage(Stage.SYNCING);
+		Job job = new Job("Synchronizing "+session.toString()) {
+			@Override
+			public boolean belongsTo(Object family) {
+				return (family == session);
+			}
+
+			@Override
+			protected IStatus run(IProgressMonitor monitor) {
+				SyncDispatcher dispatcher = new SyncDispatcher(session.getSyncItems());
+				int lastRemainingCount = dispatcher.getRemainingCount();
+				SubMonitor progress = SubMonitor.convert(monitor, lastRemainingCount);
+				if (!monitor.isCanceled()) {
+					Job[] workers = new Job[CONCURRENT_JOBS];
+					synchronized (dispatcher) {
+						for (int i = 0; i < workers.length; ++i) {
+							workers[i] = createSyncWorker(session, dispatcher);
+						}
+						int remaining;
+						while (!monitor.isCanceled() && (remaining = dispatcher.getRemainingCount()) > 0) {
+							if (remaining < lastRemainingCount) {
+								progress.worked(lastRemainingCount-remaining);
+								lastRemainingCount = remaining;
+							}
+							progress.setWorkRemaining(remaining);
+							StringBuffer sb = new StringBuffer();
+							for (ISyncItem i : dispatcher.getActiveItems()) {
+								if (sb.length() > 0) {
+									sb.append('\n');
+								}
+								sb.append(i.getPath());
+							}
+							progress.subTask(sb.toString());
+							try {
+								dispatcher.wait(5000);
+							} catch (InterruptedException e) {
+							}
+						}
+					}
+					if (monitor.isCanceled()) {
+						for (Job job : workers) {
+							job.cancel();
+						}
+					}
+					for (Job job : workers) {
+						try {
+							job.join();
+						} catch (InterruptedException e) {
+						}
+					}
+				}
+				monitor.done();
+				if (monitor.isCanceled()) {
+					((SyncSession) session).setStage(Stage.CANCELLED);
+					return Status.CANCEL_STATUS;
+				}
+				((SyncSession) session).setStage(Stage.SYNCED);
+				return Status.OK_STATUS;
+			}
+		};
+		job.setUser(true);
+		job.setPriority(Job.LONG);
+		job.setRule((SyncSession) session);
+		job.schedule();
+		return job;
+	}
+
+	private Job createSyncWorker(final ISyncSession session, final SyncDispatcher dispatcher) {
+		Job job = new Job("Synchronize worker") {
+			@Override
+			public boolean belongsTo(Object family) {
+				return (family == dispatcher);
+			}
+
+			@Override
+			protected IStatus run(IProgressMonitor monitor) {
+				int lastRemainingCount = dispatcher.getRemainingCount();
+				SubMonitor progress = SubMonitor.convert(monitor, lastRemainingCount);
+				try {
+					ISyncItem item;
+					while (!monitor.isCanceled() && (item = dispatcher.next()) != null) {
+						synchronized (dispatcher) {
+							dispatcher.notify();							
+						}
+						session.synchronize(new ISyncItem[] { item }, progress.newChild(1, SubMonitor.SUPPRESS_NONE));
+						synchronized (dispatcher) {
+							dispatcher.done(item);
+							int remianing = dispatcher.getRemainingCount();
+							if (remianing < lastRemainingCount - 1) {
+								progress.worked(lastRemainingCount-remianing-1);
+								lastRemainingCount = remianing;
+							}
+							progress.setWorkRemaining(remianing);
+							dispatcher.notify();							
+						}
+					}
+				} catch (CoreException e) {
+					progress.done();
+					monitor.done();
+					return e.getStatus();
+				}
+				progress.done();
+				monitor.done();
+				if (monitor.isCanceled()) {
+					return Status.CANCEL_STATUS;
+				}
+				return Status.OK_STATUS;
+			}
+		};
+		job.setSystem(true);
+		job.setPriority(Job.LONG);
+		job.schedule();
+		return job;		
+	}
+	
 	private Job findSessionJob(ISyncSession session) {
 		Job[] jobs = Job.getJobManager().find(session);
 		return jobs.length > 0 ? jobs[0] : null;
 	}
 
 	/* (non-Javadoc)
-	 * @see com.aptana.syncing.core.model.ISyncManager#isSessionInProgress(com.aptana.syncing.core.model.ISyncSession)
+	 * @see com.aptana.syncing.core.model.ISyncManager#isSyncInProgress(com.aptana.syncing.core.model.ISyncSession)
 	 */
 	@Override
-	public boolean isSessionInProgress(ISyncSession session) {
+	public boolean isSyncInProgress(ISyncSession session) {
 		Job job = findSessionJob(session);
-		if (job != null) {
-			return job.getState() != Job.NONE;
-		}
-		return false;
+		return (job != null && job.getState() != Job.NONE);
 	}
 
 	/* (non-Javadoc)

@@ -57,7 +57,7 @@ public class SynchronizeAction implements IObjectActionDelegate {
 	}
 
 	public void run(IAction action) {
-		SyncUIManager.getInstance().startSynchronization(fConnection, true);
+		SyncUIManager.getInstance().initiateSynchronization(fConnection, true);
 	}
 
 	public void selectionChanged(IAction action, ISelection selection) {
