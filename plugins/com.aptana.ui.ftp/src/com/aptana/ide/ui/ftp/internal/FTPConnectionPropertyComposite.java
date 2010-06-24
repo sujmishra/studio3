@@ -37,6 +37,7 @@ package com.aptana.ide.ui.ftp.internal;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
+import java.net.URLDecoder;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.regex.Pattern;
@@ -753,6 +754,7 @@ public class FTPConnectionPropertyComposite extends Composite implements IOption
 		});
 	}
 
+	@SuppressWarnings("deprecation")
 	private void showBrowseDialog(IConnectionPoint connectionPoint)
 	{
 		FileTreeSelectionDialog dlg = new FileTreeSelectionDialog(getShell(), false);
@@ -779,7 +781,7 @@ public class FTPConnectionPropertyComposite extends Composite implements IOption
 			URI uri = FileSystemUtils.getURI(dlg.getFirstResult());
 			if (uri != null)
 			{
-				String path = Path.fromPortableString(connectionPoint.getRootURI().relativize(uri).toString())
+				String path = Path.fromPortableString(URLDecoder.decode(connectionPoint.getRootURI().relativize(uri).toString()))
 						.makeAbsolute().toPortableString();
 				remotePathText.setText(path);
 			}
