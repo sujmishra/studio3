@@ -260,7 +260,7 @@ public abstract class BaseFTPConnectionFileManager implements IConnectionFileMan
 			return writeFile(basePath.append(path), permissions, Policy.subMonitorFor(monitor, 1));
 		} catch (FileNotFoundException e) {
 			throw new CoreException(new Status(IStatus.ERROR, FTPPlugin.PLUGIN_ID,
-					Messages.BaseFTPConnectionFileManager_parent_doesnt_exist, new FileNotFoundException(path.toPortableString())));
+					e.getCause() != null ? e.getCause().getMessage() : Messages.BaseFTPConnectionFileManager_parent_doesnt_exist, new FileNotFoundException(path.toPortableString())));
 		} finally {
 			setLastOperationTime();
 			monitor.done();
