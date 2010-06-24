@@ -55,6 +55,7 @@ import com.aptana.syncing.core.model.ISyncItem;
 	 */
 	public SyncDispatcher(ISyncItem[] items) {
 		for (int i = items.length-1; i >=0; --i) {
+			((SyncItem) items[i]).resetState();
 			this.items.add(items[i]);
 		}
 	}

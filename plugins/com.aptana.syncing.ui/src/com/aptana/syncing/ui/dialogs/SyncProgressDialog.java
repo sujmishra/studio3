@@ -51,9 +51,10 @@ import org.eclipse.swt.widgets.TableColumn;
 
 import com.aptana.ide.syncing.core.SyncingPlugin;
 import com.aptana.syncing.core.events.ISyncSessionListener;
-import com.aptana.syncing.core.events.SyncItemEvent;
+import com.aptana.syncing.core.events.SyncSessionEvent;
 import com.aptana.syncing.core.model.ISyncItem;
 import com.aptana.syncing.core.model.ISyncSession;
+import com.aptana.syncing.core.model.ISyncSession.Stage;
 import com.aptana.syncing.ui.internal.SyncProgressViewerLabelProvider;
 import com.aptana.syncing.ui.internal.SyncProgressViewerSorter;
 import com.aptana.syncing.ui.internal.SyncUIManager;
@@ -159,6 +160,9 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 	private void postCreate() {
 		session.addListener(this);
 		tableViewer.setInput(session.getSyncItems());
+		if (session.getStage() == Stage.SYNCED) {
+			onSyncComplete();
+		}
 	}
 
 	/* (non-Javadoc)
@@ -167,11 +171,20 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 	@Override
 	public boolean close() {
 		session.removeListener(this);
-		/*if (!SyncingPlugin.getSyncManager().isSyncInProgress(session)) {
-			SyncingPlugin.getSyncManager().closeSession(session);
-		}*/
 		SyncUIManager.getInstance().onCloseUI(session);
 		return super.close();
+	}
+
+	/* (non-Javadoc)
+	 * @see org.eclipse.jface.dialogs.Dialog#okPressed()
+	 */
+	@Override
+	protected void okPressed() {
+		if (!SyncingPlugin.getSyncManager().isSyncInProgress(session)) {
+			super.okPressed();
+		} else {
+			super.cancelPressed();
+		}
 	}
 
 	/* (non-Javadoc)
@@ -188,10 +201,10 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 	}
 
 	/* (non-Javadoc)
-	 * @see com.aptana.syncing.core.events.ISyncSessionListener#handleEvent(com.aptana.syncing.core.events.SyncItemEvent)
+	 * @see com.aptana.syncing.core.events.ISyncSessionListener#handleEvent(com.aptana.syncing.core.events.SyncSessionEvent)
 	 */
 	@Override
-	public void handleEvent(final SyncItemEvent event) {
+	public void handleEvent(final SyncSessionEvent event) {
 		getShell().getDisplay().asyncExec(new Runnable() {
 			@Override
 			public void run() {
@@ -200,23 +213,33 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 		});
 	}
 	
-	private void handleEventUI(SyncItemEvent event) {
+	private void handleEventUI(SyncSessionEvent event) {
 		switch (event.getKind()) {
-		case SyncItemEvent.ITEMS_ADDED:
-		case SyncItemEvent.ITEMS_REMOVED:
+		case SyncSessionEvent.ITEMS_ADDED:
+		case SyncSessionEvent.ITEMS_REMOVED:
 			tableViewer.refresh(event.getSource());
 			break;
-		case SyncItemEvent.ITEMS_UPDATED:
+		case SyncSessionEvent.ITEMS_UPDATED:
 			ISyncItem[] items = event.getItems();
 			tableViewer.update(items, null);
 			tableViewer.refresh(false);
 			tableViewer.reveal(items[items.length-1]);
+			break;
+		case SyncSessionEvent.SESSION_STAGE_CHANGED:
+			if (session.getStage() != Stage.SYNCING) {
+				onSyncComplete();
+			}
 			break;
 		}
 	}
 
 	public void setSession(ISyncSession session) {
 		this.session = session;
+	}
+	
+	private void onSyncComplete() {
+		getButton(IDialogConstants.CANCEL_ID).setText("Close");
+		getButton(IDialogConstants.OK_ID).setText("Back");
 	}
 
 }

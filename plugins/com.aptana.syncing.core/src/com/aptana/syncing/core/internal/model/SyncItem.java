@@ -46,7 +46,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.ProgressMonitorWrapper;
 
 import com.aptana.syncing.core.events.ISyncSessionListener;
-import com.aptana.syncing.core.events.SyncItemEvent;
+import com.aptana.syncing.core.events.SyncSessionEvent;
 import com.aptana.syncing.core.internal.model.SyncPair.Direction;
 import com.aptana.syncing.core.model.ISyncItem;
 
@@ -244,6 +244,12 @@ import com.aptana.syncing.core.model.ISyncItem;
 		}
 		return syncStatus;
 	}
+	
+	/* package */ void resetState() {
+		syncStatus = null;
+		syncProgress = 0;
+		syncError = null;
+	}
 
 	/* (non-Javadoc)
 	 * @see java.lang.Object#toString()
@@ -269,7 +275,7 @@ import com.aptana.syncing.core.model.ISyncItem;
 		
 		private void notifyListener() {
 			if (listener != null) {
-				listener.handleEvent(new SyncItemEvent(SyncItem.this, SyncItemEvent.ITEMS_UPDATED, new ISyncItem[] { SyncItem.this }));
+				listener.handleEvent(new SyncSessionEvent(SyncItem.this, SyncSessionEvent.ITEMS_UPDATED, new ISyncItem[] { SyncItem.this }));
 			}
 		}
 

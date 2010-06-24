@@ -43,13 +43,14 @@ import com.aptana.syncing.core.model.ISyncItem;
  * @author Max Stepanov
  *
  */
-public final class SyncItemEvent extends EventObject {
+public final class SyncSessionEvent extends EventObject {
 
 	private static final long serialVersionUID = 1L;
 
 	public static final int ITEMS_ADDED = 1;
 	public static final int ITEMS_UPDATED = 2;
 	public static final int ITEMS_REMOVED = 3;
+	public static final int SESSION_STAGE_CHANGED = 4;
 	
 	private int kind;
 	private ISyncItem[] items;
@@ -60,7 +61,7 @@ public final class SyncItemEvent extends EventObject {
 	 * @param kind
 	 * @param item
 	 */
-	public SyncItemEvent(Object source, int kind, ISyncItem[] items) {
+	public SyncSessionEvent(Object source, int kind, ISyncItem[] items) {
 		super(source);
 		this.kind = kind;
 		this.items = items;

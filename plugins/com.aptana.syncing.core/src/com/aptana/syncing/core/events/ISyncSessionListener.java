@@ -41,5 +41,5 @@ package com.aptana.syncing.core.events;
  */
 public interface ISyncSessionListener {
 
-	public void handleEvent(SyncItemEvent event);
+	public void handleEvent(SyncSessionEvent event);
 }

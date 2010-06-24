@@ -154,7 +154,10 @@ public final class SyncUIManager {
 			SyncProgressDialog dlg = new SyncProgressDialog(shell);
 			dlg.setSession(session);
 			uiSessions.add(session);
-			dlg.open();
+			if (dlg.open() == Window.OK && session.getStage() == Stage.SYNCED) {
+				session.setStage(Stage.FETCHED);
+				showUI(session);
+			}
 		} else {
 			SyncDialog dlg = new SyncDialog(shell);
 			dlg.setSession(session);
@@ -163,5 +166,6 @@ public final class SyncUIManager {
 				startSynchronization(session, false);
 			}
 		}
+		// TODO: possible stack overflow if user will use "Back" in syncProgress dialog many times
 	}
 }

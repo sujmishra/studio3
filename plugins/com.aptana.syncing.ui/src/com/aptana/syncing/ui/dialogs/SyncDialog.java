@@ -78,12 +78,13 @@ import com.aptana.ide.syncing.core.SyncingPlugin;
 import com.aptana.ide.syncing.ui.SyncingUIPlugin;
 import com.aptana.ide.ui.io.navigator.FileTreeContentProvider;
 import com.aptana.syncing.core.events.ISyncSessionListener;
-import com.aptana.syncing.core.events.SyncItemEvent;
+import com.aptana.syncing.core.events.SyncSessionEvent;
 import com.aptana.syncing.core.model.ISyncItem;
 import com.aptana.syncing.core.model.ISyncSession;
 import com.aptana.syncing.core.model.ISyncItem.Operation;
 import com.aptana.syncing.core.model.ISyncItem.Status;
 import com.aptana.syncing.core.model.ISyncItem.Type;
+import com.aptana.syncing.core.model.ISyncSession.Stage;
 import com.aptana.syncing.ui.internal.FlatTreeContentProvider;
 import com.aptana.syncing.ui.internal.SearchViewerFilter;
 import com.aptana.syncing.ui.internal.SyncStatusViewerFilter;
@@ -260,8 +261,6 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 					((GridData) progressMonitorPart.getLayoutData()).exclude = true;
 					progressMonitorPart.getParent().layout();
 				}
-				getButton(IDialogConstants.OK_ID).setText("Synchronize");
-				treeViewer.refresh(true);
 			}
 		}, progressMonitorPart.getDisplay());
 		
@@ -319,9 +318,6 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	public boolean close() {
 		session.removeListener(this);
 		showProgress(false);
-		if (!SyncingPlugin.getSyncManager().isSyncInProgress(session)) {
-			SyncingPlugin.getSyncManager().closeSession(session);
-		}
 		SyncUIManager.getInstance().onCloseUI(session);
 		return super.close();
 	}
@@ -381,10 +377,10 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	}
 
 	/* (non-Javadoc)
-	 * @see com.aptana.syncing.core.events.ISyncSessionListener#handleEvent(com.aptana.syncing.core.events.SyncItemEvent)
+	 * @see com.aptana.syncing.core.events.ISyncSessionListener#handleEvent(com.aptana.syncing.core.events.SyncSessionEvent)
 	 */
 	@Override
-	public void handleEvent(final SyncItemEvent event) {
+	public void handleEvent(final SyncSessionEvent event) {
 		getShell().getDisplay().asyncExec(new Runnable() {
 			@Override
 			public void run() {
@@ -393,15 +389,20 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		});
 	}
 	
-	private void handleEventUI(SyncItemEvent event) {
+	private void handleEventUI(SyncSessionEvent event) {
 		switch (event.getKind()) {
-		case SyncItemEvent.ITEMS_ADDED:
-		case SyncItemEvent.ITEMS_REMOVED:
+		case SyncSessionEvent.ITEMS_ADDED:
+		case SyncSessionEvent.ITEMS_REMOVED:
 			treeViewer.refresh(event.getSource());
 			treeViewer.setExpandedState(event.getSource(), true);
 			break;
-		case SyncItemEvent.ITEMS_UPDATED:
+		case SyncSessionEvent.ITEMS_UPDATED:
 			treeViewer.update(event.getItems(), null);
+			break;
+		case SyncSessionEvent.SESSION_STAGE_CHANGED:
+			if (session.getStage() != Stage.FETCHING) {
+				onFetchComplete();
+			}
 			break;
 		}
 	}
@@ -565,6 +566,11 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		List<ISyncItem> items = getActiveItems();
 		getButton(IDialogConstants.OK_ID).setEnabled(!items.isEmpty());
 		// TODO: show stats
+	}
+	
+	private void onFetchComplete() {
+		getButton(IDialogConstants.OK_ID).setText("Synchronize");
+		treeViewer.refresh(true);		
 	}
 
 }

@@ -63,6 +63,7 @@ public interface ISyncSession {
 	public ISyncItem[] getItems();
 	
 	public Stage getStage();
+	public void setStage(Stage stage);
 	
 	public void setSyncItems(ISyncItem[] items);
 	public ISyncItem[] getSyncItems();

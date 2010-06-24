@@ -55,7 +55,7 @@ import org.eclipse.core.runtime.jobs.ISchedulingRule;
 import com.aptana.ide.core.io.IConnectionPoint;
 import com.aptana.ide.core.io.vfs.IExtendedFileStore;
 import com.aptana.syncing.core.events.ISyncSessionListener;
-import com.aptana.syncing.core.events.SyncItemEvent;
+import com.aptana.syncing.core.events.SyncSessionEvent;
 import com.aptana.syncing.core.model.ISyncItem;
 import com.aptana.syncing.core.model.ISyncSession;
 
@@ -74,7 +74,7 @@ import com.aptana.syncing.core.model.ISyncSession;
 	
 	private ISyncSessionListener syncItemListener = new ISyncSessionListener() {
 		@Override
-		public void handleEvent(SyncItemEvent event) {
+		public void handleEvent(SyncSessionEvent event) {
 			notifyListeners(event);
 		}
 	};
@@ -119,7 +119,7 @@ import com.aptana.syncing.core.model.ISyncSession;
 		listeners.remove(listener);
 	}
 	
-	private void notifyListeners(SyncItemEvent event) {
+	private void notifyListeners(SyncSessionEvent event) {
 		for (Object listener : listeners.getListeners()) {
 			((ISyncSessionListener) listener).handleEvent(event);
 		}
@@ -196,11 +196,11 @@ import com.aptana.syncing.core.model.ISyncSession;
 			ISyncItem[] list = items.toArray(new ISyncItem[items.size()]);
 			if (path.isEmpty()) {
 				rootItems = list;
-				notifyListeners(new SyncItemEvent(this, SyncItemEvent.ITEMS_ADDED, list));
+				notifyListeners(new SyncSessionEvent(this, SyncSessionEvent.ITEMS_ADDED, list));
 			} else {
 				SyncItem parentItem = itemsMap.get(path);
 				parentItem.setChildItems(list);
-				notifyListeners(new SyncItemEvent(parentItem, SyncItemEvent.ITEMS_ADDED, list));
+				notifyListeners(new SyncSessionEvent(parentItem, SyncSessionEvent.ITEMS_ADDED, list));
 			}
 			progress.setWorkRemaining(paths.size()*10);
 		}
@@ -258,8 +258,10 @@ import com.aptana.syncing.core.model.ISyncSession;
 	/**
 	 * @param stage the stage to set
 	 */
+	@Override
 	public void setStage(Stage stage) {
 		this.stage = stage;
+		notifyListeners(new SyncSessionEvent(this, SyncSessionEvent.SESSION_STAGE_CHANGED, null));
 	}
 
 	/* (non-Javadoc)
