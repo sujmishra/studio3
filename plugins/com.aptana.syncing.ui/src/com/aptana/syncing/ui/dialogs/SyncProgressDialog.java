@@ -42,21 +42,24 @@ import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.TableEditor;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.ProgressBar;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
+import org.eclipse.swt.widgets.TableItem;
 
 import com.aptana.ide.syncing.core.SyncingPlugin;
 import com.aptana.syncing.core.events.ISyncSessionListener;
 import com.aptana.syncing.core.events.SyncSessionEvent;
 import com.aptana.syncing.core.model.ISyncItem;
 import com.aptana.syncing.core.model.ISyncSession;
+import com.aptana.syncing.core.model.ISyncItem.SyncStatus;
 import com.aptana.syncing.core.model.ISyncSession.Stage;
 import com.aptana.syncing.ui.internal.SyncProgressViewerLabelProvider;
-import com.aptana.syncing.ui.internal.SyncProgressViewerSorter;
 import com.aptana.syncing.ui.internal.SyncUIManager;
 import com.aptana.ui.IDialogConstants;
 
@@ -67,6 +70,7 @@ import com.aptana.ui.IDialogConstants;
 public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionListener {
 
 	public static final String TITLE = "Synchronization Progress";
+	private static final String PROGRESSBAR_TABLEEDITOR_KEY = "table_editor.progress_bar";
 
 	private TableViewer tableViewer;
 	private ISyncSession session;
@@ -118,7 +122,7 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 		tableViewer.getControl().setLayoutData(GridDataFactory.fillDefaults().grab(true, true).create());
 		tableViewer.setLabelProvider(new SyncProgressViewerLabelProvider());
 		tableViewer.setContentProvider(new ArrayContentProvider());
-		tableViewer.setSorter(new SyncProgressViewerSorter());
+		//tableViewer.setSorter(new SyncProgressViewerSorter());
 		
 		Table table = tableViewer.getTable();
 		table.setHeaderVisible(true);
@@ -220,10 +224,7 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 			tableViewer.refresh(event.getSource());
 			break;
 		case SyncSessionEvent.ITEMS_UPDATED:
-			ISyncItem[] items = event.getItems();
-			tableViewer.update(items, null);
-			tableViewer.refresh(false);
-			tableViewer.reveal(items[items.length-1]);
+			updateItems(event.getItems());
 			break;
 		case SyncSessionEvent.SESSION_STAGE_CHANGED:
 			if (session.getStage() != Stage.SYNCING) {
@@ -235,6 +236,36 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 
 	public void setSession(ISyncSession session) {
 		this.session = session;
+	}
+		
+	private void updateItems(ISyncItem[] items) {
+		tableViewer.update(items, null);
+		tableViewer.refresh(false);
+		tableViewer.reveal(items[items.length-1]);
+		for (ISyncItem i : items) {
+			SyncStatus result = i.getSyncResult();
+			if (result != null) {
+				TableItem tableItem = (TableItem) tableViewer.testFindItem(i);
+				if (tableItem != null) {
+					TableEditor tableEditor = (TableEditor) tableItem.getData(PROGRESSBAR_TABLEEDITOR_KEY);
+					if (tableEditor == null && result == SyncStatus.IN_PROGRESS) {
+						ProgressBar progressBar = new ProgressBar(tableItem.getParent(), SWT.HORIZONTAL);
+						progressBar.setMaximum(100);
+						progressBar.setSelection(i.getSyncProgress());
+						tableEditor = new TableEditor(tableItem.getParent());
+						tableEditor.grabHorizontal = tableEditor.grabVertical = true;
+						tableEditor.setEditor(progressBar, tableItem, 2);
+						tableItem.setData(PROGRESSBAR_TABLEEDITOR_KEY, tableEditor);
+					} else if (tableEditor != null && result == SyncStatus.IN_PROGRESS) {
+						((ProgressBar) tableEditor.getEditor()).setSelection(i.getSyncProgress());						
+					} else if (tableEditor != null) {
+						tableItem.setData(PROGRESSBAR_TABLEEDITOR_KEY, null);
+						tableEditor.getEditor().dispose();
+						tableEditor.dispose();
+					}
+				}
+			}
+		}
 	}
 	
 	private void onSyncComplete() {

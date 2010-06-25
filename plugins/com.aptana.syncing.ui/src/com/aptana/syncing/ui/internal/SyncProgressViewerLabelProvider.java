@@ -128,8 +128,6 @@ public class SyncProgressViewerLabelProvider extends DecoratingLabelProvider imp
 			if (exception != null) {
 				return exception.getMessage();
 			}
-		} else if (syncItem.getSyncResult() == SyncStatus.IN_PROGRESS) {
-			return ""+syncItem.getSyncProgress();
 		}
 		return "";
 	}
