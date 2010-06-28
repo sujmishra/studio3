@@ -161,6 +161,20 @@ public final class SyncPair {
 	}
 	
 	/**
+	 * @return the leftFileStore
+	 */
+	public IFileStore getLeftFileStore() {
+		return leftFileStore;
+	}
+
+	/**
+	 * @return the rightFileStore
+	 */
+	public IFileStore getRightFileStore() {
+		return rightFileStore;
+	}
+
+	/**
 	 * @return the leftFileInfo
 	 */
 	public IFileInfo getLeftFileInfo() {

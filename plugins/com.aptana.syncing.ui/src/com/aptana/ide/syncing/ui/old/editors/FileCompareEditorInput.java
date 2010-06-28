@@ -243,8 +243,9 @@ public class FileCompareEditorInput extends CompareEditorInput
 
 	/**
 	 * Method for any file prep-work before running the differencer
+	 * @throws CoreException 
 	 */
-	protected void prepareFiles()
+	protected void prepareFiles(IProgressMonitor monitor) throws CoreException
 	{
 		// Does nothing by default, subclasses should override
 	}
@@ -260,7 +261,7 @@ public class FileCompareEditorInput extends CompareEditorInput
 
 			pm.beginTask(Utilities.getString("ResourceCompare.taskName"), IProgressMonitor.UNKNOWN); //$NON-NLS-1$
 
-			prepareFiles();
+			prepareFiles(pm);
 
 			String leftLabel = fLeftResource.getName();
 			String rightLabel = fRightResource.getName();
@@ -281,6 +282,8 @@ public class FileCompareEditorInput extends CompareEditorInput
 			fRoot = d.findDifferences(false, pm, null, null, fLeft, fRight);
 			return fRoot;
 
+		} catch (CoreException e) {
+			throw new InvocationTargetException(e);
 		}
 		finally
 		{

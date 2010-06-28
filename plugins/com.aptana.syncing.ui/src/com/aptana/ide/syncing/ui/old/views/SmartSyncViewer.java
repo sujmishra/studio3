@@ -41,6 +41,7 @@ import org.eclipse.compare.CompareUI;
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileStore;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.viewers.CellEditor;
 import org.eclipse.jface.viewers.CheckboxCellEditor;
 import org.eclipse.jface.viewers.ICellModifier;
@@ -464,7 +465,8 @@ public class SmartSyncViewer
 							FileCompareEditorInput input = new FileCompareEditorInput(new CompareConfiguration())
 							{
 
-								protected void prepareFiles()
+								@Override
+								protected void prepareFiles(IProgressMonitor monitor)
 								{
 									// IFileStore file = pair.getDestinationFile();
 									File temp = null; //$NON-NLS-1$ //$NON-NLS-2$

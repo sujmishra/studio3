@@ -39,6 +39,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.compare.CompareConfiguration;
+import org.eclipse.compare.CompareUI;
+import org.eclipse.core.filesystem.EFS;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.ProgressMonitorWrapper;
 import org.eclipse.jface.action.Action;
@@ -76,13 +80,14 @@ import org.eclipse.swt.widgets.TreeColumn;
 
 import com.aptana.ide.syncing.core.SyncingPlugin;
 import com.aptana.ide.syncing.ui.SyncingUIPlugin;
+import com.aptana.ide.syncing.ui.old.editors.FileCompareEditorInput;
 import com.aptana.ide.ui.io.navigator.FileTreeContentProvider;
 import com.aptana.syncing.core.events.ISyncSessionListener;
 import com.aptana.syncing.core.events.SyncSessionEvent;
 import com.aptana.syncing.core.model.ISyncItem;
 import com.aptana.syncing.core.model.ISyncSession;
+import com.aptana.syncing.core.model.ISyncItem.Changes;
 import com.aptana.syncing.core.model.ISyncItem.Operation;
-import com.aptana.syncing.core.model.ISyncItem.Status;
 import com.aptana.syncing.core.model.ISyncItem.Type;
 import com.aptana.syncing.core.model.ISyncSession.Stage;
 import com.aptana.syncing.ui.internal.FlatTreeContentProvider;
@@ -155,6 +160,8 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	private IAction incomingFilterAction;
 	private IAction outgoingFilterAction;
 	private IAction conflictsFilterAction;
+	
+	private IAction showDiffAction;
 	
 	private ViewerFilter searchFilter;
 	
@@ -277,8 +284,8 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 			@Override
 			public void doubleClick(DoubleClickEvent event) {
 				ISyncItem syncItem = (ISyncItem) ((IStructuredSelection) event.getSelection()).getFirstElement();
-				if (syncItem.getStatus() == Status.CONFLICT) {
-					MessageDialog.openInformation(getShell(), "TODO", "I will show you the diff!");
+				if (syncItem.getChanges() == Changes.CONFLICT) {
+					showDiff(syncItem);
 				} else {
 					changeOperationForItem(syncItem);
 				}
@@ -288,7 +295,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		menuManager.addMenuListener(new IMenuListener() {
 			@Override
 			public void menuAboutToShow(IMenuManager manager) {
-				fillContextMenu(manager);
+				fillContextMenu(manager, (IStructuredSelection) treeViewer.getSelection());
 			}
 		});
 		
@@ -465,6 +472,19 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		conflictsFilterAction = new FilterAction("Conflicts Only", SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/conflict.png"));
 		allFilterAction = new FilterAction("All", SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/both.png"));
 		allFilterAction.setChecked(true);
+		
+		showDiffAction = new Action("Show Differences") {
+			{
+				setImageDescriptor(SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/compare.png"));
+			}
+			@Override
+			public void run() {
+				IStructuredSelection selection = (IStructuredSelection) treeViewer.getSelection();
+				if (!selection.isEmpty()) {
+					showDiff((ISyncItem) selection.getFirstElement());
+				}
+			}
+		};
 	}
 	
 	private void fillToolBar(IToolBarManager toolBarManager) {
@@ -485,7 +505,10 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		toolBarManager.update(true);
 	}
 	
-	private void fillContextMenu(IMenuManager menuManager) {
+	private void fillContextMenu(IMenuManager menuManager, IStructuredSelection selection) {
+		if (selection.size() == 1) {
+			menuManager.add(showDiffAction);
+		}
 		menuManager.add(new Action("TODO") {
 		});
 		menuManager.add(new Action("Dummy action") {
@@ -495,11 +518,11 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	private void updateFilters() {
 		List<ViewerFilter> filters = new ArrayList<ViewerFilter>();
 		if (incomingFilterAction.isChecked()) {
-			filters.add(new SyncStatusViewerFilter(Status.RIGHT_TO_LEFT));
+			filters.add(new SyncStatusViewerFilter(Changes.RIGHT_TO_LEFT));
 		} else if (outgoingFilterAction.isChecked()) {
-			filters.add(new SyncStatusViewerFilter(Status.LEFT_TO_RIGHT));			
+			filters.add(new SyncStatusViewerFilter(Changes.LEFT_TO_RIGHT));			
 		} else if (conflictsFilterAction.isChecked()) {
-			filters.add(new SyncStatusViewerFilter(Status.CONFLICT));			
+			filters.add(new SyncStatusViewerFilter(Changes.CONFLICT));			
 		}
 		if (hideSameAction.isChecked()) {
 			filters.add(new SyncViewerFilter());
@@ -509,7 +532,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 				@Override
 				public boolean select(Viewer viewer, Object parentElement, Object element) {
 					if (element instanceof ISyncItem) {
-						return ((ISyncItem) element).getType() != Type.FOLDER || ((ISyncItem) element).getStatus() != Status.NONE;
+						return ((ISyncItem) element).getType() != Type.FOLDER || ((ISyncItem) element).getChanges() != Changes.NONE;
 					}
 					return true;
 				}
@@ -571,6 +594,17 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	private void onFetchComplete() {
 		getButton(IDialogConstants.OK_ID).setText("Synchronize");
 		treeViewer.refresh(true);		
+	}
+	
+	private void showDiff(final ISyncItem syncItem) {
+		FileCompareEditorInput compareInput = new FileCompareEditorInput(new CompareConfiguration()) {
+			@Override
+			protected void prepareFiles(IProgressMonitor monitor) throws CoreException {
+				setLeftResource(syncItem.getLeftFileInfo().exists() ? syncItem.getLeftFileStore().toLocalFile(EFS.NONE, monitor) : null);
+				setRightResource(syncItem.getRightFileInfo().exists() ? syncItem.getRightFileStore().toLocalFile(EFS.CACHE, monitor) : null);
+			}
+		};
+		CompareUI.openCompareDialog(compareInput);
 	}
 
 }
