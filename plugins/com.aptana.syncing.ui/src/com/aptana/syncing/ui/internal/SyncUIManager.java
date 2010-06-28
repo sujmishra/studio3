@@ -166,6 +166,5 @@ public final class SyncUIManager {
 				startSynchronization(session, false);
 			}
 		}
-		// TODO: possible stack overflow if user will use "Back" in syncProgress dialog many times
 	}
 }

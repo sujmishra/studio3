@@ -40,6 +40,7 @@ import java.util.Set;
 
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileInfo;
+import org.eclipse.core.filesystem.IFileStore;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -83,6 +84,22 @@ import com.aptana.syncing.core.model.ISyncItem;
 	@Override
 	public ISyncItem[] getChildItems() {
 		return childItems;
+	}
+
+	/* (non-Javadoc)
+	 * @see com.aptana.syncing.core.model.ISyncItem#getLeftFileStore()
+	 */
+	@Override
+	public IFileStore getLeftFileStore() {
+		return syncPair.getLeftFileStore();
+	}
+
+	/* (non-Javadoc)
+	 * @see com.aptana.syncing.core.model.ISyncItem#getRightFileStore()
+	 */
+	@Override
+	public IFileStore getRightFileStore() {
+		return syncPair.getRightFileStore();
 	}
 
 	/* (non-Javadoc)
@@ -134,10 +151,8 @@ import com.aptana.syncing.core.model.ISyncItem;
 	public Set<Operation> getAllowedOperations() {
 		Set<Operation> set = new HashSet<Operation>();
 		set.add(Operation.NONE);
-		if (syncPair.getLeftFileInfo().exists() && !syncPair.getRightFileInfo().isDirectory()) {
+		if (syncPair.getDefaultDirection() != Direction.INCONSISTENT) {
 			set.add(Operation.LEFT_TO_RIGHT);
-		}
-		if (syncPair.getRightFileInfo().exists() && !syncPair.getLeftFileInfo().isDirectory()) {
 			set.add(Operation.RIGHT_TO_LEFT);
 		}
 		return set;
@@ -168,17 +183,17 @@ import com.aptana.syncing.core.model.ISyncItem;
 	 * @see com.aptana.syncing.core.model.ISyncItem#getStatus()
 	 */
 	@Override
-	public Status getStatus() {
+	public Changes getChanges() {
 		switch(syncPair.getDefaultDirection()) {
 		case SAME:
-			return Status.NONE;
+			return Changes.NONE;
 		case LEFT_TO_RIGHT:
-			return Status.LEFT_TO_RIGHT;
+			return Changes.LEFT_TO_RIGHT;
 		case RIGHT_TO_LEFT:
-			return Status.RIGHT_TO_LEFT;
+			return Changes.RIGHT_TO_LEFT;
 		case AMBIGUOUS:
 		case INCONSISTENT:
-			return Status.CONFLICT;
+			return Changes.CONFLICT;
 		default:
 			return null;
 		}

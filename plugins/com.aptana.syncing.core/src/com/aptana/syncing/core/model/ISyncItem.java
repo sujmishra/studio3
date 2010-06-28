@@ -38,6 +38,7 @@ package com.aptana.syncing.core.model;
 import java.util.Set;
 
 import org.eclipse.core.filesystem.IFileInfo;
+import org.eclipse.core.filesystem.IFileStore;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 
@@ -51,7 +52,7 @@ public interface ISyncItem {
 		UNSUPPORTED, FILE, FOLDER
 	}
 	
-	public enum Status {
+	public enum Changes {
 		NONE, LEFT_TO_RIGHT, RIGHT_TO_LEFT, CONFLICT
 	}
 	
@@ -67,12 +68,15 @@ public interface ISyncItem {
 	public String getName();
 	public IPath getPath();
 	
+	public IFileStore getLeftFileStore();
+	public IFileStore getRightFileStore();
+	
 	public IFileInfo getLeftFileInfo();
 	public IFileInfo getRightFileInfo();
 	
 	public ISyncItem[] getChildItems();
 	
-	public Status getStatus();
+	public Changes getChanges();
 	public Operation getOperation();
 	public Set<Operation> getAllowedOperations();
 	public void setOperation(Operation operation);

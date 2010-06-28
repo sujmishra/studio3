@@ -39,7 +39,7 @@ import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.jface.viewers.ViewerFilter;
 
 import com.aptana.syncing.core.model.ISyncItem;
-import com.aptana.syncing.core.model.ISyncItem.Status;
+import com.aptana.syncing.core.model.ISyncItem.Changes;
 import com.aptana.syncing.core.model.ISyncItem.Type;
 
 /**
@@ -61,7 +61,7 @@ public class SyncViewerFilter extends ViewerFilter {
 	}
 	
 	private boolean include(ISyncItem syncItem) {
-		if (syncItem.getStatus() == Status.NONE) {
+		if (syncItem.getChanges() == Changes.NONE) {
 			if (syncItem.getType() == Type.FOLDER) {
 				ISyncItem[] children = syncItem.getChildItems();
 				if (children != null) {

@@ -131,7 +131,7 @@ public class SyncViewerLabelProvider extends DecoratingLabelProvider implements 
 	@Override
 	public Color getBackground(Object element) {
 		ISyncItem syncItem = (ISyncItem) element;
-		switch (syncItem.getStatus()) {
+		switch (syncItem.getChanges()) {
 		case LEFT_TO_RIGHT:
 			return SYNC_RIGHT_COLOR;
 		case RIGHT_TO_LEFT:
@@ -147,9 +147,21 @@ public class SyncViewerLabelProvider extends DecoratingLabelProvider implements 
 	private Image getOperationImage(ISyncItem syncItem) {
 		switch (syncItem.getOperation()) {
 		case LEFT_TO_RIGHT:
-			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right.png");
+			if (!syncItem.getLeftFileInfo().exists()) {
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right_delete.png");
+			} else if (!syncItem.getRightFileInfo().exists()) {
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right_add.png");
+			} else {
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right.png");
+			}
 		case RIGHT_TO_LEFT:
-			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left.png");
+			if (!syncItem.getRightFileInfo().exists()) {
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_delete.png");
+			} else if (!syncItem.getLeftFileInfo().exists()) {
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_add.png");
+			} else {
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left.png");
+			}
 		case NONE:
 			if (syncItem.getType() == Type.UNSUPPORTED) {
 				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_unsupported.png");				

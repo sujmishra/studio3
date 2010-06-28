@@ -192,7 +192,7 @@ public final class SyncManager implements ISyncManager {
 							}
 							progress.subTask(sb.toString());
 							try {
-								dispatcher.wait(5000);
+								dispatcher.wait(2000);
 							} catch (InterruptedException e) {
 							}
 						}
