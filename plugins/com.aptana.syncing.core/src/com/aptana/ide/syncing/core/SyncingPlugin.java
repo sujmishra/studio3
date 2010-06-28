@@ -56,6 +56,7 @@ import com.aptana.syncing.core.model.ISyncManager;
 /**
  * The activator class controls the plug-in life cycle
  */
+@SuppressWarnings("deprecation")
 public class SyncingPlugin extends Plugin
 {
 
