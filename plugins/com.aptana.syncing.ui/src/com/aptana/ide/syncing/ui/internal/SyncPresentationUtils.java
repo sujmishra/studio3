@@ -71,7 +71,10 @@ public final class SyncPresentationUtils {
 	    } else if (element instanceof IFileInfo) {
 	    	rawSize = ((IFileInfo) element).getLength();
 	    }
+	    return sizeToString(rawSize);
+	}
 	
+	public static String sizeToString(long rawSize) {
 	    if (rawSize >= 0) {
 	        long leftover = 0;
 	        String string = Long.toString(rawSize) + " B"; //$NON-NLS-1$
@@ -113,7 +116,7 @@ public final class SyncPresentationUtils {
 	        }
 	        return string;
 	    }
-	    return ""; //$NON-NLS-1$
+	    return ""; //$NON-NLS-1$		
 	}
 
 	/**

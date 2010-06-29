@@ -97,6 +97,7 @@ import com.aptana.syncing.ui.internal.SyncUIManager;
 import com.aptana.syncing.ui.internal.SyncViewerFilter;
 import com.aptana.syncing.ui.internal.SyncViewerLabelProvider;
 import com.aptana.syncing.ui.internal.SyncViewerSorter;
+import com.aptana.syncing.ui.internal.widgets.SyncStatsComposite;
 import com.aptana.ui.IDialogConstants;
 import com.aptana.ui.actions.SearchToolbarControl;
 import com.aptana.ui.io.epl.AccumulatingProgressMonitor;
@@ -151,6 +152,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	private ISyncSession session;
 	private ProgressMonitorPart progressMonitorPart;
 	private IProgressMonitor progressMonitorWrapper;
+	private SyncStatsComposite statsComposite;
 			
 	private SyncViewerLabelProvider labelProvider;
 	
@@ -249,6 +251,9 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		tree.setMenu(menuManager.createContextMenu(tree));
 		menuManager.setRemoveAllWhenShown(true);
 
+		statsComposite = new SyncStatsComposite(container, SWT.NONE);
+		statsComposite.setLayoutData(GridDataFactory.fillDefaults().grab(true, false).exclude(true).create());
+
 		progressMonitorPart = new ProgressMonitorPart(container, GridLayoutFactory.fillDefaults().create());
 		progressMonitorPart.setLayoutData(GridDataFactory.fillDefaults().grab(true, false).exclude(true).create());
 		progressMonitorWrapper = new AccumulatingProgressMonitor(new ProgressMonitorWrapper(progressMonitorPart) {
@@ -268,9 +273,10 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 					((GridData) progressMonitorPart.getLayoutData()).exclude = true;
 					progressMonitorPart.getParent().layout();
 				}
+				showStats(true);
 			}
 		}, progressMonitorPart.getDisplay());
-		
+				
 		tree.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseDown(MouseEvent e) {
@@ -363,6 +369,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 			showProgress(true);
 			getButton(IDialogConstants.OK_ID).setText("Run In Background");
 		} else {
+			showStats(true);
 			getButton(IDialogConstants.OK_ID).setText("Synchronize");
 		}
 		setButtonLayoutData(getButton(IDialogConstants.OK_ID));
@@ -371,9 +378,11 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		if (hideSameAction.isChecked()) {
 			treeViewer.expandAll();
 		}
+		updateState();
 	}
 	
 	private void showProgress(boolean show) {
+		showStats(!show);
 		((GridData) progressMonitorPart.getLayoutData()).exclude = !show;
 		progressMonitorPart.getParent().layout();
 		if (show) {
@@ -381,6 +390,11 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		} else {
 			SyncingPlugin.getSyncManager().removeProgressMonitorListener(session, progressMonitorWrapper);
 		}
+	}
+	
+	private void showStats(boolean show) {
+		((GridData) statsComposite.getLayoutData()).exclude = !show;
+		statsComposite.getParent().layout();		
 	}
 
 	/* (non-Javadoc)
@@ -588,12 +602,13 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		}
 		List<ISyncItem> items = getActiveItems();
 		getButton(IDialogConstants.OK_ID).setEnabled(!items.isEmpty());
-		// TODO: show stats
+		statsComposite.updateStats(items);
 	}
 	
 	private void onFetchComplete() {
 		getButton(IDialogConstants.OK_ID).setText("Synchronize");
-		treeViewer.refresh(true);		
+		treeViewer.refresh(true);	
+		updateState();
 	}
 	
 	private void showDiff(final ISyncItem syncItem) {
