@@ -46,21 +46,29 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.ui.forms.HyperlinkGroup;
+import org.eclipse.ui.forms.HyperlinkSettings;
+import org.eclipse.ui.forms.events.HyperlinkAdapter;
+import org.eclipse.ui.forms.events.HyperlinkEvent;
 import org.eclipse.ui.forms.widgets.FormText;
 
 import com.aptana.ide.syncing.ui.SyncingUIPlugin;
 import com.aptana.ide.syncing.ui.internal.SyncPresentationUtils;
+import com.aptana.ide.ui.io.dialogs.IDialogConstants;
 import com.aptana.syncing.core.model.ISyncItem;
+import com.aptana.syncing.core.model.ISyncItem.Changes;
+import com.aptana.syncing.core.model.ISyncItem.Operation;
 
 /**
  * @author Max Stepanov
  *
  */
-public final class SyncStatsComposite extends Composite {
+public class SyncStatsComposite extends Composite {
 
 	private Font boldFont;
 	private FormText leftText;
 	private FormText rightText;
+	private HyperlinkGroup hyperlinkGroup;
 		
 	/**
 	 * @param parent
@@ -73,20 +81,37 @@ public final class SyncStatsComposite extends Composite {
 		FontData fontData = JFaceResources.getDialogFontDescriptor().getFontData()[0];
 		boldFont = new Font(getDisplay(), fontData.getName(), fontData.getHeight(), fontData.getStyle() | SWT.BOLD);
 		
+		hyperlinkGroup = new HyperlinkGroup(getDisplay());
+		hyperlinkGroup.setHyperlinkUnderlineMode(HyperlinkSettings.UNDERLINE_HOVER);
+		
 		leftText = new FormText(this, SWT.NO_FOCUS);
-		leftText.setLayoutData(GridDataFactory.fillDefaults().grab(true, false).hint(SWT.DEFAULT, 80).create());
+		leftText.setLayoutData(GridDataFactory.fillDefaults().indent(IDialogConstants.HORIZONTAL_MARGIN, 0).grab(true, false).hint(SWT.DEFAULT, 80).create());
 		setupFormText(leftText);
 		
 		rightText = new FormText(this, SWT.NO_FOCUS);
-		rightText.setLayoutData(GridDataFactory.fillDefaults().grab(true, false).hint(SWT.DEFAULT, 80).create());		
+		rightText.setLayoutData(GridDataFactory.fillDefaults().indent(IDialogConstants.HORIZONTAL_MARGIN, 0).grab(true, false).hint(SWT.DEFAULT, 80).create());		
 		setupFormText(rightText);
 	}
 	
 	private void setupFormText(FormText formText) {
+		formText.setWhitespaceNormalized(false);
 		formText.setColor("red", getDisplay().getSystemColor(SWT.COLOR_RED));
 		formText.setFont("bold", boldFont);
 		formText.setImage("add", SyncingUIPlugin.getImage("/icons/full/elcl16/add.png"));
-		formText.setImage("delete", SyncingUIPlugin.getImage("/icons/full/elcl16/delete.png"));		
+		formText.setImage("delete", SyncingUIPlugin.getImage("/icons/full/elcl16/delete.png"));
+		formText.setImage("left", SyncingUIPlugin.getImage("/icons/full/obj16/sync_left.png"));
+		formText.setImage("right", SyncingUIPlugin.getImage("/icons/full/obj16/sync_right.png"));
+		formText.setHyperlinkSettings(hyperlinkGroup);
+		formText.addHyperlinkListener(new HyperlinkAdapter() {
+			@Override
+			public void linkActivated(HyperlinkEvent e) {
+				if ("left_folders".equals(e.getHref())) {
+					expandFolders(Changes.RIGHT_TO_LEFT);
+				} else if ("right_folders".equals(e.getHref())) {
+					expandFolders(Changes.LEFT_TO_RIGHT);
+				}
+			}
+		});
 	}
 	
 	/* (non-Javadoc)
@@ -97,16 +122,23 @@ public final class SyncStatsComposite extends Composite {
 		super.dispose();
 		boldFont.dispose();
 	}
+	
+	protected void expandFolders(Changes changes) {
+	}
 
 	public void updateStats(List<ISyncItem> items) {
 		int left_new = 0;
+		int left_folder_new = 0;
 		long left_new_size = 0;
-		int left_delete = 0;
+		int left_file_delete = 0;
+		int left_folder_delete = 0;
 		int left_mod = 0;
 		long left_mod_size = 0;
 		int right_new = 0;
+		int right_folder_new = 0;
 		long right_new_size = 0;
-		int right_delete = 0;
+		int right_file_delete = 0;
+		int right_folder_delete = 0;
 		int right_mod = 0;
 		long right_mod_size = 0;
 		if (items != null) {
@@ -116,10 +148,18 @@ public final class SyncStatsComposite extends Composite {
 				switch (i.getOperation()) {
 				case RIGHT_TO_LEFT:
 					if (!left.exists()) {
-						++left_new;
-						left_new_size += right.getLength();
+						if (right.isDirectory()) {
+							++left_folder_new;
+						} else {
+							++left_new;
+							left_new_size += right.getLength();
+						}
 					} else if (!right.exists()) {
-						++left_delete;
+						if (left.isDirectory()) {
+							++left_folder_delete;
+						} else {
+							++left_file_delete;
+						}
 					} else {
 						++left_mod;
 						left_mod_size += right.getLength();
@@ -127,10 +167,18 @@ public final class SyncStatsComposite extends Composite {
 					break;
 				case LEFT_TO_RIGHT:
 					if (!right.exists()) {
-						++right_new;
-						right_new_size += left.getLength();
+						if (left.isDirectory()) {
+							++right_folder_new;
+						} else {
+							++right_new;
+							right_new_size += left.getLength();
+						}
 					} else if (!left.exists()) {
-						++right_delete;
+						if (right.isDirectory()) {
+							++right_folder_delete;
+						} else {
+							++right_file_delete;
+						}
 					} else {
 						++right_mod;
 						right_mod_size += left.getLength();
@@ -139,31 +187,35 @@ public final class SyncStatsComposite extends Composite {
 				}
 			}
 		}
-		leftText.setText(getLeftText(left_new, left_new_size, left_delete, left_mod, left_mod_size), true, false);
-		rightText.setText(getRightText(right_new, right_new_size, right_delete, right_mod, right_mod_size), true, false);		
+		leftText.setText(getLeftText(left_new, left_new_size, left_folder_new, left_file_delete, left_folder_delete, left_mod, left_mod_size), true, false);
+		rightText.setText(getRightText(right_new, right_new_size, right_folder_new, right_file_delete, right_folder_delete, right_mod, right_mod_size), true, false);		
 	}
 	
-	private String getLeftText(int created, long created_size, int deleted, int modified, long modified_size) {
-		String createdText = generateCountString("<p><img href=\"add\"/> To be created: {0}</p>", created, created_size);
-		String deletedText = generateCountString("<p><img href=\"delete\"/> To be deleted: <span color=\"red\" font=\"bold\">{0}</span></p>", deleted, -1);
-		String modifiedText = generateCountString("<p>To be downloaded: {0}</p>", modified, modified_size);
+	private String getLeftText(int created, long created_size, int created_folders, int deleted_files, int deleted_folders, int modified, long modified_size) {
+		String createdText = generateCountString("<p><img href=\"add\"/> To be created: {0}</p>", created, created_size, created_folders, " <a href=\"left_folders\">{0}</a>");
+		String deletedText = generateCountString("<p><img href=\"delete\"/> To be deleted: <span color=\"red\" font=\"bold\">{0}</span></p>", deleted_files, -1, deleted_folders, null);
+		String modifiedText = generateCountString("<p><img href=\"left\"/> To be downloaded: {0}</p>", modified, modified_size);
 		if (createdText.length() == 0 && deletedText.length() == 0 && modifiedText.length() == 0) {
 			createdText = "None";
 		}
 		return MessageFormat.format("<form><p><b>Local Changes</b></p>{0}{1}{2}</form>", createdText, deletedText, modifiedText);
 	}
 
-	private String getRightText(int created, long created_size, int deleted, int modified, long modified_size) {
-		String createdText = generateCountString("<p><img href=\"add\"/> To be created: {0}</p>", created, created_size);
-		String deletedText = generateCountString("<p><img href=\"delete\"/> To be deleted: <span color=\"red\" font=\"bold\">{0}</span></p>", deleted, -1);
-		String modifiedText = generateCountString("<p>To be uploaded: {0}</p>", modified, modified_size);
+	private String getRightText(int created, long created_size, int created_folders, int deleted_files, int deleted_fodlers, int modified, long modified_size) {
+		String createdText = generateCountString("<p><img href=\"add\"/> To be created: {0}</p>", created, created_size, created_folders, " <a href=\"right_folders\">{0}</a>");
+		String deletedText = generateCountString("<p><img href=\"delete\"/> To be deleted: <span color=\"red\" font=\"bold\">{0}</span></p>", deleted_files, -1, deleted_fodlers, null);
+		String modifiedText = generateCountString("<p><img href=\"right\"/> To be uploaded: {0}</p>", modified, modified_size);
 		if (createdText.length() == 0 && deletedText.length() == 0 && modifiedText.length() == 0) {
 			createdText = "None";
 		}
 		return MessageFormat.format("<form><p><b>Remote Changes</b></p>{0}{1}{2}</form>", createdText, deletedText, modifiedText);
 	}
-	
+
 	private static String generateCountString(String format, int nfiles, long totalsize) {
+		return generateCountString(format, nfiles, totalsize, 0, null);
+	}
+
+	private static String generateCountString(String format, int nfiles, long totalsize, int nfolders, String folderFormat) {
 		StringBuffer sb = new StringBuffer();
 		if (nfiles > 0) {
 			sb.append(nfiles).append(" file");
@@ -172,6 +224,21 @@ public final class SyncStatsComposite extends Composite {
 			}
 			if (totalsize > 0) {
 				sb.append(" (").append(SyncPresentationUtils.sizeToString(totalsize)).append(')');
+			}
+		}
+		if (nfolders > 0) {
+			if (sb.length() > 0) {
+				sb.append(" and ");
+			}
+			StringBuffer sb_folder = new StringBuffer();
+			sb_folder.append(nfolders).append(" folder");
+			if (nfolders > 1) {
+				sb_folder.append('s');
+			}
+			if (folderFormat != null) {
+				sb.append(MessageFormat.format(folderFormat, sb_folder.toString()));
+			} else {
+				sb.append(sb_folder.toString());
 			}
 		}
 		if (sb.length() == 0) {
