@@ -208,6 +208,19 @@ import com.aptana.syncing.core.model.ISyncSession;
 	}
 
 	/* (non-Javadoc)
+	 * @see com.aptana.syncing.core.model.ISyncSession#fetchItems(com.aptana.syncing.core.model.ISyncItem[], org.eclipse.core.runtime.IProgressMonitor)
+	 */
+	@Override
+	public void fetchItems(ISyncItem[] items, IProgressMonitor monitor) throws CoreException {
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncSession#synchronize(com.aptana.syncing.core.model.ISyncItem[], org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	@Override

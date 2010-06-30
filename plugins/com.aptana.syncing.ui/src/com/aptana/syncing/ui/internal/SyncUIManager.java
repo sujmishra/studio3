@@ -56,6 +56,7 @@ import org.eclipse.ui.progress.WorkbenchJob;
 import com.aptana.ide.syncing.core.ISiteConnection;
 import com.aptana.ide.syncing.core.SyncingPlugin;
 import com.aptana.ide.syncing.ui.SyncingUIPlugin;
+import com.aptana.syncing.core.model.ISyncItem;
 import com.aptana.syncing.core.model.ISyncSession;
 import com.aptana.syncing.core.model.ISyncSession.Stage;
 import com.aptana.syncing.ui.dialogs.SyncDialog;
@@ -90,13 +91,18 @@ public final class SyncUIManager {
 		ISyncSession session = SyncingPlugin.getSyncManager().getSyncSession(siteConnection);
 		if (session == null) {
 			session = SyncingPlugin.getSyncManager().createSyncSession(siteConnection);
-			Job job = SyncingPlugin.getSyncManager().runFetchTree(session);
+			Job job = SyncingPlugin.getSyncManager().runFetchTree(session, null);
 			setupJob(job, session);
 			if (!showUI) {
 				return;
 			}
 		}
 		showUI(session);
+	}
+	
+	public void fetchTree(ISyncSession session, ISyncItem[] items) {
+		Job job = SyncingPlugin.getSyncManager().runFetchTree(session, items);
+		setupJob(job, session);
 	}
 
 	public void startSynchronization(ISyncSession session, boolean showUI) {

@@ -58,6 +58,7 @@ public interface ISyncSession {
 	public void removeListener(ISyncSessionListener listener);
 		
 	public void fetchTree(IProgressMonitor monitor) throws CoreException;
+	public void fetchItems(ISyncItem[] items, IProgressMonitor monitor) throws CoreException;
 	public void synchronize(ISyncItem[] items, IProgressMonitor monitor) throws CoreException;
 	
 	public ISyncItem[] getItems();

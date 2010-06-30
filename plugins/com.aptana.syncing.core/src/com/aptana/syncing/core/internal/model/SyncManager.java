@@ -112,10 +112,10 @@ public final class SyncManager implements ISyncManager {
 	}
 
 	/* (non-Javadoc)
-	 * @see com.aptana.syncing.core.model.ISyncManager#runFetchTree(com.aptana.syncing.core.model.ISyncSession)
+	 * @see com.aptana.syncing.core.model.ISyncManager#runFetchTree(com.aptana.syncing.core.model.ISyncSession, com.aptana.syncing.core.model.ISyncItem[])
 	 */
 	@Override
-	public Job runFetchTree(final ISyncSession session) {
+	public Job runFetchTree(final ISyncSession session, final ISyncItem[] items) {
 		((SyncSession) session).setStage(Stage.FETCHING);
 		Job job = new Job("Fetching synchronization data for "+session.toString()) {
 			@Override
@@ -128,7 +128,11 @@ public final class SyncManager implements ISyncManager {
 				monitor = new JobProgressMonitor(this, monitor);
 				try {
 					if (!monitor.isCanceled()) {
-						session.fetchTree(monitor);
+						if (items != null) {
+							session.fetchItems(items, monitor);
+						} else {
+							session.fetchTree(monitor);
+						}
 					}
 				} catch (CoreException e) {
 					monitor.done();

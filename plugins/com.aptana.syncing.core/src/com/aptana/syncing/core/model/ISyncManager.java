@@ -50,7 +50,7 @@ public interface ISyncManager {
 	public ISyncSession createSyncSession(ISiteConnection siteConnection);
 	public void closeSession(ISyncSession session);
 	
-	public Job runFetchTree(ISyncSession session);
+	public Job runFetchTree(ISyncSession session, ISyncItem[] items);
 	public Job synchronize(ISyncSession session);
 	
 	public boolean isSyncInProgress(ISyncSession session);
