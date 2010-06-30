@@ -453,7 +453,11 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		default:
 			break;
 		}
-		treeViewer.update(syncItem, null);
+		if (syncItem.getType() == Type.FOLDER) {
+			treeViewer.refresh(syncItem);
+		} else {
+			treeViewer.update(syncItem, null);
+		}
 		updateState();
 	}
 
@@ -560,7 +564,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		List<ISyncItem> list = new ArrayList<ISyncItem>();
 		for (Object i : items) {
 			ISyncItem syncItem = (ISyncItem) i;
-			if (syncItem.getType() == Type.FOLDER && syncItem.getChildItems().length == 0 && syncItem.getChanges() != Changes.NONE) {
+			if (syncItem.getType() == Type.FOLDER && syncItem.getChildItems() == null && syncItem.getChanges() != Changes.NONE) {
 				if (changes == null || syncItem.getChanges() == changes) {
 					list.add(syncItem);
 				}

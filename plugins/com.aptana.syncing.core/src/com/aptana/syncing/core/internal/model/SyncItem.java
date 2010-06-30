@@ -178,6 +178,11 @@ import com.aptana.syncing.core.model.ISyncItem;
 			syncPair.setForceDirection(null);
 			break;
 		}
+		if (childItems != null) {
+			for (ISyncItem child: childItems) {
+				child.setOperation(operation);
+			}
+		}
 	}
 
 	/* (non-Javadoc)

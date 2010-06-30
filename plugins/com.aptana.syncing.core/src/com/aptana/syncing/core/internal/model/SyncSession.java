@@ -192,8 +192,6 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 					foldersMap.put(item.getPath(), item);
 					childPaths.add(item.getPath());
 					
-				} else {
-					item.setChildItems(SyncItem.EMPTY_LIST);
 				}
 				if (monitor.isCanceled()) {
 					return;
