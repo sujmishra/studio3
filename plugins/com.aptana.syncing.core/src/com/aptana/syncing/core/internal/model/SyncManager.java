@@ -129,7 +129,7 @@ public final class SyncManager implements ISyncManager {
 				try {
 					if (!monitor.isCanceled()) {
 						if (items != null) {
-							session.fetchItems(items, monitor);
+							session.fetchTree(items, true, monitor);
 						} else {
 							session.fetchTree(monitor);
 						}

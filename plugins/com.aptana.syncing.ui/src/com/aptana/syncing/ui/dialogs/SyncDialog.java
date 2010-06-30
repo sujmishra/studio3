@@ -61,7 +61,9 @@ import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.DoubleClickEvent;
 import org.eclipse.jface.viewers.IDoubleClickListener;
+import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.jface.viewers.ViewerCell;
@@ -253,12 +255,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		tree.setMenu(menuManager.createContextMenu(tree));
 		menuManager.setRemoveAllWhenShown(true);
 
-		statsComposite = new SyncStatsComposite(container, SWT.NONE) {
-			@Override
-			protected void expandFolders(Changes changes) {
-				fetchFolders(getUnfetchedFolders(getActiveItems(), changes));
-			}
-		};
+		statsComposite = new SyncStatsComposite(container, SWT.NONE);
 		statsComposite.setLayoutData(GridDataFactory.fillDefaults().grab(true, false).exclude(true).create());
 
 		progressMonitorPart = new ProgressMonitorPart(container, GridLayoutFactory.fillDefaults().create());
@@ -294,6 +291,13 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 				}
 			}
 		});
+		treeViewer.addSelectionChangedListener(new ISelectionChangedListener() {
+			@Override
+			public void selectionChanged(SelectionChangedEvent event) {
+				updateActions((IStructuredSelection) event.getSelection());
+			}
+		});
+		
 		treeViewer.addDoubleClickListener(new IDoubleClickListener() {
 			@Override
 			public void doubleClick(DoubleClickEvent event) {
@@ -517,6 +521,8 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	}
 	
 	private void fillToolBar(IToolBarManager toolBarManager) {
+		toolBarManager.add(expandFoldersAction);
+		toolBarManager.add(new Separator());
 		toolBarManager.add(hideSameAction);
 		toolBarManager.add(flatModeAction);
 		toolBarManager.add(new Separator());
@@ -534,14 +540,20 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		toolBarManager.update(true);
 	}
 	
-	@SuppressWarnings("unchecked")
 	private void fillContextMenu(IMenuManager menuManager, IStructuredSelection selection) {
-		if (selection.size() == 1 && ((ISyncItem) selection.getFirstElement()).getType() == Type.FILE) {
+		updateActions(selection);
+		if (showDiffAction.isEnabled()) {
 			menuManager.add(showDiffAction);
 		}
-		if (!SyncingPlugin.getSyncManager().isSyncInProgress(session) && !getUnfetchedFolders(selection.toList(), null).isEmpty()) {
+		if (expandFoldersAction.isEnabled()) {
 			menuManager.add(expandFoldersAction);
 		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void updateActions(IStructuredSelection selection) {
+		showDiffAction.setEnabled(selection.size() == 1 && ((ISyncItem) selection.getFirstElement()).getType() == Type.FILE);
+		expandFoldersAction.setEnabled(!SyncingPlugin.getSyncManager().isSyncInProgress(session) && !getUnfetchedFolders(selection.toList(), null).isEmpty());
 	}
 	
 	private static List<ISyncItem> getUnfetchedFolders(List<? extends Object> items, Changes changes) {
@@ -631,6 +643,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		List<ISyncItem> items = getActiveItems();
 		getButton(IDialogConstants.OK_ID).setEnabled(!items.isEmpty());
 		statsComposite.updateStats(items);
+		updateActions((IStructuredSelection) treeViewer.getSelection());
 	}
 	
 	private void onFetchComplete() {

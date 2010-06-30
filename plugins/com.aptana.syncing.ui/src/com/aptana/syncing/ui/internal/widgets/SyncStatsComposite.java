@@ -56,8 +56,6 @@ import com.aptana.ide.syncing.ui.SyncingUIPlugin;
 import com.aptana.ide.syncing.ui.internal.SyncPresentationUtils;
 import com.aptana.ide.ui.io.dialogs.IDialogConstants;
 import com.aptana.syncing.core.model.ISyncItem;
-import com.aptana.syncing.core.model.ISyncItem.Changes;
-import com.aptana.syncing.core.model.ISyncItem.Operation;
 
 /**
  * @author Max Stepanov
@@ -105,11 +103,6 @@ public class SyncStatsComposite extends Composite {
 		formText.addHyperlinkListener(new HyperlinkAdapter() {
 			@Override
 			public void linkActivated(HyperlinkEvent e) {
-				if ("left_folders".equals(e.getHref())) {
-					expandFolders(Changes.RIGHT_TO_LEFT);
-				} else if ("right_folders".equals(e.getHref())) {
-					expandFolders(Changes.LEFT_TO_RIGHT);
-				}
 			}
 		});
 	}
@@ -123,9 +116,6 @@ public class SyncStatsComposite extends Composite {
 		boldFont.dispose();
 	}
 	
-	protected void expandFolders(Changes changes) {
-	}
-
 	public void updateStats(List<ISyncItem> items) {
 		int left_new = 0;
 		int left_folder_new = 0;
@@ -192,8 +182,8 @@ public class SyncStatsComposite extends Composite {
 	}
 	
 	private String getLeftText(int created, long created_size, int created_folders, int deleted_files, int deleted_folders, int modified, long modified_size) {
-		String createdText = generateCountString("<p><img href=\"add\"/> To be created: {0}</p>", created, created_size, created_folders, " <a href=\"left_folders\">{0}</a>");
-		String deletedText = generateCountString("<p><img href=\"delete\"/> To be deleted: <span color=\"red\" font=\"bold\">{0}</span></p>", deleted_files, -1, deleted_folders, null);
+		String createdText = generateCountString("<p><img href=\"add\"/> To be created: {0}</p>", created, created_size, created_folders);
+		String deletedText = generateCountString("<p><img href=\"delete\"/> To be deleted: <span color=\"red\" font=\"bold\">{0}</span></p>", deleted_files, -1, deleted_folders);
 		String modifiedText = generateCountString("<p><img href=\"left\"/> To be downloaded: {0}</p>", modified, modified_size);
 		if (createdText.length() == 0 && deletedText.length() == 0 && modifiedText.length() == 0) {
 			createdText = "None";
@@ -202,8 +192,8 @@ public class SyncStatsComposite extends Composite {
 	}
 
 	private String getRightText(int created, long created_size, int created_folders, int deleted_files, int deleted_fodlers, int modified, long modified_size) {
-		String createdText = generateCountString("<p><img href=\"add\"/> To be created: {0}</p>", created, created_size, created_folders, " <a href=\"right_folders\">{0}</a>");
-		String deletedText = generateCountString("<p><img href=\"delete\"/> To be deleted: <span color=\"red\" font=\"bold\">{0}</span></p>", deleted_files, -1, deleted_fodlers, null);
+		String createdText = generateCountString("<p><img href=\"add\"/> To be created: {0}</p>", created, created_size, created_folders);
+		String deletedText = generateCountString("<p><img href=\"delete\"/> To be deleted: <span color=\"red\" font=\"bold\">{0}</span></p>", deleted_files, -1, deleted_fodlers);
 		String modifiedText = generateCountString("<p><img href=\"right\"/> To be uploaded: {0}</p>", modified, modified_size);
 		if (createdText.length() == 0 && deletedText.length() == 0 && modifiedText.length() == 0) {
 			createdText = "None";
@@ -212,10 +202,10 @@ public class SyncStatsComposite extends Composite {
 	}
 
 	private static String generateCountString(String format, int nfiles, long totalsize) {
-		return generateCountString(format, nfiles, totalsize, 0, null);
+		return generateCountString(format, nfiles, totalsize, 0);
 	}
 
-	private static String generateCountString(String format, int nfiles, long totalsize, int nfolders, String folderFormat) {
+	private static String generateCountString(String format, int nfiles, long totalsize, int nfolders) {
 		StringBuffer sb = new StringBuffer();
 		if (nfiles > 0) {
 			sb.append(nfiles).append(" file");
@@ -235,11 +225,7 @@ public class SyncStatsComposite extends Composite {
 			if (nfolders > 1) {
 				sb_folder.append('s');
 			}
-			if (folderFormat != null) {
-				sb.append(MessageFormat.format(folderFormat, sb_folder.toString()));
-			} else {
-				sb.append(sb_folder.toString());
-			}
+			sb.append(sb_folder.toString());
 		}
 		if (sb.length() == 0) {
 			return "";
