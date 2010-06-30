@@ -37,6 +37,7 @@ package com.aptana.syncing.ui.dialogs;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -304,8 +305,8 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 				ISyncItem syncItem = (ISyncItem) ((IStructuredSelection) event.getSelection()).getFirstElement();
 				if (syncItem.getChanges() == Changes.CONFLICT) {
 					showDiff(syncItem);
-				} else {
-					//changeOperationForItem(syncItem);
+				} else if (syncItem.getType() == Type.FOLDER && syncItem.getChildItems() == null){
+					fetchFolders(Arrays.asList(syncItem));
 				}
 			}
 		});

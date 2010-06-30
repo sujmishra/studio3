@@ -35,6 +35,8 @@
 
 package com.aptana.syncing.ui.internal;
 
+import java.text.MessageFormat;
+
 import org.eclipse.jface.viewers.DecoratingLabelProvider;
 import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.swt.graphics.Color;
@@ -45,6 +47,7 @@ import org.eclipse.ui.model.WorkbenchLabelProvider;
 import com.aptana.ide.syncing.ui.SyncingUIPlugin;
 import com.aptana.ide.syncing.ui.internal.SyncPresentationUtils;
 import com.aptana.syncing.core.model.ISyncItem;
+import com.aptana.syncing.core.model.ISyncItem.Changes;
 import com.aptana.syncing.core.model.ISyncItem.Type;
 
 /**
@@ -100,13 +103,21 @@ public class SyncViewerLabelProvider extends DecoratingLabelProvider implements 
         case 0:
         	return getText(element);
         case 2:
-        	if (syncItem.getType() == Type.FILE && syncItem.getLeftFileInfo().exists()) {
-        		return SyncPresentationUtils.getFileSize(syncItem.getLeftFileInfo());
+        	if (syncItem.getLeftFileInfo().exists()) {
+        		if (syncItem.getType() == Type.FILE) {
+        			return SyncPresentationUtils.getFileSize(syncItem.getLeftFileInfo());
+        		} else if (syncItem.getType() == Type.FOLDER && syncItem.getChanges() == Changes.LEFT_TO_RIGHT) {
+        			return getFolderSize(syncItem);
+        		}
         	}
         	break;
         case 3:
-        	if (syncItem.getType() == Type.FILE && syncItem.getRightFileInfo().exists()) {
-        		return SyncPresentationUtils.getFileSize(syncItem.getRightFileInfo());
+        	if (syncItem.getRightFileInfo().exists()) {
+        		if (syncItem.getType() == Type.FILE) {
+        			return SyncPresentationUtils.getFileSize(syncItem.getRightFileInfo());
+        		} else if (syncItem.getType() == Type.FOLDER && syncItem.getChanges() == Changes.RIGHT_TO_LEFT) {
+        			return getFolderSize(syncItem);
+        		}
         	}
         	break;
         case 4:
@@ -169,6 +180,17 @@ public class SyncViewerLabelProvider extends DecoratingLabelProvider implements 
 			return null;
 		default:
 			return null;
+		}
+	}
+	
+	private String getFolderSize(ISyncItem syncItem) {
+		ISyncItem[] childItems = syncItem.getChildItems();
+		if (childItems == null) {
+			return "(unknown)";
+		} else if (childItems.length == 0) {
+			return "(empty)";
+		} else {
+			return MessageFormat.format("({0} items)", childItems.length);
 		}
 	}
 
