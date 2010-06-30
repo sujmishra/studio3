@@ -35,6 +35,7 @@
 
 package com.aptana.syncing.ui.dialogs;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -615,11 +616,20 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		FileCompareEditorInput compareInput = new FileCompareEditorInput(new CompareConfiguration()) {
 			@Override
 			protected void prepareFiles(IProgressMonitor monitor) throws CoreException {
-				setLeftResource(syncItem.getLeftFileInfo().exists() ? syncItem.getLeftFileStore().toLocalFile(EFS.NONE, monitor) : null);
-				setRightResource(syncItem.getRightFileInfo().exists() ? syncItem.getRightFileStore().toLocalFile(EFS.CACHE, monitor) : null);
+				File leftFile = syncItem.getLeftFileStore().toLocalFile(EFS.NONE, monitor);
+				setLeftResource(leftFile != null ? leftFile : syncItem.getLeftFileStore().toLocalFile(EFS.CACHE, monitor));
+				File rightFile = syncItem.getRightFileStore().toLocalFile(EFS.NONE, monitor);
+				setRightResource(rightFile != null ? rightFile : syncItem.getRightFileStore().toLocalFile(EFS.CACHE, monitor));
 			}
 		};
 		CompareUI.openCompareDialog(compareInput);
+	}
+	
+	private void fetchFolders(List<ISyncItem> list) {
+		if (!list.isEmpty()) {
+			SyncUIManager.getInstance().fetchTree(session, list.toArray(new ISyncItem[list.size()]));
+			showProgress(true);	
+		}
 	}
 
 }

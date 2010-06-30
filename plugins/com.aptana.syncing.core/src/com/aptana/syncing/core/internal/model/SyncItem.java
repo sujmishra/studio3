@@ -151,7 +151,8 @@ import com.aptana.syncing.core.model.ISyncItem;
 	public Set<Operation> getAllowedOperations() {
 		Set<Operation> set = new HashSet<Operation>();
 		set.add(Operation.NONE);
-		if (syncPair.getDefaultDirection() != Direction.INCONSISTENT) {
+		if (syncPair.getDefaultDirection() != Direction.INCONSISTENT
+				&& !(getType() == Type.FOLDER && getChanges() == Changes.NONE)) {
 			set.add(Operation.LEFT_TO_RIGHT);
 			set.add(Operation.RIGHT_TO_LEFT);
 		}
