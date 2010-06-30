@@ -165,6 +165,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	private IAction conflictsFilterAction;
 	
 	private IAction showDiffAction;
+	private IAction expandFoldersAction;
 	
 	private ViewerFilter searchFilter;
 	
@@ -252,7 +253,12 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		tree.setMenu(menuManager.createContextMenu(tree));
 		menuManager.setRemoveAllWhenShown(true);
 
-		statsComposite = new SyncStatsComposite(container, SWT.NONE);
+		statsComposite = new SyncStatsComposite(container, SWT.NONE) {
+			@Override
+			protected void expandFolders(Changes changes) {
+				fetchFolders(getUnfetchedFolders(getActiveItems(), changes));
+			}
+		};
 		statsComposite.setLayoutData(GridDataFactory.fillDefaults().grab(true, false).exclude(true).create());
 
 		progressMonitorPart = new ProgressMonitorPart(container, GridLayoutFactory.fillDefaults().create());
@@ -263,6 +269,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 				super.beginTask(name, totalWork);
 				if (((GridData) progressMonitorPart.getLayoutData()).exclude) {
 					((GridData) progressMonitorPart.getLayoutData()).exclude = false;
+					progressMonitorPart.setVisible(true);
 					progressMonitorPart.getParent().layout();
 				}
 			}
@@ -272,9 +279,9 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 				super.done();
 				if (!((GridData) progressMonitorPart.getLayoutData()).exclude) {
 					((GridData) progressMonitorPart.getLayoutData()).exclude = true;
+					progressMonitorPart.setVisible(false);
 					progressMonitorPart.getParent().layout();
 				}
-				showStats(true);
 			}
 		}, progressMonitorPart.getDisplay());
 				
@@ -294,7 +301,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 				if (syncItem.getChanges() == Changes.CONFLICT) {
 					showDiff(syncItem);
 				} else {
-					changeOperationForItem(syncItem);
+					//changeOperationForItem(syncItem);
 				}
 			}
 		});
@@ -366,15 +373,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	private void postCreate() {
 		getShell().setDefaultButton(null);
 		session.addListener(this);
-		if (SyncingPlugin.getSyncManager().isSyncInProgress(session)) {
-			showProgress(true);
-			getButton(IDialogConstants.OK_ID).setText("Run In Background");
-		} else {
-			showStats(true);
-			getButton(IDialogConstants.OK_ID).setText("Synchronize");
-		}
-		setButtonLayoutData(getButton(IDialogConstants.OK_ID));
-		((Composite) getButtonBar()).layout();
+		showProgress(SyncingPlugin.getSyncManager().isSyncInProgress(session));
 		treeViewer.setInput(session);
 		if (hideSameAction.isChecked()) {
 			treeViewer.expandAll();
@@ -385,16 +384,21 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	private void showProgress(boolean show) {
 		showStats(!show);
 		((GridData) progressMonitorPart.getLayoutData()).exclude = !show;
+		progressMonitorPart.setVisible(show);
 		progressMonitorPart.getParent().layout();
 		if (show) {
 			SyncingPlugin.getSyncManager().addProgressMonitorListener(session, progressMonitorWrapper);
 		} else {
-			SyncingPlugin.getSyncManager().removeProgressMonitorListener(session, progressMonitorWrapper);
+			SyncingPlugin.getSyncManager().removeProgressMonitorListener(session, progressMonitorWrapper);			
 		}
+		getButton(IDialogConstants.OK_ID).setText(show ? "Run In Background" : "Synchronize");
+		setButtonLayoutData(getButton(IDialogConstants.OK_ID));
+		((Composite) getButtonBar()).layout();
 	}
 	
 	private void showStats(boolean show) {
 		((GridData) statsComposite.getLayoutData()).exclude = !show;
+		statsComposite.setVisible(show);
 		statsComposite.getParent().layout();		
 	}
 
@@ -500,6 +504,16 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 				}
 			}
 		};
+		expandFoldersAction = new Action("Expand selected folder(s)") {
+			{
+				setImageDescriptor(SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/expand_all.png"));
+			}
+			@SuppressWarnings("unchecked")
+			@Override
+			public void run() {
+				fetchFolders(getUnfetchedFolders(((IStructuredSelection) treeViewer.getSelection()).toList(), null));
+			}
+		};
 	}
 	
 	private void fillToolBar(IToolBarManager toolBarManager) {
@@ -520,14 +534,27 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		toolBarManager.update(true);
 	}
 	
+	@SuppressWarnings("unchecked")
 	private void fillContextMenu(IMenuManager menuManager, IStructuredSelection selection) {
-		if (selection.size() == 1) {
+		if (selection.size() == 1 && ((ISyncItem) selection.getFirstElement()).getType() == Type.FILE) {
 			menuManager.add(showDiffAction);
 		}
-		menuManager.add(new Action("TODO") {
-		});
-		menuManager.add(new Action("Dummy action") {
-		});
+		if (!SyncingPlugin.getSyncManager().isSyncInProgress(session) && !getUnfetchedFolders(selection.toList(), null).isEmpty()) {
+			menuManager.add(expandFoldersAction);
+		}
+	}
+	
+	private static List<ISyncItem> getUnfetchedFolders(List<? extends Object> items, Changes changes) {
+		List<ISyncItem> list = new ArrayList<ISyncItem>();
+		for (Object i : items) {
+			ISyncItem syncItem = (ISyncItem) i;
+			if (syncItem.getType() == Type.FOLDER && syncItem.getChildItems().length == 0 && syncItem.getChanges() != Changes.NONE) {
+				if (changes == null || syncItem.getChanges() == changes) {
+					list.add(syncItem);
+				}
+			}
+		}
+		return list;
 	}
 	
 	private void updateFilters() {
@@ -607,7 +634,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	}
 	
 	private void onFetchComplete() {
-		getButton(IDialogConstants.OK_ID).setText("Synchronize");
+		showProgress(false);
 		treeViewer.refresh(true);	
 		updateState();
 	}
