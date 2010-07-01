@@ -35,6 +35,7 @@
 
 package com.aptana.syncing.core.internal.model;
 
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -133,9 +134,21 @@ import com.aptana.syncing.core.model.ISyncItem;
 	public Operation getOperation() {
 		switch(syncPair.getDirection()) {
 		case LEFT_TO_RIGHT:
-			return Operation.LEFT_TO_RIGHT;
+			if (syncPair.getLeftFileInfo().exists() && syncPair.getRightFileInfo().exists()) {
+				return Operation.COPY_TO_RIGHT;
+			} else if (syncPair.getLeftFileInfo().exists()) {
+				return Operation.ADD_TO_RIGHT;
+			} else {
+				return Operation.DELETE_ON_RIGHT;
+			}
 		case RIGHT_TO_LEFT:
-			return Operation.RIGHT_TO_LEFT;
+			if (syncPair.getLeftFileInfo().exists() && syncPair.getRightFileInfo().exists()) {
+				return Operation.COPY_TO_LEFT;
+			} else if (syncPair.getRightFileInfo().exists()) {
+				return Operation.ADD_TO_LEFT;
+			} else {
+				return Operation.DELETE_ON_LEFT;
+			}
 		case SAME:
 		case AMBIGUOUS:
 		case INCONSISTENT:
@@ -153,10 +166,18 @@ import com.aptana.syncing.core.model.ISyncItem;
 		set.add(Operation.NONE);
 		if (syncPair.getDefaultDirection() != Direction.INCONSISTENT
 				&& !(getType() == Type.FOLDER && getChanges() == Changes.NONE)) {
-			set.add(Operation.LEFT_TO_RIGHT);
-			set.add(Operation.RIGHT_TO_LEFT);
+			if (syncPair.getLeftFileInfo().exists() && syncPair.getRightFileInfo().exists()) {
+				set.add(Operation.COPY_TO_RIGHT);
+				set.add(Operation.COPY_TO_LEFT);
+			} else if (syncPair.getRightFileInfo().exists()) {
+				set.add(Operation.ADD_TO_LEFT);
+				set.add(Operation.DELETE_ON_RIGHT);
+			} else {
+				set.add(Operation.DELETE_ON_LEFT);
+				set.add(Operation.ADD_TO_RIGHT);
+			}
 		}
-		return set;
+		return EnumSet.copyOf(set);
 	}
 
 	/* (non-Javadoc)
@@ -165,10 +186,14 @@ import com.aptana.syncing.core.model.ISyncItem;
 	@Override
 	public void setOperation(Operation operation) {
 		switch (operation) {
-		case LEFT_TO_RIGHT:
+		case COPY_TO_RIGHT:
+		case ADD_TO_RIGHT:
+		case DELETE_ON_RIGHT:
 			syncPair.setForceDirection(Direction.LEFT_TO_RIGHT);
 			break;
-		case RIGHT_TO_LEFT:
+		case COPY_TO_LEFT:
+		case ADD_TO_LEFT:
+		case DELETE_ON_LEFT:
 			syncPair.setForceDirection(Direction.RIGHT_TO_LEFT);
 			break;
 		case NONE:

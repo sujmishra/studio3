@@ -38,6 +38,7 @@ package com.aptana.syncing.ui.dialogs;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -440,20 +441,17 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	
 	private void changeOperationForItem(ISyncItem syncItem) {
 		Set<Operation> allowed = syncItem.getAllowedOperations();
-		allowed.remove(syncItem.getOperation());
-		switch (syncItem.getOperation()) {
-		case LEFT_TO_RIGHT:
-			syncItem.setOperation(allowed.contains(Operation.RIGHT_TO_LEFT) ? Operation.RIGHT_TO_LEFT : Operation.NONE);
-			break;
-		case RIGHT_TO_LEFT:
-			syncItem.setOperation(Operation.NONE);
-			break;
-		case NONE:
-			syncItem.setOperation(allowed.contains(Operation.LEFT_TO_RIGHT) ? Operation.LEFT_TO_RIGHT : allowed.contains(Operation.RIGHT_TO_LEFT) ? Operation.RIGHT_TO_LEFT : Operation.NONE);
-			break;
-		default:
-			break;
+		Operation current = syncItem.getOperation();
+		Operation next = allowed.iterator().next(); // first
+		for (Iterator<Operation> i = allowed.iterator(); i.hasNext(); ) {
+			if (i.next() == current) {
+				if (i.hasNext()) {
+					next = i.next(); // next
+				}
+				break;
+			}
 		}
+		syncItem.setOperation(next);
 		if (syncItem.getType() == Type.FOLDER) {
 			treeViewer.refresh(syncItem);
 		} else {

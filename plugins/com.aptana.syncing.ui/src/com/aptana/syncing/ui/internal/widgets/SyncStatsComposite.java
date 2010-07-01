@@ -136,42 +136,42 @@ public class SyncStatsComposite extends Composite {
 				IFileInfo left = i.getLeftFileInfo();
 				IFileInfo right = i.getRightFileInfo();
 				switch (i.getOperation()) {
-				case RIGHT_TO_LEFT:
-					if (!left.exists()) {
-						if (right.isDirectory()) {
-							++left_folder_new;
-						} else {
-							++left_new;
-							left_new_size += right.getLength();
-						}
-					} else if (!right.exists()) {
-						if (left.isDirectory()) {
-							++left_folder_delete;
-						} else {
-							++left_file_delete;
-						}
+				case COPY_TO_LEFT:
+					++left_mod;
+					left_mod_size += right.getLength();
+					break;
+				case ADD_TO_LEFT:
+					if (right.isDirectory()) {
+						++left_folder_new;
 					} else {
-						++left_mod;
-						left_mod_size += right.getLength();
+						++left_new;
+						left_new_size += right.getLength();
 					}
 					break;
-				case LEFT_TO_RIGHT:
-					if (!right.exists()) {
-						if (left.isDirectory()) {
-							++right_folder_new;
-						} else {
-							++right_new;
-							right_new_size += left.getLength();
-						}
-					} else if (!left.exists()) {
-						if (right.isDirectory()) {
-							++right_folder_delete;
-						} else {
-							++right_file_delete;
-						}
+				case DELETE_ON_LEFT:
+					if (left.isDirectory()) {
+						++left_folder_delete;
 					} else {
-						++right_mod;
-						right_mod_size += left.getLength();
+						++left_file_delete;
+					}
+					break;
+				case COPY_TO_RIGHT:
+					++right_mod;
+					right_mod_size += left.getLength();
+					break;
+				case ADD_TO_RIGHT:
+					if (left.isDirectory()) {
+						++right_folder_new;
+					} else {
+						++right_new;
+						right_new_size += left.getLength();
+					}
+					break;
+				case DELETE_ON_RIGHT:
+					if (right.isDirectory()) {
+						++right_folder_delete;
+					} else {
+						++right_file_delete;
 					}
 					break;
 				}

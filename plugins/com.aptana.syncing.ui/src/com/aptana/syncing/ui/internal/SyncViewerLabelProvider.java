@@ -157,27 +157,22 @@ public class SyncViewerLabelProvider extends DecoratingLabelProvider implements 
 
 	private Image getOperationImage(ISyncItem syncItem) {
 		switch (syncItem.getOperation()) {
-		case LEFT_TO_RIGHT:
-			if (!syncItem.getLeftFileInfo().exists()) {
-				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right_delete.png");
-			} else if (!syncItem.getRightFileInfo().exists()) {
-				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right_add.png");
-			} else {
-				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right.png");
-			}
-		case RIGHT_TO_LEFT:
-			if (!syncItem.getRightFileInfo().exists()) {
-				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_delete.png");
-			} else if (!syncItem.getLeftFileInfo().exists()) {
-				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_add.png");
-			} else {
-				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left.png");
-			}
+		case COPY_TO_RIGHT:
+			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right.png");
+		case ADD_TO_RIGHT:
+			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right_add.png");
+		case DELETE_ON_RIGHT:
+			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right_delete.png");
+		case COPY_TO_LEFT:
+			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left.png");
+		case ADD_TO_LEFT:
+			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_add.png");
+		case DELETE_ON_LEFT:
+			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_delete.png");
 		case NONE:
 			if (syncItem.getType() == Type.UNSUPPORTED) {
 				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_unsupported.png");				
 			}
-			return null;
 		default:
 			return null;
 		}

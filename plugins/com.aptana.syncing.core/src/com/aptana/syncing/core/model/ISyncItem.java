@@ -57,7 +57,7 @@ public interface ISyncItem {
 	}
 	
 	public enum Operation {
-		NONE, LEFT_TO_RIGHT, RIGHT_TO_LEFT
+		NONE, COPY_TO_RIGHT, COPY_TO_LEFT, ADD_TO_RIGHT, DELETE_ON_RIGHT, ADD_TO_LEFT, DELETE_ON_LEFT
 	}
 	
 	public enum SyncStatus {

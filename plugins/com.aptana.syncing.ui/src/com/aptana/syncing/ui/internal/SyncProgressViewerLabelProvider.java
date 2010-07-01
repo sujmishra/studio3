@@ -112,10 +112,20 @@ public class SyncProgressViewerLabelProvider extends DecoratingLabelProvider imp
 			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_failed.png");
 		case IN_PROGRESS:
 			switch (syncItem.getOperation()) {
-			case LEFT_TO_RIGHT:
+			case COPY_TO_RIGHT:
 				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right.png");
-			case RIGHT_TO_LEFT:
+			case ADD_TO_RIGHT:
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right_add.png");
+			case DELETE_ON_RIGHT:
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right_delete.png");
+			case COPY_TO_LEFT:
 				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left.png");
+			case ADD_TO_LEFT:
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_add.png");
+			case DELETE_ON_LEFT:
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_delete.png");
+			default:
+				break;
 			}
 		default:
 			return null;
