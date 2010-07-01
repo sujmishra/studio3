@@ -36,10 +36,14 @@
 package com.aptana.syncing.core.internal.model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Stack;
 
 import com.aptana.syncing.core.model.ISyncItem;
+import com.aptana.syncing.core.model.ISyncItem.Operation;
+import com.aptana.syncing.core.model.ISyncItem.Type;
 
 /**
  * @author Max Stepanov
@@ -79,6 +83,31 @@ import com.aptana.syncing.core.model.ISyncItem;
 	
 	public synchronized ISyncItem[] getActiveItems() {
 		return active.toArray(new ISyncItem[active.size()]);
+	}
+	
+	/* package*/ static ISyncItem[] sort(ISyncItem[] items) {
+		Arrays.sort(items, new Comparator<ISyncItem>() {
+			@Override
+			public int compare(ISyncItem o1, ISyncItem o2) {
+				int cat1 = category(o1);
+				int cat2 = category(o2);
+				if (cat1 != cat2) {
+					return cat1 - cat2;
+				}
+				return (-1*cat1)*o1.getPath().toPortableString().compareTo(o2.getPath().toPortableString());
+			}
+			
+			private int category(ISyncItem o) {
+				if (o.getType() == Type.FOLDER) {
+					Operation operation = o.getOperation();
+					if (operation == Operation.DELETE_ON_LEFT || operation == Operation.DELETE_ON_RIGHT) {
+						return 1;
+					}
+				}
+				return -1;
+			}
+		});
+		return items;
 	}
 
 }

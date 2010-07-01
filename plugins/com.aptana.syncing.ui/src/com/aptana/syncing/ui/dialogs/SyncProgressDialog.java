@@ -130,7 +130,7 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 		
 		TableColumn column = new TableColumn(table, SWT.LEAD);
 		column.setText("File");
-		column.setWidth(200);
+		column.setWidth(300);
 
 		column = new TableColumn(table, SWT.LEAD);
 		column.setText("State");

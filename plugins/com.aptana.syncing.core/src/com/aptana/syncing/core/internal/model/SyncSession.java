@@ -292,7 +292,7 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	 */
 	@Override
 	public void setSyncItems(ISyncItem[] syncItems) {
-		this.syncItems = syncItems;
+		this.syncItems = SyncDispatcher.sort(syncItems);
 	}
 
 	/* (non-Javadoc)
