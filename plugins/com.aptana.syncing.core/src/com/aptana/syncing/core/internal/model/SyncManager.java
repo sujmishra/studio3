@@ -162,7 +162,7 @@ public final class SyncManager implements ISyncManager {
 	 */
 	@Override
 	public Job synchronize(final ISyncSession session) {		
-		((SyncSession) session).setStage(Stage.SYNCING);
+		((SyncSession) session).setStage(Stage.PRESYNCING);
 		Job job = new Job("Synchronizing "+session.toString()) {
 			@Override
 			public boolean belongsTo(Object family) {
@@ -171,14 +171,22 @@ public final class SyncManager implements ISyncManager {
 
 			@Override
 			protected IStatus run(IProgressMonitor monitor) {
-				SyncDispatcher dispatcher = new SyncDispatcher(session.getSyncItems());
+				SyncDispatcher dispatcher = ((SyncSession) session).getSyncDispatcher();
+				try {
+					dispatcher.start(session, monitor);
+				} catch (CoreException e) {
+					monitor.done();
+					return e.getStatus();
+				}
+				((SyncSession) session).setStage(Stage.SYNCING);
 				int lastRemainingCount = dispatcher.getRemainingCount();
 				SubMonitor progress = SubMonitor.convert(monitor, lastRemainingCount);
 				if (!monitor.isCanceled()) {
 					Job[] workers = new Job[CONCURRENT_JOBS];
-					synchronized (dispatcher) {
+					final Object updateLock = new Object();
+					synchronized (updateLock) {
 						for (int i = 0; i < workers.length; ++i) {
-							workers[i] = createSyncWorker(session, dispatcher);
+							workers[i] = createSyncWorker(session, dispatcher, updateLock);
 						}
 						int remaining;
 						while (!monitor.isCanceled() && (remaining = dispatcher.getRemainingCount()) > 0) {
@@ -196,7 +204,7 @@ public final class SyncManager implements ISyncManager {
 							}
 							progress.subTask(sb.toString());
 							try {
-								dispatcher.wait(2000);
+								updateLock.wait(2000);
 							} catch (InterruptedException e) {
 							}
 						}
@@ -230,7 +238,7 @@ public final class SyncManager implements ISyncManager {
 		return job;
 	}
 
-	private Job createSyncWorker(final ISyncSession session, final SyncDispatcher dispatcher) {
+	private Job createSyncWorker(final ISyncSession session, final SyncDispatcher dispatcher, final Object updateLock) {
 		Job job = new Job("Synchronize worker") {
 			@Override
 			public boolean belongsTo(Object family) {
@@ -244,19 +252,22 @@ public final class SyncManager implements ISyncManager {
 				try {
 					ISyncItem item;
 					while (!monitor.isCanceled() && (item = dispatcher.next()) != null) {
-						synchronized (dispatcher) {
-							dispatcher.notify();							
+						synchronized (updateLock) {
+							updateLock.notify();							
 						}
-						session.synchronize(new ISyncItem[] { item }, progress.newChild(1, SubMonitor.SUPPRESS_NONE));
-						synchronized (dispatcher) {
+						try {
+							session.synchronize(new ISyncItem[] { item }, progress.newChild(1, SubMonitor.SUPPRESS_NONE));
+						} finally {
 							dispatcher.done(item);
+						}
+						synchronized (updateLock) {
 							int remianing = dispatcher.getRemainingCount();
 							if (remianing < lastRemainingCount - 1) {
 								progress.worked(lastRemainingCount-remianing-1);
 								lastRemainingCount = remianing;
 							}
 							progress.setWorkRemaining(remianing);
-							dispatcher.notify();							
+							updateLock.notify();							
 						}
 					}
 				} catch (CoreException e) {

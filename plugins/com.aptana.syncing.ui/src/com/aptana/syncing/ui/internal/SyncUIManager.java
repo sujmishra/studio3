@@ -156,7 +156,7 @@ public final class SyncUIManager {
 			return;
 		}
 		Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
-		if (session.getStage() == Stage.SYNCING || session.getStage() == Stage.SYNCED) {
+		if (session.getStage() == Stage.PRESYNCING || session.getStage() == Stage.SYNCING || session.getStage() == Stage.SYNCED) {
 			SyncProgressDialog dlg = new SyncProgressDialog(shell);
 			dlg.setSession(session);
 			uiSessions.add(session);

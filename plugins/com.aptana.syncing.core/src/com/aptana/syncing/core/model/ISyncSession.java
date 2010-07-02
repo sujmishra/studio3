@@ -35,6 +35,8 @@
 
 package com.aptana.syncing.core.model;
 
+import java.util.List;
+
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 
@@ -48,7 +50,7 @@ import com.aptana.syncing.core.events.ISyncSessionListener;
 public interface ISyncSession {
 	
 	public enum Stage {
-		INITIAL, FETCHING, FETCHED, SYNCING, SYNCED, CANCELLED
+		INITIAL, FETCHING, FETCHED, PRESYNCING, SYNCING, SYNCED, CANCELLED
 	}
 
 	public IConnectionPoint getSourceConnectionPoint();
@@ -66,6 +68,6 @@ public interface ISyncSession {
 	public Stage getStage();
 	public void setStage(Stage stage);
 	
-	public void setSyncItems(ISyncItem[] items);
+	public void setSyncItems(List<ISyncItem> items);
 	public ISyncItem[] getSyncItems();
 }

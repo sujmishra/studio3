@@ -41,9 +41,14 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Stack;
 
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IProgressMonitor;
 
+import com.aptana.syncing.core.events.ISyncSessionListener;
+import com.aptana.syncing.core.events.SyncSessionEvent;
 import com.aptana.syncing.core.model.ISyncItem;
+import com.aptana.syncing.core.model.ISyncSession;
 import com.aptana.syncing.core.model.ISyncItem.Operation;
 import com.aptana.syncing.core.model.ISyncItem.Type;
 
@@ -53,31 +58,80 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
  */
 /* package */ final class SyncDispatcher {
 
-	private Stack<ISyncItem> items = new Stack<ISyncItem>();
+	private List<ISyncItem> syncItems = new ArrayList<ISyncItem>();
+	private Stack<ISyncItem> workQueue = new Stack<ISyncItem>();
 	private List<ISyncItem> active = new ArrayList<ISyncItem>();
 	
 	/**
 	 * 
 	 */
-	public SyncDispatcher(ISyncItem[] items) {
-		for (int i = items.length-1; i >=0; --i) {
-			((SyncItem) items[i]).resetState();
-			this.items.add(items[i]);
+	public SyncDispatcher(List<ISyncItem> list) {
+		ISyncItem[] items = sort(list.toArray(new ISyncItem[list.size()]));
+		for (ISyncItem i : items) {
+			syncItems.add(i);
 		}
 	}
 	
+	public synchronized void start(ISyncSession session, IProgressMonitor monitor) throws CoreException {
+		List<ISyncItem> unread = new ArrayList<ISyncItem>();
+		for (ISyncItem item : syncItems) {
+			Operation op = item.getOperation();
+			if (item.getType() == Type.FOLDER && (op == Operation.ADD_TO_LEFT || op == Operation.ADD_TO_RIGHT) && item.getChildItems() == null) {
+				unread.add(item);
+			}
+		}
+		if (!unread.isEmpty()) {
+			ISyncSessionListener listener;
+			int oldCount = syncItems.size();
+			session.addListener(listener = new  ISyncSessionListener() {
+				@Override
+				public void handleEvent(SyncSessionEvent event) {
+					if (event.getKind() == SyncSessionEvent.ITEMS_ADDED && event.getSource() instanceof ISyncItem) {
+						Operation parentOp = ((ISyncItem) event.getSource()).getOperation();
+						for (ISyncItem i : event.getItems()) {
+							i.setOperation(parentOp);
+							syncItems.add(i);
+						}
+					}
+				}
+			});
+			try {
+				session.fetchTree(unread.toArray(new ISyncItem[unread.size()]), true, monitor);
+			} finally {
+				session.removeListener(listener);
+			}
+			if (oldCount != syncItems.size()) {
+				ISyncItem[] items = sort(syncItems.toArray(new ISyncItem[syncItems.size()]));
+				syncItems.clear();
+				for (ISyncItem i : items) {
+					syncItems.add(i);
+				}
+			}
+		}
+		for (int i = syncItems.size()-1; i >=0; --i) {
+			ISyncItem item = syncItems.get(i);
+			((SyncItem) item).resetState();
+			workQueue.add(item);
+		}		
+	}
+	
+	/**
+	 * @return the syncItems
+	 */
+	public ISyncItem[] getSyncItems() {
+		return syncItems.toArray(new ISyncItem[syncItems.size()]);
+	}
+
 	public synchronized ISyncItem next() {
-		while (!items.isEmpty()) {
-			ISyncItem next = items.pop();
+		while (!workQueue.isEmpty()) {
+			ISyncItem next = workQueue.pop();
 			if (!hasBlocker(next)) {
 				active.add(next);
 				return next;
 			} else {
-				items.push(next);
+				workQueue.push(next);
 				try {
-					synchronized (next) {
-						next.wait();
-					}
+					wait();
 				} catch (InterruptedException e) {
 					break;
 				}
@@ -87,21 +141,19 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	}
 	
 	public synchronized int getRemainingCount() {
-		return items.size() + active.size();
+		return workQueue.size() + active.size();
 	}
 	
 	public synchronized void done(ISyncItem item) {
 		active.remove(item);
-		synchronized (item) {
-			item.notifyAll();
-		}
+		notifyAll();
 	}
 	
 	public synchronized ISyncItem[] getActiveItems() {
 		return active.toArray(new ISyncItem[active.size()]);
 	}
 	
-	public static ISyncItem[] sort(ISyncItem[] items) {
+	private static ISyncItem[] sort(ISyncItem[] items) {
 		Arrays.sort(items, new Comparator<ISyncItem>() {
 			@Override
 			public int compare(ISyncItem o1, ISyncItem o2) {

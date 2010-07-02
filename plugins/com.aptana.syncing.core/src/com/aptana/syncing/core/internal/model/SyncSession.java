@@ -70,8 +70,8 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	private IConnectionPoint rightConnectionPoint;
 	private ISyncItem[] rootItems = SyncItem.EMPTY_LIST;
 	private ListenerList listeners = new ListenerList();
-	private ISyncItem[] syncItems;
 	private Stage stage = Stage.INITIAL;
+	private SyncDispatcher dispatcher;
 
 	private ISyncSessionListener syncItemListener = new ISyncSessionListener() {
 		@Override
@@ -284,15 +284,19 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	 */
 	@Override
 	public ISyncItem[] getSyncItems() {
-		return syncItems;
+		return dispatcher.getSyncItems();
 	}
 
 	/* (non-Javadoc)
-	 * @see com.aptana.syncing.core.model.ISyncSession#setSyncItems(com.aptana.syncing.core.model.ISyncItem[])
+	 * @see com.aptana.syncing.core.model.ISyncSession#setSyncItems(java.util.List)
 	 */
 	@Override
-	public void setSyncItems(ISyncItem[] syncItems) {
-		this.syncItems = SyncDispatcher.sort(syncItems);
+	public void setSyncItems(List<ISyncItem> syncItems) {
+		dispatcher = new SyncDispatcher(syncItems);
+	}
+	
+	protected SyncDispatcher getSyncDispatcher() {
+		return dispatcher;
 	}
 
 	/* (non-Javadoc)
