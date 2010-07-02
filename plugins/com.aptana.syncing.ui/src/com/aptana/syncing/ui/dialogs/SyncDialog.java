@@ -169,9 +169,11 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	private IAction conflictsFilterAction;
 	
 	private IAction showDiffAction;
-	private IAction expandFoldersAction;
+	private IAction expandSelectionAction;
+	private IAction expandAllAction;
 	
 	private ViewerFilter searchFilter;
+	private Boolean hasUnfetched;
 	
 	/**
 	 * @param parentShell
@@ -355,8 +357,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	@Override
 	protected void okPressed() {
 		if (!SyncingPlugin.getSyncManager().isSyncInProgress(session)) {
-			List<ISyncItem> list = getActiveItems();
-			session.setSyncItems(list.toArray(new ISyncItem[list.size()]));
+			session.setSyncItems(getActiveItems());
 			super.okPressed();
 		} else {
 			super.cancelPressed();
@@ -511,7 +512,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 				}
 			}
 		};
-		expandFoldersAction = new Action("Expand selected folder(s)") {
+		expandSelectionAction = new Action("Expand selected folder(s)") {
 			{
 				setImageDescriptor(SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/expand_all.png"));
 			}
@@ -521,10 +522,19 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 				fetchFolders(getUnfetchedFolders(((IStructuredSelection) treeViewer.getSelection()).toList(), null));
 			}
 		};
+		expandAllAction = new Action("Expand All") {
+			{
+				setImageDescriptor(SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/expand_all.png"));
+			}
+			@Override
+			public void run() {
+				fetchFolders(getAllUnfetchedFolders());
+			}
+		};
 	}
 	
 	private void fillToolBar(IToolBarManager toolBarManager) {
-		toolBarManager.add(expandFoldersAction);
+		toolBarManager.add(expandAllAction);
 		toolBarManager.add(new Separator());
 		toolBarManager.add(hideSameAction);
 		toolBarManager.add(flatModeAction);
@@ -548,30 +558,18 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		if (showDiffAction.isEnabled()) {
 			menuManager.add(showDiffAction);
 		}
-		if (expandFoldersAction.isEnabled()) {
-			menuManager.add(expandFoldersAction);
+		if (expandSelectionAction.isEnabled()) {
+			menuManager.add(expandSelectionAction);
 		}
 	}
 	
 	@SuppressWarnings("unchecked")
 	private void updateActions(IStructuredSelection selection) {
 		showDiffAction.setEnabled(selection.size() == 1 && ((ISyncItem) selection.getFirstElement()).getType() == Type.FILE);
-		expandFoldersAction.setEnabled(!SyncingPlugin.getSyncManager().isSyncInProgress(session) && !getUnfetchedFolders(selection.toList(), null).isEmpty());
+		expandSelectionAction.setEnabled(!SyncingPlugin.getSyncManager().isSyncInProgress(session) && !getUnfetchedFolders(selection.toList(), null).isEmpty());
+		expandAllAction.setEnabled(!SyncingPlugin.getSyncManager().isSyncInProgress(session) && hasUnfetchedFolders());
 	}
-	
-	private static List<ISyncItem> getUnfetchedFolders(List<? extends Object> items, Changes changes) {
-		List<ISyncItem> list = new ArrayList<ISyncItem>();
-		for (Object i : items) {
-			ISyncItem syncItem = (ISyncItem) i;
-			if (syncItem.getType() == Type.FOLDER && syncItem.getChildItems() == null && syncItem.getChanges() != Changes.NONE) {
-				if (changes == null || syncItem.getChanges() == changes) {
-					list.add(syncItem);
-				}
-			}
-		}
-		return list;
-	}
-	
+		
 	private void updateFilters() {
 		List<ViewerFilter> filters = new ArrayList<ViewerFilter>();
 		if (incomingFilterAction.isChecked()) {
@@ -639,6 +637,39 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		return items;
 	}
 	
+	private static List<ISyncItem> getUnfetchedFolders(List<? extends Object> items, Changes changes) {
+		List<ISyncItem> list = new ArrayList<ISyncItem>();
+		for (Object i : items) {
+			ISyncItem syncItem = (ISyncItem) i;
+			if (syncItem.getType() == Type.FOLDER && syncItem.getChildItems() == null && syncItem.getChanges() != Changes.NONE) {
+				if (changes == null || syncItem.getChanges() == changes) {
+					list.add(syncItem);
+				}
+			}
+		}
+		return list;
+	}
+
+	private List<ISyncItem> getAllUnfetchedFolders() {
+		List<ISyncItem> items = new ArrayList<ISyncItem>();
+		for (Object element : treeViewer.getAllSortedChildren()) {
+			if (element instanceof ISyncItem) {
+				ISyncItem syncItem = (ISyncItem) element;
+				if (syncItem.getType() == Type.FOLDER && syncItem.getChildItems() == null && syncItem.getChanges() != Changes.NONE) {
+					items.add(syncItem);
+				}
+			}
+		}
+		return items;
+	}
+	
+	private boolean hasUnfetchedFolders() {
+		if (hasUnfetched == null) {
+			hasUnfetched = Boolean.valueOf(!getAllUnfetchedFolders().isEmpty());
+		}
+		return hasUnfetched;		
+	}
+	
 	private void updateState() {
 		if (treeViewer.getInput() == null || SyncingPlugin.getSyncManager().isSyncInProgress(session)) {
 			return;
@@ -670,6 +701,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	
 	private void fetchFolders(List<ISyncItem> list) {
 		if (!list.isEmpty()) {
+			hasUnfetched = null;
 			SyncUIManager.getInstance().fetchTree(session, list.toArray(new ISyncItem[list.size()]));
 			showProgress(true);	
 		}
