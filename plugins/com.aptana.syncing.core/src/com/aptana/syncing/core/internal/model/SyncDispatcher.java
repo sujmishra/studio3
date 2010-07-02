@@ -41,6 +41,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Stack;
 
+import org.eclipse.core.runtime.IPath;
+
 import com.aptana.syncing.core.model.ISyncItem;
 import com.aptana.syncing.core.model.ISyncItem.Operation;
 import com.aptana.syncing.core.model.ISyncItem.Type;
@@ -65,12 +67,23 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	}
 	
 	public synchronized ISyncItem next() {
-		if (items.isEmpty()) {
-			return null;
+		while (!items.isEmpty()) {
+			ISyncItem next = items.pop();
+			if (!hasBlocker(next)) {
+				active.add(next);
+				return next;
+			} else {
+				items.push(next);
+				try {
+					synchronized (next) {
+						next.wait();
+					}
+				} catch (InterruptedException e) {
+					break;
+				}
+			}
 		}
-		ISyncItem next = items.pop();
-		active.add(next);
-		return next;
+		return null;
 	}
 	
 	public synchronized int getRemainingCount() {
@@ -79,13 +92,16 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	
 	public synchronized void done(ISyncItem item) {
 		active.remove(item);
+		synchronized (item) {
+			item.notifyAll();
+		}
 	}
 	
 	public synchronized ISyncItem[] getActiveItems() {
 		return active.toArray(new ISyncItem[active.size()]);
 	}
 	
-	/* package*/ static ISyncItem[] sort(ISyncItem[] items) {
+	public static ISyncItem[] sort(ISyncItem[] items) {
 		Arrays.sort(items, new Comparator<ISyncItem>() {
 			@Override
 			public int compare(ISyncItem o1, ISyncItem o2) {
@@ -108,6 +124,25 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 			}
 		});
 		return items;
+	}
+	
+	private boolean hasBlocker(ISyncItem item) {
+		for (ISyncItem i : active) {
+			if (depends(i, item)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	private static boolean depends(ISyncItem o1, ISyncItem o2) {
+		IPath path1 = o1.getPath();
+		IPath path2 = o2.getPath();
+		if (path1.segmentCount() < path2.segmentCount()) {
+			return path1.isPrefixOf(path2);
+		} else {
+			return path2.isPrefixOf(path1);
+		}
 	}
 
 }
