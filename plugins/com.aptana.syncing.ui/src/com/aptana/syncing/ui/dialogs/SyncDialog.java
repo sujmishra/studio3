@@ -61,17 +61,22 @@ import org.eclipse.jface.dialogs.TitleAreaDialog;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.jface.viewers.ColumnPixelData;
+import org.eclipse.jface.viewers.ColumnWeightData;
 import org.eclipse.jface.viewers.DoubleClickEvent;
 import org.eclipse.jface.viewers.IDoubleClickListener;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
+import org.eclipse.jface.viewers.TableLayout;
 import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.jface.viewers.ViewerCell;
 import org.eclipse.jface.viewers.ViewerFilter;
 import org.eclipse.jface.wizard.ProgressMonitorPart;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.ControlAdapter;
+import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.graphics.Point;
@@ -233,27 +238,23 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		
 		TreeColumn column = new TreeColumn(tree, SWT.LEFT);
 		column.setText("File");
-		column.setWidth(200);
 
 		column = new TreeColumn(tree, SWT.LEFT);
 		column.setText("State");
-		column.setWidth(30);
 
 		column = new TreeColumn(tree, SWT.RIGHT);
 		column.setText("Local Size");
-		column.setWidth(70);
 
 		column = new TreeColumn(tree, SWT.RIGHT);
 		column.setText("Remote Size");
-		column.setWidth(70);
 
 		column = new TreeColumn(tree, SWT.LEFT);
 		column.setText("Local Time");
-		column.setWidth(140);
 
 		column = new TreeColumn(tree, SWT.LEFT);
 		column.setText("Remote Time");
-		column.setWidth(140);
+		
+		tree.setLayout(createTableLayout());
 		
 		MenuManager menuManager = new MenuManager("#PopupMenu");
 		tree.setMenu(menuManager.createContextMenu(tree));
@@ -295,6 +296,12 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 				}
 			}
 		});
+		tree.addControlListener(new ControlAdapter() {
+			@Override
+			public void controlResized(ControlEvent e) {
+				((Tree) e.widget).setLayout(createTableLayout());
+			}
+		});
 		treeViewer.addSelectionChangedListener(new ISelectionChangedListener() {
 			@Override
 			public void selectionChanged(SelectionChangedEvent event) {
@@ -328,6 +335,17 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		updatePresentationMode();
 		
 		return dialogArea;
+	}
+	
+	private TableLayout createTableLayout() {
+		TableLayout tableLayout = new TableLayout();
+		tableLayout.addColumnData(new ColumnWeightData(50, 200));
+		tableLayout.addColumnData(new ColumnPixelData(30, false));
+		tableLayout.addColumnData(new ColumnPixelData(70, true));
+		tableLayout.addColumnData(new ColumnPixelData(70, true));
+		tableLayout.addColumnData(new ColumnPixelData(140, true));
+		tableLayout.addColumnData(new ColumnPixelData(140, true));
+		return tableLayout; 
 	}
 
 	/* (non-Javadoc)
@@ -682,7 +700,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	
 	private void onFetchComplete() {
 		showProgress(false);
-		treeViewer.refresh(true);	
+		treeViewer.refresh(true);
 		updateState();
 	}
 	

@@ -43,9 +43,14 @@ import org.eclipse.jface.dialogs.TitleAreaDialog;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.jface.viewers.ArrayContentProvider;
+import org.eclipse.jface.viewers.ColumnPixelData;
+import org.eclipse.jface.viewers.ColumnWeightData;
+import org.eclipse.jface.viewers.TableLayout;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.TableEditor;
+import org.eclipse.swt.events.ControlAdapter;
+import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -143,7 +148,24 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 		column = new TableColumn(table, SWT.LEAD);
 		column.setWidth(400);
 		
+		table.setLayout(createTableLayout());
+
+		table.addControlListener(new ControlAdapter() {
+			@Override
+			public void controlResized(ControlEvent e) {
+				((Table) e.widget).setLayout(createTableLayout());
+			}
+		});
+
 		return dialogArea;
+	}
+
+	private TableLayout createTableLayout() {
+		TableLayout tableLayout = new TableLayout();
+		tableLayout.addColumnData(new ColumnWeightData(70, 300));
+		tableLayout.addColumnData(new ColumnPixelData(30, false));
+		tableLayout.addColumnData(new ColumnPixelData(270, false));
+		return tableLayout; 
 	}
 
 	/* (non-Javadoc)
