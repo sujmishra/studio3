@@ -35,6 +35,9 @@
 
 package com.aptana.syncing.ui.dialogs;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.dialogs.TitleAreaDialog;
 import org.eclipse.jface.layout.GridDataFactory;
@@ -74,6 +77,7 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 
 	private TableViewer tableViewer;
 	private ISyncSession session;
+	private List<ISyncItem> active = new ArrayList<ISyncItem>();
 	
 	/**
 	 * @param parentShell
@@ -175,6 +179,7 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 	@Override
 	public boolean close() {
 		session.removeListener(this);
+		clearActiveProgress();
 		SyncUIManager.getInstance().onCloseUI(session);
 		return super.close();
 	}
@@ -219,15 +224,15 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 	
 	private void handleEventUI(SyncSessionEvent event) {
 		switch (event.getKind()) {
-		case SyncSessionEvent.ITEMS_ADDED:
-		case SyncSessionEvent.ITEMS_REMOVED:
-			tableViewer.refresh(event.getSource());
-			break;
 		case SyncSessionEvent.ITEMS_UPDATED:
 			updateItems(event.getItems());
 			break;
 		case SyncSessionEvent.SESSION_STAGE_CHANGED:
-			if (session.getStage() != Stage.SYNCING) {
+			if (session.getStage() == Stage.SYNCING || session.getStage() == Stage.PRESYNCING) {
+				clearActiveProgress();
+				tableViewer.refresh();
+			} else {
+				clearActiveProgress();
 				onSyncComplete();
 			}
 			break;
@@ -240,8 +245,6 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 		
 	private void updateItems(ISyncItem[] items) {
 		tableViewer.update(items, null);
-		tableViewer.refresh(false);
-		tableViewer.reveal(items[items.length-1]);
 		for (ISyncItem i : items) {
 			SyncStatus result = i.getSyncResult();
 			if (result != null) {
@@ -256,15 +259,34 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 						tableEditor.grabHorizontal = tableEditor.grabVertical = true;
 						tableEditor.setEditor(progressBar, tableItem, 2);
 						tableItem.setData(PROGRESSBAR_TABLEEDITOR_KEY, tableEditor);
+						active.add(i);
 					} else if (tableEditor != null && result == SyncStatus.IN_PROGRESS) {
 						((ProgressBar) tableEditor.getEditor()).setSelection(i.getSyncProgress());						
 					} else if (tableEditor != null) {
 						tableItem.setData(PROGRESSBAR_TABLEEDITOR_KEY, null);
 						tableEditor.getEditor().dispose();
 						tableEditor.dispose();
+						active.remove(i);
 					}
 				}
 			}
+		}
+		tableViewer.reveal(items[items.length-1]);
+	}
+	
+	private void clearActiveProgress() {
+		for (ISyncItem i : active) {
+			TableItem tableItem = (TableItem) tableViewer.testFindItem(i);
+			if (tableItem != null) {
+				TableEditor tableEditor = (TableEditor) tableItem.getData(PROGRESSBAR_TABLEEDITOR_KEY);
+				if (tableEditor != null) {
+					tableItem.setData(PROGRESSBAR_TABLEEDITOR_KEY, null);
+					tableEditor.getEditor().dispose();
+					tableEditor.dispose();
+					active.remove(i);
+				}
+			}
+			
 		}
 	}
 	
