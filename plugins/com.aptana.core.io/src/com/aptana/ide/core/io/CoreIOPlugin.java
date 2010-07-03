@@ -62,7 +62,7 @@ import com.aptana.ide.core.io.internal.DeleteResourceShortcutListener;
 /**
  * The activator class controls the plug-in life cycle
  */
-@SuppressWarnings({"restriction", "deprecation"})
+@SuppressWarnings("restriction")
 public class CoreIOPlugin extends Plugin
 {
 

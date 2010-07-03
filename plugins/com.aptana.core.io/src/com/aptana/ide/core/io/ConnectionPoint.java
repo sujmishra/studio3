@@ -209,7 +209,7 @@ public abstract class ConnectionPoint extends PlatformObject implements IConnect
     /* (non-Javadoc)
      * @see org.eclipse.core.runtime.PlatformObject#getAdapter(java.lang.Class)
      */
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings("unchecked")
 	@Override
     public Object getAdapter(Class adapter) {
         if (IFileStore.class == adapter) {

@@ -50,7 +50,7 @@ import com.aptana.ide.core.io.CoreIOPlugin;
  * @author Max Stepanov
  *
  */
-@SuppressWarnings({"restriction", "rawtypes"})
+@SuppressWarnings({"restriction", "unchecked"})
 public class LocalFileAdapterFactory implements IAdapterFactory {
 
 	/* (non-Javadoc)
