@@ -44,12 +44,12 @@ public class EFSUtilsTest extends TestCase
 		File f = File.createTempFile("test", "txt");
 		File f2 = File.createTempFile("test", "txt");
 		assertEquals("/" + f.getName(), EFSUtils.getRelativePath(EFS.getLocalFileSystem().fromLocalFile(
-				f.getParentFile()), EFS.getLocalFileSystem().fromLocalFile(f)));
+				f.getParentFile()), EFS.getLocalFileSystem().fromLocalFile(f), null));
 
 		assertEquals("", EFSUtils.getRelativePath(EFS.getLocalFileSystem().fromLocalFile(f.getParentFile()), EFS
-				.getLocalFileSystem().fromLocalFile(f.getParentFile())));
+				.getLocalFileSystem().fromLocalFile(f.getParentFile()), null));
 
 		assertNull(EFSUtils.getRelativePath(EFS.getLocalFileSystem().fromLocalFile(f), EFS.getLocalFileSystem()
-				.fromLocalFile(f2)));
+				.fromLocalFile(f2), null));
 	}
 }

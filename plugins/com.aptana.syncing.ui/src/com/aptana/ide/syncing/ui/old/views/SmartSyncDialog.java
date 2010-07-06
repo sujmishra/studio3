@@ -301,7 +301,7 @@ public class SmartSyncDialog extends TitleAreaDialog implements SelectionListene
 			this.filesToBeSynced = filesToBeSynced;
 			if (filesToBeSynced.length == 1)
 			{
-				String path = EFSUtils.getRelativePath(sourceConnectionPoint, filesToBeSynced[0]);
+				String path = EFSUtils.getRelativePath(sourceConnectionPoint, filesToBeSynced[0], null);
 				if (path == null || path.trim().length() == 0)
 				{
 					// the selection is from the project level, so we are doing
@@ -1210,7 +1210,7 @@ public class SmartSyncDialog extends TitleAreaDialog implements SelectionListene
 						VirtualFileSyncPair pair;
 						for (IFileStore file : serverFiles)
 						{
-							pair = pairs.get(EFSUtils.getRelativePath(destConnectionPoint.getRoot(), file));
+							pair = pairs.get(EFSUtils.getRelativePath(destConnectionPoint.getRoot(), file, null));
 							if (pair != null)
 							{
 								pair.setDestinationFile(file);
@@ -2013,7 +2013,7 @@ public class SmartSyncDialog extends TitleAreaDialog implements SelectionListene
 			StringBuilder buf = new StringBuilder();
 			for (int i = 0; i < filesToBeSynced.length; ++i)
 			{
-				buf.append(EFSUtils.getRelativePath(sourceConnectionPoint, filesToBeSynced[i]));
+				buf.append(EFSUtils.getRelativePath(sourceConnectionPoint, filesToBeSynced[i], null));
 				buf.append("\n"); //$NON-NLS-1$
 			}
 			Text text;
