@@ -34,139 +34,54 @@
  */
 package com.aptana.ide.syncing.ui.actions;
 
-import java.text.MessageFormat;
 
-import org.eclipse.core.filesystem.IFileStore;
-import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IAdaptable;
-import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.Path;
-import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.IJobChangeListener;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 
 import com.aptana.core.util.StringUtil;
-import com.aptana.ide.core.io.IConnectionPoint;
+import com.aptana.ide.core.io.efs.EFSUtils;
 import com.aptana.ide.syncing.core.ISiteConnection;
-import com.aptana.ide.syncing.ui.SyncingUIPlugin;
 import com.aptana.ide.syncing.ui.internal.SyncUtils;
-import com.aptana.ide.syncing.ui.preferences.IPreferenceConstants;
-import com.aptana.ide.ui.io.actions.CopyFilesOperation;
-import com.aptana.ui.DialogUtils;
+import com.aptana.syncing.core.model.ISyncItem.Operation;
+import com.aptana.syncing.ui.internal.SyncUIManager;
 
 /**
  * @author Michael Xia (mxia@aptana.com)
+ * @author Max Stepanov
  */
-public class DownloadAction extends BaseSyncAction
-{
+public class DownloadAction extends BaseSyncAction {
 
-	private Job job;
 	private IJobChangeListener jobListener = null;
 
 	private static String MESSAGE_TITLE = StringUtil.ellipsify(Messages.DownloadAction_MessageTitle);
 
-	protected void performAction(final IAdaptable[] files, final ISiteConnection site) throws CoreException
-	{
-		job = new Job(MESSAGE_TITLE)
-		{
-
+	protected void performAction(final IAdaptable[] files, ISiteConnection siteConnection) throws CoreException {
+		IPath[] paths = new IPath[files.length];
+		for (int i = 0; i < files.length; ++i) {
+			paths[i] = EFSUtils.getRelativePath(siteConnection.getSource(), SyncUtils.getFileStore(files[i]));
+		}
+		Job job = SyncUIManager.getInstance().initiateOperation(siteConnection, paths, Operation.COPY_TO_LEFT);
+		job.addJobChangeListener(new JobChangeAdapter() {
 			@Override
-			protected IStatus run(IProgressMonitor monitor)
-			{
-				IConnectionPoint source = site.getSource();
-				IConnectionPoint target = site.getDestination();
-				// retrieves the root filestore of each end
-				IFileStore sourceRoot;
-				IFileStore targetRoot;
-				try
-				{
-					sourceRoot = source.getRoot();
-					if (!target.isConnected())
-					{
-						target.connect(monitor);
-					}
-					targetRoot = target.getRoot();
-				}
-				catch (CoreException e)
-				{
-					return new Status(Status.ERROR, SyncingUIPlugin.PLUGIN_ID, e.getLocalizedMessage(), e);
-				}
-
-				// gets the filestores of the files to be copied
-				IFileStore[] fileStores = new IFileStore[files.length];
-				IFileStore fileStore;
-				String sourceRootPath, sourcePath;
-				int index;
-				for (int i = 0; i < fileStores.length; ++i)
-				{
-					fileStore = SyncUtils.getFileStore(files[i]);
-					// since we're downloading, needs to find the corresponding
-					// file on the target
-					sourceRootPath = sourceRoot.toString();
-					sourcePath = fileStore.toString();
-					index = sourcePath.indexOf(sourceRootPath);
-					if (index > -1)
-					{
-						sourcePath = sourcePath.substring(index + sourceRootPath.length());
-						fileStore = targetRoot.getFileStore(new Path(sourcePath));
-					}
-					fileStores[i] = fileStore;
-				}
-
-				CopyFilesOperation operation = new CopyFilesOperation(getShell());
-				IStatus status = operation.copyFiles(fileStores, targetRoot, sourceRoot, monitor);
-
-				if (status != Status.CANCEL_STATUS)
-				{
-					postAction(status);
-				}
-				for (IAdaptable file : files)
-				{
-					if (file instanceof IResource)
-					{
-						try
-						{
-							((IResource) file).refreshLocal(IResource.DEPTH_INFINITE, monitor);
-						}
-						catch (CoreException e)
-						{
-						}
-					}
-				}
-
-				return status;
+			public void done(IJobChangeEvent event) {
+				refreshWorkspaceResources(files);
 			}
-		};
-
-		if (jobListener != null)
+		});
+		if (jobListener != null) {
 			job.addJobChangeListener(jobListener);
-		job.setUser(true);
-		job.schedule();
+		}		
 	}
 
-	public void addJobListener(IJobChangeListener listener)
-	{
+	public void addJobListener(IJobChangeListener listener) {
 		jobListener = listener;
 	}
 
-	protected String getMessageTitle()
-	{
+	protected String getMessageTitle() {
 		return MESSAGE_TITLE;
-	}
-
-	private void postAction(final IStatus status)
-	{
-		getShell().getDisplay().asyncExec(new Runnable()
-		{
-
-			public void run()
-			{
-				DialogUtils.openIgnoreMessageDialogInformation(getShell(), MESSAGE_TITLE, MessageFormat.format(
-						Messages.DownloadAction_PostMessage, status.getCode()), SyncingUIPlugin.getDefault()
-						.getPreferenceStore(), IPreferenceConstants.IGNORE_DIALOG_FILE_DOWNLOAD);
-			}
-		});
-	}
+	}	
 }

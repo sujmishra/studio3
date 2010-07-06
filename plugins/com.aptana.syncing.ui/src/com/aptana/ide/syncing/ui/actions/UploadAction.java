@@ -34,109 +34,46 @@
  */
 package com.aptana.ide.syncing.ui.actions;
 
-import java.text.MessageFormat;
-
-import org.eclipse.core.filesystem.IFileStore;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IAdaptable;
-import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.jobs.IJobChangeListener;
 import org.eclipse.core.runtime.jobs.Job;
 
 import com.aptana.core.util.StringUtil;
-import com.aptana.ide.core.io.IConnectionPoint;
+import com.aptana.ide.core.io.efs.EFSUtils;
 import com.aptana.ide.syncing.core.ISiteConnection;
-import com.aptana.ide.syncing.ui.SyncingUIPlugin;
 import com.aptana.ide.syncing.ui.internal.SyncUtils;
-import com.aptana.ide.syncing.ui.preferences.IPreferenceConstants;
-import com.aptana.ide.ui.io.actions.CopyFilesOperation;
-import com.aptana.ui.DialogUtils;
+import com.aptana.syncing.core.model.ISyncItem.Operation;
+import com.aptana.syncing.ui.internal.SyncUIManager;
 
 /**
  * @author Michael Xia (mxia@aptana.com)
+ * @author Max Stepanov
  */
-public class UploadAction extends BaseSyncAction
-{
+public class UploadAction extends BaseSyncAction {
 
 	private IJobChangeListener jobListener = null;
-	private Job job;
 
 	private static String MESSAGE_TITLE = StringUtil.ellipsify(Messages.UploadAction_MessageTitle);
 
-	protected void performAction(final IAdaptable[] files, final ISiteConnection site) throws CoreException
-	{
-		job = new Job(MESSAGE_TITLE)
-		{
-
-			@Override
-			protected IStatus run(IProgressMonitor monitor)
-			{
-				IConnectionPoint source = site.getSource();
-				IConnectionPoint target = site.getDestination();
-				// retrieves the root filestore of each end
-				IFileStore sourceRoot;
-				IFileStore targetRoot;
-				try
-				{
-					sourceRoot = source.getRoot();
-					if (!target.isConnected())
-					{
-						target.connect(monitor);
-					}
-					targetRoot = target.getRoot();
-				}
-				catch (CoreException e)
-				{
-					return new Status(Status.ERROR, SyncingUIPlugin.PLUGIN_ID, e.getLocalizedMessage(), e);
-				}
-
-				// gets the filestores of the files to be copied
-				IFileStore[] fileStores = new IFileStore[files.length];
-				for (int i = 0; i < fileStores.length; ++i)
-				{
-					fileStores[i] = SyncUtils.getFileStore(files[i]);
-				}
-
-				CopyFilesOperation operation = new CopyFilesOperation(getShell());
-				IStatus status = operation.copyFiles(fileStores, sourceRoot, targetRoot, monitor);
-
-				if (status != Status.CANCEL_STATUS)
-				{
-					postAction(status);
-				}
-				return status;
-			}
-		};
-		if (jobListener != null)
+	protected void performAction(final IAdaptable[] files, final ISiteConnection siteConnection) throws CoreException {
+		IPath[] paths = new IPath[files.length];
+		for (int i = 0; i < files.length; ++i) {
+			paths[i] = EFSUtils.getRelativePath(siteConnection.getSource(), SyncUtils.getFileStore(files[i]));
+		}
+		Job job = SyncUIManager.getInstance().initiateOperation(siteConnection, paths, Operation.COPY_TO_RIGHT);
+		if (jobListener != null) {
 			job.addJobChangeListener(jobListener);
-		job.setUser(true);
-		job.schedule();
+		}		
 	}
 
-	public void addJobListener(IJobChangeListener listener)
-	{
+	public void addJobListener(IJobChangeListener listener) {
 		jobListener = listener;
 	}
 
 	@Override
-	protected String getMessageTitle()
-	{
+	protected String getMessageTitle() {
 		return MESSAGE_TITLE;
-	}
-
-	private void postAction(final IStatus status)
-	{
-		getShell().getDisplay().asyncExec(new Runnable()
-		{
-
-			public void run()
-			{
-				DialogUtils.openIgnoreMessageDialogInformation(getShell(), MESSAGE_TITLE, MessageFormat.format(
-						Messages.UploadAction_PostMessage, status.getCode()), SyncingUIPlugin.getDefault()
-						.getPreferenceStore(), IPreferenceConstants.IGNORE_DIALOG_FILE_UPLOAD);
-			}
-		});
 	}
 }

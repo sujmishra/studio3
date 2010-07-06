@@ -44,6 +44,11 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IAdaptable;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.MultiStatus;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.ISelection;
@@ -59,6 +64,7 @@ import com.aptana.ide.core.io.IConnectionPoint;
 import com.aptana.ide.syncing.core.ISiteConnection;
 import com.aptana.ide.syncing.core.ResourceSynchronizationUtils;
 import com.aptana.ide.syncing.core.SiteConnectionUtils;
+import com.aptana.ide.syncing.ui.SyncingUIPlugin;
 import com.aptana.ide.syncing.ui.dialogs.ChooseSiteConnectionDialog;
 import com.aptana.ide.syncing.ui.editors.EditorUtils;
 import com.aptana.ide.syncing.ui.internal.SyncUtils;
@@ -271,4 +277,33 @@ public abstract class BaseSyncAction implements IObjectActionDelegate, IViewActi
         ResourceSynchronizationUtils.setLastSyncConnection(container, site.getDestination()
                 .getName());
     }
+    
+	protected static void refreshWorkspaceResources(final IAdaptable[] files) {
+		Job job = new  Job("Refresh workspace") {
+			@Override
+			protected IStatus run(IProgressMonitor monitor) {
+				MultiStatus status = new MultiStatus(SyncingUIPlugin.PLUGIN_ID, Status.OK, "Refresh workspace error", null);
+				for (IAdaptable file : files) {
+					if (file instanceof IResource) {
+						if (monitor.isCanceled()) {
+							return Status.CANCEL_STATUS;
+						}
+						try {
+							((IResource) file).refreshLocal(IResource.DEPTH_INFINITE, monitor);
+						} catch (CoreException e) {
+							status.add(e.getStatus());
+						}
+					}
+				}
+				if (!status.isOK()) {
+					return status;
+				}
+				return Status.OK_STATUS;
+			}
+		};
+		job.setSystem(true);
+		job.setPriority(Job.SHORT);
+		job.schedule();
+	}
+
 }

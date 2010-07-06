@@ -35,10 +35,13 @@
 
 package com.aptana.syncing.core.internal.model;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.WeakHashMap;
 import java.util.Map.Entry;
 
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -50,6 +53,7 @@ import com.aptana.ide.syncing.core.ISiteConnection;
 import com.aptana.syncing.core.model.ISyncItem;
 import com.aptana.syncing.core.model.ISyncManager;
 import com.aptana.syncing.core.model.ISyncSession;
+import com.aptana.syncing.core.model.ISyncItem.Operation;
 import com.aptana.syncing.core.model.ISyncSession.Stage;
 
 /**
@@ -57,6 +61,10 @@ import com.aptana.syncing.core.model.ISyncSession.Stage;
  *
  */
 public final class SyncManager implements ISyncManager {
+	
+	private interface IOperationRunnable {
+		void run(ISyncSession session, IProgressMonitor monitor) throws CoreException;
+	}
 	
 	private static final int CONCURRENT_JOBS = 4;
 	
@@ -157,11 +165,7 @@ public final class SyncManager implements ISyncManager {
 		return job;
 	}
 	
-	/* (non-Javadoc)
-	 * @see com.aptana.syncing.core.model.ISyncManager#synchronize(com.aptana.syncing.core.model.ISyncSession)
-	 */
-	@Override
-	public Job synchronize(final ISyncSession session) {		
+	private Job doOperationInternal(final ISyncSession session, final IOperationRunnable operationRunnable) {		
 		((SyncSession) session).setStage(Stage.PRESYNCING);
 		Job job = new Job("Synchronizing "+session.toString()) {
 			@Override
@@ -171,8 +175,12 @@ public final class SyncManager implements ISyncManager {
 
 			@Override
 			protected IStatus run(IProgressMonitor monitor) {
-				SyncDispatcher dispatcher = ((SyncSession) session).getSyncDispatcher();
+				SyncDispatcher dispatcher;
 				try {
+					if (operationRunnable != null) {
+						operationRunnable.run(session, monitor);
+					}
+					dispatcher = ((SyncSession) session).getSyncDispatcher();
 					dispatcher.start(session, monitor);
 				} catch (CoreException e) {
 					monitor.done();
@@ -236,6 +244,44 @@ public final class SyncManager implements ISyncManager {
 		job.setRule((SyncSession) session);
 		job.schedule();
 		return job;
+	}
+
+	/* (non-Javadoc)
+	 * @see com.aptana.syncing.core.model.ISyncManager#synchronize(com.aptana.syncing.core.model.ISyncSession)
+	 */
+	@Override
+	public Job synchronize(final ISyncSession session) {
+		return doOperationInternal(session, null);
+	}
+
+	/* (non-Javadoc)
+	 * @see com.aptana.syncing.core.model.ISyncManager#doOperation(com.aptana.syncing.core.model.ISyncSession, org.eclipse.core.runtime.IPath[], com.aptana.syncing.core.model.ISyncItem.Operation)
+	 */
+	@Override
+	public Job doOperation(final ISyncSession session, final IPath[] paths, final Operation operation) {
+		return doOperationInternal(session, new IOperationRunnable() {
+			@Override
+			public void run(ISyncSession session, IProgressMonitor monitor) throws CoreException {
+				session.fetchTree(paths, false, monitor);
+				ISyncItem[] items = session.getItems();
+				List<ISyncItem> all = new ArrayList<ISyncItem>();
+				for (ISyncItem item : items) {
+					item.setOperation(operation);
+					collectItems(item, all);
+				}
+				session.setSyncItems(all);
+			}
+		});
+	}
+	
+	private static void collectItems(ISyncItem syncItem, List<ISyncItem> list) {
+		list.add(syncItem);
+		ISyncItem[] childItems = syncItem.getChildItems();
+		if (childItems != null && childItems.length > 0) {
+			for (ISyncItem i : childItems) {
+				collectItems(i, list);
+			}
+		}
 	}
 
 	private Job createSyncWorker(final ISyncSession session, final SyncDispatcher dispatcher, final Object updateLock) {

@@ -38,6 +38,7 @@ package com.aptana.syncing.core.model;
 import java.util.List;
 
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 
 import com.aptana.ide.core.io.IConnectionPoint;
@@ -61,6 +62,7 @@ public interface ISyncSession {
 		
 	public void fetchTree(IProgressMonitor monitor) throws CoreException;
 	public void fetchTree(ISyncItem[] items, boolean deep, IProgressMonitor monitor) throws CoreException;
+	public void fetchTree(IPath[] paths, boolean deep, IProgressMonitor monitor) throws CoreException;
 	public void synchronize(ISyncItem[] items, IProgressMonitor monitor) throws CoreException;
 	
 	public ISyncItem[] getItems();

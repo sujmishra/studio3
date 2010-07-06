@@ -201,7 +201,6 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 	@Override
 	public boolean close() {
 		session.removeListener(this);
-		clearActiveProgress();
 		SyncUIManager.getInstance().onCloseUI(session);
 		return super.close();
 	}
