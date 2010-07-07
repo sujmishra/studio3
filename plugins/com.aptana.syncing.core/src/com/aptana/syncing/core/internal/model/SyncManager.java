@@ -312,12 +312,12 @@ public final class SyncManager implements ISyncManager {
 							dispatcher.done(item);
 						}
 						synchronized (updateLock) {
-							int remianing = dispatcher.getRemainingCount();
-							if (remianing < lastRemainingCount - 1) {
-								progress.worked(lastRemainingCount-remianing-1);
-								lastRemainingCount = remianing;
+							int remaining = dispatcher.getRemainingCount();
+							if (remaining < lastRemainingCount - 1) {
+								progress.worked(lastRemainingCount-remaining-1);
+								lastRemainingCount = remaining;
 							}
-							progress.setWorkRemaining(remianing);
+							progress.setWorkRemaining(remaining);
 							updateLock.notify();							
 						}
 					}

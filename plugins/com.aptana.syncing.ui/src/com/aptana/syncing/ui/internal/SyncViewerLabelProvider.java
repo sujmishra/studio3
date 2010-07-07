@@ -47,7 +47,6 @@ import org.eclipse.swt.graphics.RGB;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
 
-import com.aptana.ide.syncing.ui.SyncingUIPlugin;
 import com.aptana.ide.syncing.ui.internal.SyncPresentationUtils;
 import com.aptana.syncing.core.model.ISyncItem;
 import com.aptana.syncing.core.model.ISyncItem.Changes;
@@ -88,7 +87,7 @@ public class SyncViewerLabelProvider extends DecoratingLabelProvider implements 
         case 0:
             return getImage(element);
         case 1:
-        	return getOperationImage((ISyncItem) element);
+        	return Utils.getOperationImage((ISyncItem) element);
         default:
             return null;
         }
@@ -160,29 +159,6 @@ public class SyncViewerLabelProvider extends DecoratingLabelProvider implements 
 		case CONFLICT:
 			return JFaceResources.getColorRegistry().get(SYNC_CONFLICT_COLOR);
 		case NONE:
-		default:
-			return null;
-		}
-	}
-
-	private Image getOperationImage(ISyncItem syncItem) {
-		switch (syncItem.getOperation()) {
-		case COPY_TO_RIGHT:
-			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right.png"); //$NON-NLS-1$
-		case ADD_TO_RIGHT:
-			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right_add.png"); //$NON-NLS-1$
-		case DELETE_ON_RIGHT:
-			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right_delete.png"); //$NON-NLS-1$
-		case COPY_TO_LEFT:
-			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left.png"); //$NON-NLS-1$
-		case ADD_TO_LEFT:
-			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_add.png"); //$NON-NLS-1$
-		case DELETE_ON_LEFT:
-			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_delete.png"); //$NON-NLS-1$
-		case NONE:
-			if (syncItem.getType() == Type.UNSUPPORTED) {
-				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_unsupported.png"); //$NON-NLS-1$
-			}
 		default:
 			return null;
 		}
