@@ -43,6 +43,7 @@ import org.eclipse.core.filesystem.IFileStore;
 
 import com.aptana.ide.core.io.vfs.IExtendedFileInfo;
 import com.aptana.ide.core.io.vfs.IExtendedFileStore;
+import com.aptana.syncing.core.internal.model.ItemState.Type;
 
 /**
  * @author Max Stepanov
@@ -198,12 +199,12 @@ public final class SyncState {
 			state = fileInfo.exists() ? ADDED : UNMODIFIED;
 		} else if (!fileInfo.exists()){
 			state = REMOVED;
-		} else if (fileInfo.isDirectory() != (itemState.getType() == ItemState.TYPE_FOLDER)
-				|| fileInfo.getAttribute(EFS.ATTRIBUTE_SYMLINK) != (itemState.getType() == ItemState.TYPE_SYMLINK)) {
+		} else if (fileInfo.isDirectory() != (itemState.getType() == Type.FOLDER)
+				|| fileInfo.getAttribute(EFS.ATTRIBUTE_SYMLINK) != (itemState.getType() == Type.SYMLINK)) {
 			state = TYPE_CHANGED;
 		} else {
 			state = UNMODIFIED;
-			if (itemState.getType() == ItemState.TYPE_FILE) {
+			if (itemState.getType() == Type.FILE) {
 				if (fileInfo.getLength() != itemState.getLength()) {
 					state |= LENGTH_CHANGED;
 				}
@@ -225,11 +226,11 @@ public final class SyncState {
 		if (fileInfo != null && fileInfo.exists()) {
 			itemState = new ItemState();
 			if (fileInfo.isDirectory()) {
-				itemState.setType(ItemState.TYPE_FOLDER);
+				itemState.setType(Type.FOLDER);
 			} else if (fileInfo.getAttribute(EFS.ATTRIBUTE_SYMLINK)) {
-				itemState.setType(ItemState.TYPE_SYMLINK);
+				itemState.setType(Type.SYMLINK);
 			} else {
-				itemState.setType(ItemState.TYPE_FILE);
+				itemState.setType(Type.FILE);
 			}
 			itemState.setLength(fileInfo.getLength());
 			itemState.setModificationTime(fileInfo.getLastModified());

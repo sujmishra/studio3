@@ -41,14 +41,14 @@ package com.aptana.syncing.core.internal.model;
  */
 /* package */ final class ItemState {
 
-	public static final short TYPE_FILE = 0;
-	public static final short TYPE_FOLDER = 1;
-	public static final short TYPE_SYMLINK = 2;
+	public enum Type {
+		FILE, FOLDER, SYMLINK
+	}
 	
 	private long modificationTime;
 	private long length;
 	private long permissions;
-	private short type;
+	private Type type;
 
 	/**
 	 * 
@@ -56,7 +56,7 @@ package com.aptana.syncing.core.internal.model;
 	public ItemState() {
 	}
 	
-	private ItemState(short type, long length, long modificationTime, long permissions) {
+	private ItemState(Type type, long length, long modificationTime, long permissions) {
 		this.type = type;
 		this.length = length;
 		this.modificationTime = modificationTime;
@@ -109,14 +109,14 @@ package com.aptana.syncing.core.internal.model;
 	/**
 	 * @return the type
 	 */
-	public short getType() {
+	public Type getType() {
 		return type;
 	}
 
 	/**
 	 * @param type the type to set
 	 */
-	public void setType(short type) {
+	public void setType(Type type) {
 		this.type = type;
 	}
 
@@ -131,7 +131,7 @@ package com.aptana.syncing.core.internal.model;
 		result = prime * result
 				+ (int) (modificationTime ^ (modificationTime >>> 32));
 		result = prime * result + (int) (permissions ^ (permissions >>> 32));
-		result = prime * result + type;
+		result = prime * result + type.ordinal();
 		return result;
 	}
 
@@ -163,13 +163,13 @@ package com.aptana.syncing.core.internal.model;
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
 		switch (type) {
-		case TYPE_FILE:
+		case FILE:
 			sb.append('F');
 			break;
-		case TYPE_FOLDER:
+		case FOLDER:
 			sb.append('D');
 			break;
-		case TYPE_SYMLINK:
+		case SYMLINK:
 			sb.append('S');
 			break;
 		default:
@@ -187,16 +187,16 @@ package com.aptana.syncing.core.internal.model;
 		if (string != null && string.length() > 0) {
 			String[] list = string.split(";"); //$NON-NLS-1$
 			if (list.length == 4 && list[0].length() > 0) {
-				short type;
+				Type type;
 				switch(list[0].charAt(0)) {
 				case 'F':
-					type = TYPE_FILE;
+					type = Type.FILE;
 					break;
 				case 'D':
-					type = TYPE_FOLDER;
+					type = Type.FOLDER;
 					break;
 				case 'S':
-					type = TYPE_SYMLINK;
+					type = Type.SYMLINK;
 					break;
 				default:
 					return null;

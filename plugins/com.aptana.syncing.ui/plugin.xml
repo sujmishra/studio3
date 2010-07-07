@@ -277,7 +277,7 @@
                enablesFor="1"
                icon="icons/full/obj16/sync_vertical.gif"
                id="com.aptana.syncing.ui.actions.ResourceSynchronizeAction"
-               label="Synchronize..."
+               label="%action.siteConnectionSynchronize.label"
                menubarPath="group.edit"
                tooltip="%Action.Synchronize.tooltip">
          </action>

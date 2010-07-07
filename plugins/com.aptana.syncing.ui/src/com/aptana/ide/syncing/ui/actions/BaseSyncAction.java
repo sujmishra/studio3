@@ -48,6 +48,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.MultiStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -283,18 +284,20 @@ public abstract class BaseSyncAction implements IObjectActionDelegate, IViewActi
 			@Override
 			protected IStatus run(IProgressMonitor monitor) {
 				MultiStatus status = new MultiStatus(SyncingUIPlugin.PLUGIN_ID, Status.OK, "Refresh workspace error", null);
+				SubMonitor progress = SubMonitor.convert(monitor, files.length);
 				for (IAdaptable file : files) {
 					if (file instanceof IResource) {
-						if (monitor.isCanceled()) {
+						if (progress.isCanceled()) {
 							return Status.CANCEL_STATUS;
 						}
 						try {
-							((IResource) file).refreshLocal(IResource.DEPTH_INFINITE, monitor);
+							((IResource) file).refreshLocal(IResource.DEPTH_INFINITE, progress.newChild(1));
 						} catch (CoreException e) {
 							status.add(e.getStatus());
 						}
 					}
 				}
+				monitor.done();
 				if (!status.isOK()) {
 					return status;
 				}

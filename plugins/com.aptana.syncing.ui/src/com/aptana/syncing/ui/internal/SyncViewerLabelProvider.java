@@ -37,10 +37,13 @@ package com.aptana.syncing.ui.internal;
 
 import java.text.MessageFormat;
 
+import org.eclipse.jface.resource.ColorRegistry;
+import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.jface.viewers.DecoratingLabelProvider;
 import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.RGB;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
 
@@ -56,11 +59,18 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
  */
 public class SyncViewerLabelProvider extends DecoratingLabelProvider implements ITableLabelProvider {
 
-	private static final Color SYNC_LEFT_COLOR = new Color(null, 188, 242, 255);
-	private static final Color SYNC_RIGHT_COLOR = new Color(null, 204, 255, 204);
-	private static final Color SYNC_CONFLICT_COLOR = new Color(null, 255, 216, 216);
+	private static final String SYNC_LEFT_COLOR = "sync_left_changes"; //$NON-NLS-1$
+	private static final String SYNC_RIGHT_COLOR = "sync_right_changes"; //$NON-NLS-1$
+	private static final String SYNC_CONFLICT_COLOR = "sync_conflict"; //$NON-NLS-1$
 
 	private boolean flatMode;
+	
+	static {
+		ColorRegistry colorRegistry = JFaceResources.getColorRegistry();
+		colorRegistry.put(SYNC_LEFT_COLOR, new RGB(188, 242, 255));
+		colorRegistry.put(SYNC_RIGHT_COLOR, new RGB(204, 255, 204));
+		colorRegistry.put(SYNC_CONFLICT_COLOR, new RGB(255, 216, 216));
+	}
 
 	/**
 	 * 
@@ -144,11 +154,11 @@ public class SyncViewerLabelProvider extends DecoratingLabelProvider implements 
 		ISyncItem syncItem = (ISyncItem) element;
 		switch (syncItem.getChanges()) {
 		case LEFT_TO_RIGHT:
-			return SYNC_RIGHT_COLOR;
+			return JFaceResources.getColorRegistry().get(SYNC_RIGHT_COLOR);
 		case RIGHT_TO_LEFT:
-			return SYNC_LEFT_COLOR;
+			return JFaceResources.getColorRegistry().get(SYNC_LEFT_COLOR);
 		case CONFLICT:
-			return SYNC_CONFLICT_COLOR;
+			return JFaceResources.getColorRegistry().get(SYNC_CONFLICT_COLOR);
 		case NONE:
 		default:
 			return null;
@@ -171,7 +181,7 @@ public class SyncViewerLabelProvider extends DecoratingLabelProvider implements 
 			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_delete.png"); //$NON-NLS-1$
 		case NONE:
 			if (syncItem.getType() == Type.UNSUPPORTED) {
-				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_unsupported.png");				 //$NON-NLS-1$
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_unsupported.png"); //$NON-NLS-1$
 			}
 		default:
 			return null;

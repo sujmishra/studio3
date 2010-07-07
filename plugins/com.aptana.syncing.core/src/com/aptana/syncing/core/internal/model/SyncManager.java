@@ -35,6 +35,7 @@
 
 package com.aptana.syncing.core.internal.model;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.WeakHashMap;
@@ -79,7 +80,11 @@ public final class SyncManager implements ISyncManager {
 	
 	public static SyncManager getInstance() {
 		if (instance == null) {
-			instance = new SyncManager();
+			synchronized (SyncManager.class) {
+				if (instance == null) {
+					instance = new SyncManager();
+				}
+			}
 		}
 		return instance;
 	}
@@ -88,7 +93,7 @@ public final class SyncManager implements ISyncManager {
 	 * @see com.aptana.syncing.core.model.ISyncManager#getSyncSession(com.aptana.ide.syncing.core.ISiteConnection)
 	 */
 	@Override
-	public ISyncSession getSyncSession(ISiteConnection siteConnection) {
+	public synchronized ISyncSession getSyncSession(ISiteConnection siteConnection) {
 		return sessions.get(siteConnection);
 	}
 
@@ -96,7 +101,7 @@ public final class SyncManager implements ISyncManager {
 	 * @see com.aptana.syncing.core.model.ISyncManager#createSyncSession(com.aptana.ide.syncing.core.ISiteConnection)
 	 */
 	@Override
-	public ISyncSession createSyncSession(ISiteConnection siteConnection) {
+	public synchronized ISyncSession createSyncSession(ISiteConnection siteConnection) {
 		ISyncSession session =  new SyncSession(siteConnection.getSource(), siteConnection.getDestination());
 		sessions.put(siteConnection, session);
 		return session;
@@ -106,7 +111,7 @@ public final class SyncManager implements ISyncManager {
 	 * @see com.aptana.syncing.core.model.ISyncManager#closeSession(com.aptana.syncing.core.model.ISyncSession)
 	 */
 	@Override
-	public void closeSession(ISyncSession session) {
+	public synchronized void closeSession(ISyncSession session) {
 		for (Entry<ISiteConnection, ISyncSession> i : sessions.entrySet()) {
 			if (i.getValue() == session) {
 				sessions.remove(i.getKey());
@@ -125,7 +130,7 @@ public final class SyncManager implements ISyncManager {
 	@Override
 	public Job runFetchTree(final ISyncSession session, final ISyncItem[] items) {
 		((SyncSession) session).setStage(Stage.FETCHING);
-		Job job = new Job(Messages.SyncManager_FetchingData+session.toString()) {
+		Job job = new Job(MessageFormat.format(Messages.SyncManager_FetchingData_0, session.toString())) {
 			@Override
 			public boolean belongsTo(Object family) {
 				return (family == session);
@@ -143,12 +148,12 @@ public final class SyncManager implements ISyncManager {
 						}
 					}
 				} catch (CoreException e) {
-					monitor.done();
 					((SyncSession) session).setStage(Stage.CANCELLED);
 					closeSession(session);
 					return e.getStatus();
+				} finally {
+					monitor.done();					
 				}
-				monitor.done();
 				if (monitor.isCanceled()) {
 					((SyncSession) session).setStage(Stage.CANCELLED);
 					closeSession(session);
@@ -167,7 +172,7 @@ public final class SyncManager implements ISyncManager {
 	
 	private Job doOperationInternal(final ISyncSession session, final IOperationRunnable operationRunnable) {		
 		((SyncSession) session).setStage(Stage.PRESYNCING);
-		Job job = new Job(Messages.SyncManager_Synchronizing+session.toString()) {
+		Job job = new Job(MessageFormat.format(Messages.SyncManager_Synchronizing_0, session.toString())) {
 			@Override
 			public boolean belongsTo(Object family) {
 				return (family == session);
@@ -317,12 +322,11 @@ public final class SyncManager implements ISyncManager {
 						}
 					}
 				} catch (CoreException e) {
-					progress.done();
-					monitor.done();
 					return e.getStatus();
+				} finally {
+					progress.done();
+					monitor.done();					
 				}
-				progress.done();
-				monitor.done();
 				if (monitor.isCanceled()) {
 					return Status.CANCEL_STATUS;
 				}

@@ -29,10 +29,6 @@ public class Messages extends NLS {
 	public static String SyncProgressDialog_BackButton;
 	public static String SyncProgressDialog_CloseButton;
 	public static String SyncProgressDialog_Message;
-	public static String SyncProgressDialog_RunInBackground;
-	public static String SyncProgressDialog_StopConfirmation;
-	public static String SyncProgressDialog_StopMessage;
-	public static String SyncProgressDialog_Table_File;
 	public static String SyncProgressDialog_Table_State;
 	public static String SyncProgressDialog_Title;
 	public static String SyncProgressDialog_WindowTitle;

@@ -512,10 +512,10 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 			}
 		};
 		
-		incomingFilterAction = new FilterAction(Messages.SyncDialog_Action_IncomingOnly, SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/incoming.png")); //$NON-NLS-2$ //$NON-NLS-1$
-		outgoingFilterAction = new FilterAction(Messages.SyncDialog_Actioin_OutgoingOnly, SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/outgoing.png")); //$NON-NLS-2$ //$NON-NLS-1$
-		conflictsFilterAction = new FilterAction(Messages.SyncDialog_Action_ConflictsOnly, SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/conflict.png")); //$NON-NLS-2$ //$NON-NLS-1$
-		allFilterAction = new FilterAction(Messages.SyncDialog_Action_All, SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/both.png")); //$NON-NLS-2$ //$NON-NLS-1$
+		incomingFilterAction = new FilterAction(Messages.SyncDialog_Action_IncomingOnly, SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/incoming.png")); //$NON-NLS-1$
+		outgoingFilterAction = new FilterAction(Messages.SyncDialog_Actioin_OutgoingOnly, SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/outgoing.png")); //$NON-NLS-1$
+		conflictsFilterAction = new FilterAction(Messages.SyncDialog_Action_ConflictsOnly, SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/conflict.png")); //$NON-NLS-1$
+		allFilterAction = new FilterAction(Messages.SyncDialog_Action_All, SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/both.png")); //$NON-NLS-1$
 		allFilterAction.setChecked(true);
 		
 		showDiffAction = new Action(Messages.SyncDialog_Action_ShowDiff) {

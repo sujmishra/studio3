@@ -138,7 +138,7 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 		table.setLinesVisible(true);
 		
 		TableColumn column = new TableColumn(table, SWT.LEAD);
-		column.setText(Messages.SyncProgressDialog_Table_File);
+		column.setText(Messages.SyncDialog_Table_File);
 		column.setWidth(300);
 
 		column = new TableColumn(table, SWT.LEAD);
@@ -183,7 +183,7 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 	 */
 	@Override
 	protected void createButtonsForButtonBar(Composite parent) {
-		createButton(parent, IDialogConstants.OK_ID, Messages.SyncProgressDialog_RunInBackground, true);
+		createButton(parent, IDialogConstants.OK_ID, Messages.SyncDialog_RunInBackground, true);
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
 	}
 
@@ -223,7 +223,7 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 	@Override
 	protected void cancelPressed() {
 		if (SyncingPlugin.getSyncManager().isSyncInProgress(session)
-				&& !MessageDialog.openQuestion(getShell(), Messages.SyncProgressDialog_StopConfirmation, Messages.SyncProgressDialog_StopMessage)) {
+				&& !MessageDialog.openQuestion(getShell(), Messages.SyncDialog_StopConfirmation, Messages.SyncDialog_StopMessage)) {
 			return;
 		}
 		SyncingPlugin.getSyncManager().closeSession(session);

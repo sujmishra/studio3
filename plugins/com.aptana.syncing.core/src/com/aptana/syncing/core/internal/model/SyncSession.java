@@ -150,7 +150,7 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 		Map<String, IFileInfo> rightMap = new HashMap<String, IFileInfo>();
 		List<SyncItem> list = new ArrayList<SyncItem>();
 		while (!paths.isEmpty()) {
-			if (monitor.isCanceled()) {
+			if (progress.isCanceled()) {
 				return;
 			}
 			IPath path = paths.pop();
@@ -160,7 +160,7 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 			if (!path.isRoot() && rootPaths.contains(path)) {
 				SyncPair syncPair = new SyncPair(left, left.fetchInfo(IExtendedFileStore.DETAILED, progress.newChild(5, SubMonitor.SUPPRESS_NONE)),
 						right, right.fetchInfo(IExtendedFileStore.DETAILED, progress.newChild(5, SubMonitor.SUPPRESS_NONE)));
-				syncPair.calculateDirection(monitor);
+				syncPair.calculateDirection(progress);
 				SyncItem item = new SyncItem(path, syncPair);
 				list.add(item);
 				if ((deep && item.getType() == Type.FOLDER) || (syncPair.getLeftFileInfo().isDirectory() && syncPair.getRightFileInfo().isDirectory())) {
@@ -169,11 +169,11 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 				}
 			} else {
 				IFileInfo[] leftInfos = left.childInfos(IExtendedFileStore.DETAILED, progress.newChild(5, SubMonitor.SUPPRESS_NONE));
-				if (monitor.isCanceled()) {
+				if (progress.isCanceled()) {
 					return;
 				}
 				IFileInfo[] rightInfos = right.childInfos(IExtendedFileStore.DETAILED, progress.newChild(5, SubMonitor.SUPPRESS_NONE));
-				if (monitor.isCanceled()) {
+				if (progress.isCanceled()) {
 					return;
 				}
 				leftMap.clear();
@@ -197,7 +197,7 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 				list.clear();
 				for (String name : leftMap.keySet()) {
 					SyncPair syncPair = new SyncPair(left.getChild(name), leftMap.get(name), right.getChild(name), rightMap.get(name));
-					syncPair.calculateDirection(monitor);
+					syncPair.calculateDirection(progress);
 					SyncItem item = new SyncItem(path.append(name), syncPair);
 					list.add(item);
 					if ((deep && item.getType() == Type.FOLDER) || (syncPair.getLeftFileInfo().isDirectory() && syncPair.getRightFileInfo().isDirectory())) {
@@ -205,7 +205,7 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 						childPaths.add(item.getPath());
 						
 					}
-					if (monitor.isCanceled()) {
+					if (progress.isCanceled()) {
 						return;
 					}
 				}
