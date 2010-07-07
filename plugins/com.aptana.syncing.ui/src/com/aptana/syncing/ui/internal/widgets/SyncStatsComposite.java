@@ -208,7 +208,7 @@ public class SyncStatsComposite extends Composite {
 	private static String generateCountString(String format, int nfiles, long totalsize, int nfolders) {
 		StringBuffer sb = new StringBuffer();
 		if (nfiles > 0) {
-			sb.append(nfiles);
+			sb.append(nfiles).append(' ');
 			if (nfiles > 1) {
 				sb.append(Messages.SyncStatsComposite_files);
 			} else {
@@ -223,10 +223,11 @@ public class SyncStatsComposite extends Composite {
 				sb.append(Messages.SyncStatsComposite_and);
 			}
 			StringBuffer sb_folder = new StringBuffer();
+			sb_folder.append(nfolders).append(' ');
 			if (nfolders > 1) {
 				sb_folder.append(Messages.SyncStatsComposite_fodlers);
 			} else {
-				sb_folder.append(nfolders).append(Messages.SyncStatsComposite_folder);
+				sb_folder.append(Messages.SyncStatsComposite_folder);
 			}
 			sb.append(sb_folder.toString());
 		}
