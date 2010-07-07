@@ -69,7 +69,7 @@ public final class SyncUtils {
 	public static void copy(IFileStore source, IFileInfo sourceInfo, IFileStore destination, int options, IProgressMonitor monitor) throws CoreException {
 		try {
 			checkCanceled(monitor);
-			monitor.beginTask("", sourceInfo == null ? 3 : 2);
+			monitor.beginTask("", sourceInfo == null ? 3 : 2); //$NON-NLS-1$
 			if (sourceInfo == null) {
 				sourceInfo = source.fetchInfo(IExtendedFileStore.DETAILED, subMonitorFor(monitor, 1));
 			}
@@ -86,20 +86,20 @@ public final class SyncUtils {
 					in = source.openInputStream(EFS.NONE, subMonitorFor(monitor, 0));
 					out = destination.openOutputStream(EFS.NONE, subMonitorFor(monitor, 0));
 					IProgressMonitor subMonitor = subMonitorFor(monitor, 2);
-					subMonitor.beginTask(MessageFormat.format("Copying {0}", source.toString()), totalWork);
+					subMonitor.beginTask(MessageFormat.format(Messages.SyncUtils_Copying_0, source.toString()), totalWork);
 					while (true) {
 						int bytesRead = -1;
 						try {
 							bytesRead = in.read(buffer);
 						} catch (IOException e) {
-							error(MessageFormat.format("Failed reading {0}", source.toString()), e);
+							error(MessageFormat.format(Messages.SyncUtils_FailedRead_0, source.toString()), e);
 						}
 						if (bytesRead == -1)
 							break;
 						try {
 							out.write(buffer, 0, bytesRead);
 						} catch (IOException e) {
-							error(MessageFormat.format("Failed writing to {0}", destination.toString()), e);
+							error(MessageFormat.format(Messages.SyncUtils_FailedWrite_0, destination.toString()), e);
 						}
 						subMonitor.worked(1);
 					}

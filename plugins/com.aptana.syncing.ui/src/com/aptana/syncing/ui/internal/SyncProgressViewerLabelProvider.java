@@ -107,23 +107,23 @@ public class SyncProgressViewerLabelProvider extends DecoratingLabelProvider imp
 		}
 		switch (result) {
 		case SUCCEEDED:
-			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_ok.png");
+			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_ok.png"); //$NON-NLS-1$
 		case FAILED:
-			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_failed.png");
+			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_failed.png"); //$NON-NLS-1$
 		case IN_PROGRESS:
 			switch (syncItem.getOperation()) {
 			case COPY_TO_RIGHT:
-				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right.png");
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right.png"); //$NON-NLS-1$
 			case ADD_TO_RIGHT:
-				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right_add.png");
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right_add.png"); //$NON-NLS-1$
 			case DELETE_ON_RIGHT:
-				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right_delete.png");
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right_delete.png"); //$NON-NLS-1$
 			case COPY_TO_LEFT:
-				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left.png");
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left.png"); //$NON-NLS-1$
 			case ADD_TO_LEFT:
-				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_add.png");
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_add.png"); //$NON-NLS-1$
 			case DELETE_ON_LEFT:
-				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_delete.png");
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_delete.png"); //$NON-NLS-1$
 			default:
 				break;
 			}
@@ -139,7 +139,7 @@ public class SyncProgressViewerLabelProvider extends DecoratingLabelProvider imp
 				return exception.getMessage();
 			}
 		}
-		return "";
+		return ""; //$NON-NLS-1$
 	}
 
 }

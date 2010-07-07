@@ -54,10 +54,10 @@ import com.aptana.ide.syncing.core.SyncingPlugin;
 /* package */ final class ItemStateStorage {
 	// TODO: cleanup unused(deleted) states (hook siteConnection removal?)
 
-	private static final String TABLE_NAME = "states";
-	private static final String INDEX_NAME = "full_id";
-	private static final String TABLE_SCHEMA = "CREATE TABLE "+TABLE_NAME+" (left_uri TEXT NOT NULL, right_uri TEXT NOT NULL, left_state TEXT, right_state TEXT)";
-	private static final String INDEX_SCHEMA = "CREATE INDEX "+INDEX_NAME+" ON "+TABLE_NAME+"(left_uri, right_uri)";
+	private static final String TABLE_NAME = "states"; //$NON-NLS-1$
+	private static final String INDEX_NAME = "full_id"; //$NON-NLS-1$
+	private static final String TABLE_SCHEMA = "CREATE TABLE "+TABLE_NAME+" (left_uri TEXT NOT NULL, right_uri TEXT NOT NULL, left_state TEXT, right_state TEXT)"; //$NON-NLS-1$ //$NON-NLS-2$
+	private static final String INDEX_SCHEMA = "CREATE INDEX "+INDEX_NAME+" ON "+TABLE_NAME+"(left_uri, right_uri)"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 	
 	private static ItemStateStorage instance;
 	private Map<SyncIdentifier, ItemStatePair> cache = new HashMap<SyncIdentifier, ItemStatePair>();
@@ -186,7 +186,7 @@ import com.aptana.ide.syncing.core.SyncingPlugin;
 	}
 	
 	public static IPath getDBPath() {
-		return SyncingPlugin.getDefault().getStateLocation().append("db").addFileExtension("sqlite");
+		return SyncingPlugin.getDefault().getStateLocation().append("db").addFileExtension("sqlite"); //$NON-NLS-1$ //$NON-NLS-2$
 	}
 	
 	public synchronized void close() {

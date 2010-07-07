@@ -125,7 +125,7 @@ public final class SyncManager implements ISyncManager {
 	@Override
 	public Job runFetchTree(final ISyncSession session, final ISyncItem[] items) {
 		((SyncSession) session).setStage(Stage.FETCHING);
-		Job job = new Job("Fetching synchronization data for "+session.toString()) {
+		Job job = new Job(Messages.SyncManager_FetchingData+session.toString()) {
 			@Override
 			public boolean belongsTo(Object family) {
 				return (family == session);
@@ -167,7 +167,7 @@ public final class SyncManager implements ISyncManager {
 	
 	private Job doOperationInternal(final ISyncSession session, final IOperationRunnable operationRunnable) {		
 		((SyncSession) session).setStage(Stage.PRESYNCING);
-		Job job = new Job("Synchronizing "+session.toString()) {
+		Job job = new Job(Messages.SyncManager_Synchronizing+session.toString()) {
 			@Override
 			public boolean belongsTo(Object family) {
 				return (family == session);
@@ -285,7 +285,7 @@ public final class SyncManager implements ISyncManager {
 	}
 
 	private Job createSyncWorker(final ISyncSession session, final SyncDispatcher dispatcher, final Object updateLock) {
-		Job job = new Job("Synchronize worker") {
+		Job job = new Job(Messages.SyncManager_SyncWorker_Name) {
 			@Override
 			public boolean belongsTo(Object family) {
 				return (family == dispatcher);

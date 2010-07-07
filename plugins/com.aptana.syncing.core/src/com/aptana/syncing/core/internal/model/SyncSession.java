@@ -336,9 +336,9 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("[").append(
-				leftConnectionPoint).append(" <-> ")
-				.append(rightConnectionPoint).append("]");
+		builder.append("[").append( //$NON-NLS-1$
+				leftConnectionPoint).append(" <-> ") //$NON-NLS-1$
+				.append(rightConnectionPoint).append("]"); //$NON-NLS-1$
 		return builder.toString();
 	}
 }

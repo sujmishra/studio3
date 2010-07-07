@@ -101,7 +101,7 @@ public final class SyncState {
 		StringBuilder builder = new StringBuilder();
 		builder.append('(');
 		stateToString(leftState, builder);
-		builder.append(")(");
+		builder.append(")("); //$NON-NLS-1$
 		stateToString(rightState, builder);
 		builder.append(')');
 		return builder.toString();
@@ -110,26 +110,26 @@ public final class SyncState {
 	private static void stateToString(short state, StringBuilder sb) {
 		switch (state) {
 		case UNMODIFIED:
-			sb.append("UNMODIFIED");
+			sb.append("UNMODIFIED"); //$NON-NLS-1$
 			break;
 		case TYPE_CHANGED:
-			sb.append("TYPE_CHANGED");
+			sb.append("TYPE_CHANGED"); //$NON-NLS-1$
 			break;
 		case ADDED:
-			sb.append("ADDED");
+			sb.append("ADDED"); //$NON-NLS-1$
 			break;
 		case REMOVED:
-			sb.append("REMOVED");
+			sb.append("REMOVED"); //$NON-NLS-1$
 			break;
 		default:
 			if ((state & LENGTH_CHANGED) != 0) {
-				sb.append("LENGTH_CHANGED").append(',');
+				sb.append("LENGTH_CHANGED").append(','); //$NON-NLS-1$
 			}
 			if ((state & MODIFICATION_TIME_CHANGED) != 0) {
-				sb.append("MODIFICATION_TIME_CHANGED").append(',');
+				sb.append("MODIFICATION_TIME_CHANGED").append(','); //$NON-NLS-1$
 			}
 			if ((state & PERMISSIONS_CHANGED) != 0) {
-				sb.append("PERMISSIONS_CHANGED").append(',');
+				sb.append("PERMISSIONS_CHANGED").append(','); //$NON-NLS-1$
 			}
 			sb.setLength(sb.length()-1);
 		}		

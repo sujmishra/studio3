@@ -185,7 +185,7 @@ package com.aptana.syncing.core.internal.model;
 	
 	public static ItemState fromString(String string) {
 		if (string != null && string.length() > 0) {
-			String[] list = string.split(";");
+			String[] list = string.split(";"); //$NON-NLS-1$
 			if (list.length == 4 && list[0].length() > 0) {
 				short type;
 				switch(list[0].charAt(0)) {

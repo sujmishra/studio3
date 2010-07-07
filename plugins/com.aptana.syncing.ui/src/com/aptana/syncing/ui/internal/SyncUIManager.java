@@ -78,8 +78,8 @@ import com.aptana.ui.PopupSchedulingRule;
  */
 public final class SyncUIManager {
 
-	private static final QualifiedName PROP_SESSION = new QualifiedName(SyncUIManager.class.getName(), "session");
-	private static final String PROP_OPERATION = "operation";
+	private static final QualifiedName PROP_SESSION = new QualifiedName(SyncUIManager.class.getName(), "session"); //$NON-NLS-1$
+	private static final String PROP_OPERATION = "operation"; //$NON-NLS-1$
 	
 	private static SyncUIManager instance;
 	private Set<ISyncSession> uiSessions = new HashSet<ISyncSession>();
@@ -144,13 +144,13 @@ public final class SyncUIManager {
 				showUI(job, true);
 			}
 		});
-		job.setProperty(IProgressConstants.ICON_PROPERTY, SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/sync.png"));
+		job.setProperty(IProgressConstants.ICON_PROPERTY, SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/sync.png")); //$NON-NLS-1$
 		job.setProperty(IProgressConstants.NO_IMMEDIATE_ERROR_PROMPT_PROPERTY, Boolean.TRUE);
 		job.addJobChangeListener(new JobChangeAdapter() {
 			@Override
 			public void done(final IJobChangeEvent event) {
 				if (event.getResult().isOK()) {
-					WorkbenchJob uiJob = new WorkbenchJob(MessageFormat.format("Opening {0}", SyncDialog.TITLE)) {
+					WorkbenchJob uiJob = new WorkbenchJob(MessageFormat.format(Messages.SyncUIManager_Opening_0, SyncDialog.TITLE)) {
 						@Override
 						public IStatus runInUIThread(IProgressMonitor monitor) {
 							showUI(event.getJob());
@@ -224,8 +224,8 @@ public final class SyncUIManager {
 		boolean download = getSessionProperty(session, PROP_OPERATION) == Operation.COPY_TO_LEFT;
 		Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
 		DialogUtils.openIgnoreMessageDialogInformation(shell,
-				"File Transfer Status",
-				MessageFormat.format("{0} files {1}", nfiles, download ? "downloaded" : "uploaded"),
+				Messages.SyncUIManager_CompletedDialog_Title,
+				MessageFormat.format(Messages.SyncUIManager_CompletedDialog_Message, nfiles, download ? Messages.SyncUIManager_downloaded : Messages.SyncUIManager_uploaded),
 				SyncingUIPlugin.getDefault().getPreferenceStore(),
 				download ? IPreferenceConstants.IGNORE_DIALOG_FILE_DOWNLOAD : IPreferenceConstants.IGNORE_DIALOG_FILE_UPLOAD);
 

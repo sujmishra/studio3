@@ -158,20 +158,20 @@ public class SyncViewerLabelProvider extends DecoratingLabelProvider implements 
 	private Image getOperationImage(ISyncItem syncItem) {
 		switch (syncItem.getOperation()) {
 		case COPY_TO_RIGHT:
-			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right.png");
+			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right.png"); //$NON-NLS-1$
 		case ADD_TO_RIGHT:
-			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right_add.png");
+			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right_add.png"); //$NON-NLS-1$
 		case DELETE_ON_RIGHT:
-			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right_delete.png");
+			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_right_delete.png"); //$NON-NLS-1$
 		case COPY_TO_LEFT:
-			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left.png");
+			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left.png"); //$NON-NLS-1$
 		case ADD_TO_LEFT:
-			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_add.png");
+			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_add.png"); //$NON-NLS-1$
 		case DELETE_ON_LEFT:
-			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_delete.png");
+			return SyncingUIPlugin.getImage("/icons/full/obj16/sync_left_delete.png"); //$NON-NLS-1$
 		case NONE:
 			if (syncItem.getType() == Type.UNSUPPORTED) {
-				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_unsupported.png");				
+				return SyncingUIPlugin.getImage("/icons/full/obj16/sync_unsupported.png");				 //$NON-NLS-1$
 			}
 		default:
 			return null;
@@ -181,11 +181,11 @@ public class SyncViewerLabelProvider extends DecoratingLabelProvider implements 
 	private String getFolderSize(ISyncItem syncItem) {
 		ISyncItem[] childItems = syncItem.getChildItems();
 		if (childItems == null) {
-			return "(unknown)";
+			return Messages.SyncViewerLabelProvider_unknown;
 		} else if (childItems.length == 0) {
-			return "(empty)";
+			return Messages.SyncViewerLabelProvider_empty;
 		} else {
-			return MessageFormat.format("({0} items)", childItems.length);
+			return MessageFormat.format(Messages.SyncViewerLabelProvider_0_items, childItems.length);
 		}
 	}
 

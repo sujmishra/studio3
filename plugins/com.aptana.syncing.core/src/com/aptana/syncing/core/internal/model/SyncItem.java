@@ -303,7 +303,7 @@ import com.aptana.syncing.core.model.ISyncItem;
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("SyncItem [path=").append(path).append("]");
+		builder.append("SyncItem [path=").append(path).append("]"); //$NON-NLS-1$ //$NON-NLS-2$
 		return builder.toString();
 	}
 

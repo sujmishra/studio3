@@ -118,7 +118,7 @@ import com.aptana.ui.io.epl.AccumulatingProgressMonitor;
  */
 public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener {
 
-	public static final String TITLE = "Synchronization Dialog";
+	public static final String TITLE = Messages.SyncDialog_WindowTitle;
 	
 	private class FilterAction extends Action {
 
@@ -213,8 +213,8 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	protected Control createDialogArea(Composite parent) {
 		Composite dialogArea = (Composite) super.createDialogArea(parent);
 		
-		setTitle("Title");
-		setMessage("message");
+		setTitle(Messages.SyncDialog_Title);
+		setMessage(Messages.SyncDialog_Message);
 		
 		Composite container = new Composite(dialogArea, SWT.NONE);
 		container.setLayoutData(GridDataFactory.fillDefaults().grab(true, true).create());
@@ -237,26 +237,26 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		tree.setLinesVisible(true);
 		
 		TreeColumn column = new TreeColumn(tree, SWT.LEFT);
-		column.setText("File");
+		column.setText(Messages.SyncDialog_Table_File);
 
 		column = new TreeColumn(tree, SWT.LEFT);
-		column.setText("State");
+		column.setText(Messages.SyncDialog_Table_State);
 
 		column = new TreeColumn(tree, SWT.RIGHT);
-		column.setText("Local Size");
+		column.setText(Messages.SyncDialog_Table_LocalSize);
 
 		column = new TreeColumn(tree, SWT.RIGHT);
-		column.setText("Remote Size");
+		column.setText(Messages.SyncDialog_Table_RemoteSize);
 
 		column = new TreeColumn(tree, SWT.LEFT);
-		column.setText("Local Time");
+		column.setText(Messages.SyncDialog_Table_LocalTime);
 
 		column = new TreeColumn(tree, SWT.LEFT);
-		column.setText("Remote Time");
+		column.setText(Messages.SyncDialog_Table_RemoteTime);
 		
 		tree.setLayout(createTableLayout());
 		
-		MenuManager menuManager = new MenuManager("#PopupMenu");
+		MenuManager menuManager = new MenuManager("#PopupMenu"); //$NON-NLS-1$
 		tree.setMenu(menuManager.createContextMenu(tree));
 		menuManager.setRemoveAllWhenShown(true);
 
@@ -388,7 +388,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	@Override
 	protected void cancelPressed() {
 		if (SyncingPlugin.getSyncManager().isSyncInProgress(session)
-				&& !MessageDialog.openQuestion(getShell(), "Confirmation", "Do you really want to stop synchronization ?")) {
+				&& !MessageDialog.openQuestion(getShell(), Messages.SyncDialog_StopConfirmation, Messages.SyncDialog_StopMessage)) {
 			return;
 		}
 		SyncingPlugin.getSyncManager().closeSession(session);
@@ -416,7 +416,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		} else {
 			SyncingPlugin.getSyncManager().removeProgressMonitorListener(session, progressMonitorWrapper);			
 		}
-		getButton(IDialogConstants.OK_ID).setText(show ? "Run In Background" : "Synchronize");
+		getButton(IDialogConstants.OK_ID).setText(show ? Messages.SyncDialog_RunInBackground : Messages.SyncDialog_SynchronizeButton);
 		setButtonLayoutData(getButton(IDialogConstants.OK_ID));
 		((Composite) getButtonBar()).layout();
 	}
@@ -484,9 +484,9 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	}
 	
 	private void createActions() {
-		hideSameAction = new Action("Hide Identical Files", Action.AS_CHECK_BOX) {
+		hideSameAction = new Action(Messages.SyncDialog_Action_HideIdenticalFiles, Action.AS_CHECK_BOX) {
 			{
-				setImageDescriptor(SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/filter.png"));
+				setImageDescriptor(SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/filter.png")); //$NON-NLS-1$
 			}
 			@Override
 			public void run() {
@@ -496,9 +496,9 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		};
 		hideSameAction.setChecked(true);
 		
-		flatModeAction = new Action("Flat Mode", Action.AS_CHECK_BOX) {
+		flatModeAction = new Action(Messages.SyncDialog_Action_FlatMode, Action.AS_CHECK_BOX) {
 			{
-				setImageDescriptor(SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/flat.png"));
+				setImageDescriptor(SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/flat.png")); //$NON-NLS-1$
 			}
 			@Override
 			public void run() {
@@ -512,15 +512,15 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 			}
 		};
 		
-		incomingFilterAction = new FilterAction("Incoming Only", SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/incoming.png"));
-		outgoingFilterAction = new FilterAction("Outgoing Only", SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/outgoing.png"));
-		conflictsFilterAction = new FilterAction("Conflicts Only", SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/conflict.png"));
-		allFilterAction = new FilterAction("All", SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/both.png"));
+		incomingFilterAction = new FilterAction(Messages.SyncDialog_Action_IncomingOnly, SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/incoming.png")); //$NON-NLS-2$ //$NON-NLS-1$
+		outgoingFilterAction = new FilterAction(Messages.SyncDialog_Actioin_OutgoingOnly, SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/outgoing.png")); //$NON-NLS-2$ //$NON-NLS-1$
+		conflictsFilterAction = new FilterAction(Messages.SyncDialog_Action_ConflictsOnly, SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/conflict.png")); //$NON-NLS-2$ //$NON-NLS-1$
+		allFilterAction = new FilterAction(Messages.SyncDialog_Action_All, SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/both.png")); //$NON-NLS-2$ //$NON-NLS-1$
 		allFilterAction.setChecked(true);
 		
-		showDiffAction = new Action("Show Differences") {
+		showDiffAction = new Action(Messages.SyncDialog_Action_ShowDiff) {
 			{
-				setImageDescriptor(SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/compare.png"));
+				setImageDescriptor(SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/compare.png")); //$NON-NLS-1$
 			}
 			@Override
 			public void run() {
@@ -530,9 +530,9 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 				}
 			}
 		};
-		expandSelectionAction = new Action("Expand selected folder(s)") {
+		expandSelectionAction = new Action(Messages.SyncDialog_Action_ExpandSelected) {
 			{
-				setImageDescriptor(SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/expand_all.png"));
+				setImageDescriptor(SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/expand_all.png")); //$NON-NLS-1$
 			}
 			@SuppressWarnings("unchecked")
 			@Override
@@ -540,9 +540,9 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 				fetchFolders(getUnfetchedFolders(((IStructuredSelection) treeViewer.getSelection()).toList(), null));
 			}
 		};
-		expandAllAction = new Action("Expand All") {
+		expandAllAction = new Action(Messages.SyncDialog_Action_ExpandAll) {
 			{
-				setImageDescriptor(SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/expand_all.png"));
+				setImageDescriptor(SyncingUIPlugin.getImageDescriptor("/icons/full/elcl16/expand_all.png")); //$NON-NLS-1$
 			}
 			@Override
 			public void run() {

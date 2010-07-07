@@ -77,8 +77,8 @@ import com.aptana.ui.IDialogConstants;
  */
 public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionListener {
 
-	public static final String TITLE = "Synchronization Progress";
-	private static final String PROGRESSBAR_TABLEEDITOR_KEY = "table_editor.progress_bar";
+	public static final String TITLE = Messages.SyncProgressDialog_WindowTitle;
+	private static final String PROGRESSBAR_TABLEEDITOR_KEY = "table_editor.progress_bar"; //$NON-NLS-1$
 
 	private TableViewer tableViewer;
 	private ISyncSession session;
@@ -117,8 +117,8 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 	protected Control createDialogArea(Composite parent) {
 		Composite dialogArea = (Composite) super.createDialogArea(parent);
 		
-		setTitle("Title");
-		setMessage("message");
+		setTitle(Messages.SyncProgressDialog_Title);
+		setMessage(Messages.SyncProgressDialog_Message);
 		
 		Composite container = new Composite(dialogArea, SWT.NONE);
 		container.setLayoutData(GridDataFactory.fillDefaults().grab(true, true).create());
@@ -138,11 +138,11 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 		table.setLinesVisible(true);
 		
 		TableColumn column = new TableColumn(table, SWT.LEAD);
-		column.setText("File");
+		column.setText(Messages.SyncProgressDialog_Table_File);
 		column.setWidth(300);
 
 		column = new TableColumn(table, SWT.LEAD);
-		column.setText("State");
+		column.setText(Messages.SyncProgressDialog_Table_State);
 		column.setWidth(30);
 
 		column = new TableColumn(table, SWT.LEAD);
@@ -183,7 +183,7 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 	 */
 	@Override
 	protected void createButtonsForButtonBar(Composite parent) {
-		createButton(parent, IDialogConstants.OK_ID, "Run In Background", true);
+		createButton(parent, IDialogConstants.OK_ID, Messages.SyncProgressDialog_RunInBackground, true);
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
 	}
 
@@ -223,7 +223,7 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 	@Override
 	protected void cancelPressed() {
 		if (SyncingPlugin.getSyncManager().isSyncInProgress(session)
-				&& !MessageDialog.openQuestion(getShell(), "Confirmation", "Do you really want to stop synchronization ?")) {
+				&& !MessageDialog.openQuestion(getShell(), Messages.SyncProgressDialog_StopConfirmation, Messages.SyncProgressDialog_StopMessage)) {
 			return;
 		}
 		SyncingPlugin.getSyncManager().closeSession(session);
@@ -312,8 +312,8 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 	}
 	
 	private void onSyncComplete() {
-		getButton(IDialogConstants.CANCEL_ID).setText("Close");
-		getButton(IDialogConstants.OK_ID).setText("Back");
+		getButton(IDialogConstants.CANCEL_ID).setText(Messages.SyncProgressDialog_CloseButton);
+		getButton(IDialogConstants.OK_ID).setText(Messages.SyncProgressDialog_BackButton);
 	}
 
 }

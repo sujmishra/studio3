@@ -156,7 +156,7 @@ public final class SyncPair {
 	 * @param forceDirection the forceDirection to set
 	 */
 	public void setForceDirection(Direction forceDirection) {
-		Assert.isLegal(forceDirection == null || forceDirection == Direction.NONE || forceDirection == Direction.SAME || forceDirection == Direction.LEFT_TO_RIGHT || forceDirection == Direction.RIGHT_TO_LEFT, "Invalid force direction");
+		Assert.isLegal(forceDirection == null || forceDirection == Direction.NONE || forceDirection == Direction.SAME || forceDirection == Direction.LEFT_TO_RIGHT || forceDirection == Direction.RIGHT_TO_LEFT, "Invalid force direction"); //$NON-NLS-1$
 		this.forceDirection = forceDirection;
 	}
 	
