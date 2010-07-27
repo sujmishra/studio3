@@ -83,5 +83,5 @@ public class DownloadAction extends BaseSyncAction {
 
 	protected String getMessageTitle() {
 		return MESSAGE_TITLE;
-	}	
+	}
 }
