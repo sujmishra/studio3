@@ -224,12 +224,9 @@ public final class EFSUtils
 		}
 
 		monitor = Policy.monitorFor(monitor);
-
-		boolean success = true;
-		monitor.subTask(MessageFormat.format("Copying {0} to {1}", sourceStore.getName(), destinationStore.getName()));
-
+		monitor.subTask(MessageFormat.format(Messages.EFSUtils_Copying, sourceStore.getName(), destinationStore.getName()));
 		sourceStore.copy(destinationStore, EFS.OVERWRITE, monitor);
-		return success;
+		return true;
 	}
 
 	/**
@@ -247,7 +244,6 @@ public final class EFSUtils
 	public static boolean copyFileWithAttributes(IFileStore sourceStore, IFileStore destinationStore,
 			IProgressMonitor monitor, IFileInfo info) throws CoreException
 	{
-		
 		boolean success = copyFile(sourceStore, destinationStore, monitor);
 		if (success)
 		{
@@ -265,18 +261,15 @@ public final class EFSUtils
 	{
 		SubMonitor progress = SubMonitor.convert(monitor, 100);
 
-		IFileStore[] result = null;
-		ArrayList<IFileStore> list = new ArrayList<IFileStore>();
-
 		Object resource = file.getAdapter(IResource.class);
 		if (resource != null && resource instanceof IContainer)
 		{
 			((IResource) resource).refreshLocal(IResource.DEPTH_INFINITE, progress.newChild(10));
 		}
 
+		List<IFileStore> list = new ArrayList<IFileStore>();
 		getFiles(file, recurse, list, includeCloakedFiles, progress.newChild(90));
-		result = list.toArray(new IFileStore[0]);
-		return result;
+		return list.toArray(new IFileStore[list.size()]);
 	}
 
 	/**
@@ -289,12 +282,12 @@ public final class EFSUtils
 	public static IFileStore[] getFiles(IFileStore[] files, boolean recurse, boolean includeCloakedFiles,
 			IProgressMonitor monitor) throws CoreException
 	{
-		ArrayList<IFileStore> fileList = new ArrayList<IFileStore>();
-		for (int i = 0; i < files.length; i++)
+		List<IFileStore> fileList = new ArrayList<IFileStore>();
+		for (IFileStore file : files)
 		{
-			fileList.addAll(Arrays.asList(getFiles(files[i], recurse, includeCloakedFiles, monitor)));
+			fileList.addAll(Arrays.asList(getFiles(file, recurse, includeCloakedFiles, monitor)));
 		}
-		return fileList.toArray(new IFileStore[0]);
+		return fileList.toArray(new IFileStore[fileList.size()]);
 	}
 
 	/**
@@ -307,11 +300,11 @@ public final class EFSUtils
 	public static IFileStore[] getAllFiles(IFileStore[] files, boolean recurse, boolean includeCloakedFiles,
 			IProgressMonitor monitor) throws CoreException
 	{
-		ArrayList<IFileStore> fileList = new ArrayList<IFileStore>();
+		List<IFileStore> fileList = new ArrayList<IFileStore>();
 		fileList.addAll(Arrays.asList(files));
-		IFileStore[] childFiles = getFiles(files, true, false, monitor);
-		fileList.addAll(Arrays.asList(childFiles));
-		return fileList.toArray(new IFileStore[0]);
+		fileList.addAll(Arrays.asList(getFiles(files, true, false, monitor)));
+
+		return fileList.toArray(new IFileStore[fileList.size()]);
 	}
 
 	/**
@@ -347,10 +340,9 @@ public final class EFSUtils
 			{
 				SubMonitor progress = SubMonitor.convert(monitor, children.length);
 				boolean addingFile;
-				for (int i = 0; i < children.length; i++)
+				for (IFileStore child : children)
 				{
 					Policy.checkCanceled(progress);
-					IFileStore child = children[i];
 					addingFile = false;
 					if (includeCloakedFiles || !CloakingUtils.isFileCloaked(child))
 					{
@@ -416,13 +408,10 @@ public final class EFSUtils
 		{
 			return true;
 		}
-		else if (!(resource instanceof IFile) && file.fetchInfo(EFS.NONE, monitor).isDirectory())
+		if (!(resource instanceof IFile) && file.fetchInfo(EFS.NONE, monitor).isDirectory())
 		{
 			return true;
 		}
-		else
-		{
-			return false;
-		}
+		return false;
 	}
 }

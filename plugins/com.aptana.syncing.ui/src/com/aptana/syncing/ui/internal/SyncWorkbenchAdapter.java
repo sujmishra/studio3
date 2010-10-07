@@ -68,7 +68,6 @@ public final class SyncWorkbenchAdapter implements IWorkbenchAdapter {
 	/* (non-Javadoc)
 	 * @see org.eclipse.ui.model.IWorkbenchAdapter#getChildren(java.lang.Object)
 	 */
-	@Override
 	public Object[] getChildren(Object object) {
 		if (object instanceof ISyncSession) {
 			return ((ISyncSession) object).getItems();
@@ -84,7 +83,6 @@ public final class SyncWorkbenchAdapter implements IWorkbenchAdapter {
 	/* (non-Javadoc)
 	 * @see org.eclipse.ui.model.IWorkbenchAdapter#getImageDescriptor(java.lang.Object)
 	 */
-	@Override
 	public ImageDescriptor getImageDescriptor(Object object) {
 		if (object instanceof ISyncItem) {
 			ISyncItem syncItem = (ISyncItem) object;
@@ -102,7 +100,6 @@ public final class SyncWorkbenchAdapter implements IWorkbenchAdapter {
 	/* (non-Javadoc)
 	 * @see org.eclipse.ui.model.IWorkbenchAdapter#getLabel(java.lang.Object)
 	 */
-	@Override
 	public String getLabel(Object object) {
 		if (object instanceof ISyncItem) {
 			return ((ISyncItem) object).getName();
@@ -113,7 +110,6 @@ public final class SyncWorkbenchAdapter implements IWorkbenchAdapter {
 	/* (non-Javadoc)
 	 * @see org.eclipse.ui.model.IWorkbenchAdapter#getParent(java.lang.Object)
 	 */
-	@Override
 	public Object getParent(Object o) {
 		return null;
 	}
@@ -123,7 +119,7 @@ public final class SyncWorkbenchAdapter implements IWorkbenchAdapter {
 		/* (non-Javadoc)
 		 * @see org.eclipse.core.runtime.IAdapterFactory#getAdapter(java.lang.Object, java.lang.Class)
 		 */
-		@SuppressWarnings("unchecked")
+		@SuppressWarnings("rawtypes")
 		public Object getAdapter(Object adaptableObject, Class adapterType) {
 			if (adapterType == IWorkbenchAdapter.class) {
 				return getInstance();
@@ -134,7 +130,7 @@ public final class SyncWorkbenchAdapter implements IWorkbenchAdapter {
 		/* (non-Javadoc)
 		 * @see org.eclipse.core.runtime.IAdapterFactory#getAdapterList()
 		 */
-		@SuppressWarnings("unchecked")
+		@SuppressWarnings("rawtypes")
 		public Class[] getAdapterList() {
 			return new Class[] { IWorkbenchAdapter.class };
 		}

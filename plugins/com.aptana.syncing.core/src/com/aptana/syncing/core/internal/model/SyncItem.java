@@ -82,7 +82,6 @@ import com.aptana.syncing.core.model.ISyncItem;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncItem#getChildItems()
 	 */
-	@Override
 	public ISyncItem[] getChildItems() {
 		return childItems;
 	}
@@ -90,7 +89,6 @@ import com.aptana.syncing.core.model.ISyncItem;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncItem#getLeftFileStore()
 	 */
-	@Override
 	public IFileStore getLeftFileStore() {
 		return syncPair.getLeftFileStore();
 	}
@@ -98,7 +96,6 @@ import com.aptana.syncing.core.model.ISyncItem;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncItem#getRightFileStore()
 	 */
-	@Override
 	public IFileStore getRightFileStore() {
 		return syncPair.getRightFileStore();
 	}
@@ -106,7 +103,6 @@ import com.aptana.syncing.core.model.ISyncItem;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncItem#getLeftFileInfo()
 	 */
-	@Override
 	public IFileInfo getLeftFileInfo() {
 		return syncPair.getLeftFileInfo();
 	}
@@ -114,7 +110,6 @@ import com.aptana.syncing.core.model.ISyncItem;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncItem#getRightFileInfo()
 	 */
-	@Override
 	public IFileInfo getRightFileInfo() {
 		return syncPair.getRightFileInfo();
 	}
@@ -122,7 +117,6 @@ import com.aptana.syncing.core.model.ISyncItem;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncItem#getName()
 	 */
-	@Override
 	public String getName() {
 		return path.lastSegment();
 	}
@@ -130,7 +124,6 @@ import com.aptana.syncing.core.model.ISyncItem;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncItem#getOperation()
 	 */
-	@Override
 	public Operation getOperation() {
 		switch(syncPair.getDirection()) {
 		case LEFT_TO_RIGHT:
@@ -160,7 +153,6 @@ import com.aptana.syncing.core.model.ISyncItem;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncItem#getAllowedOperations()
 	 */
-	@Override
 	public Set<Operation> getAllowedOperations() {
 		Set<Operation> set = new HashSet<Operation>();
 		set.add(Operation.NONE);
@@ -183,7 +175,6 @@ import com.aptana.syncing.core.model.ISyncItem;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncItem#setOperation(com.aptana.syncing.core.model.ISyncItem.Operation)
 	 */
-	@Override
 	public void setOperation(Operation operation) {
 		switch (operation) {
 		case COPY_TO_RIGHT:
@@ -213,7 +204,6 @@ import com.aptana.syncing.core.model.ISyncItem;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncItem#getStatus()
 	 */
-	@Override
 	public Changes getChanges() {
 		switch(syncPair.getDefaultDirection()) {
 		case SAME:
@@ -233,7 +223,6 @@ import com.aptana.syncing.core.model.ISyncItem;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncItem#getPath()
 	 */
-	@Override
 	public IPath getPath() {
 		return path;
 	}
@@ -241,7 +230,6 @@ import com.aptana.syncing.core.model.ISyncItem;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncItem#getType()
 	 */
-	@Override
 	public Type getType() {
 		if (syncPair.getDirection() == Direction.INCONSISTENT) {
 			return Type.UNSUPPORTED;
@@ -259,7 +247,6 @@ import com.aptana.syncing.core.model.ISyncItem;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncItem#getSyncProgress()
 	 */
-	@Override
 	public int getSyncProgress() {
 		return syncProgress;
 	}
@@ -267,7 +254,6 @@ import com.aptana.syncing.core.model.ISyncItem;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncItem#getSyncResult()
 	 */
-	@Override
 	public SyncStatus getSyncResult() {
 		return syncStatus;
 	}
@@ -275,7 +261,6 @@ import com.aptana.syncing.core.model.ISyncItem;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncItem#getSyncError()
 	 */
-	@Override
 	public CoreException getSyncError() {
 		return syncError;
 	}

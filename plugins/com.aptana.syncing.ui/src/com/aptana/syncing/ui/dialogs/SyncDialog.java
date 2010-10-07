@@ -88,6 +88,7 @@ import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
 
+import com.aptana.core.util.StringUtil;
 import com.aptana.ide.syncing.core.SyncingPlugin;
 import com.aptana.ide.syncing.ui.SyncingUIPlugin;
 import com.aptana.ide.syncing.ui.old.editors.FileCompareEditorInput;
@@ -303,14 +304,14 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 			}
 		});
 		treeViewer.addSelectionChangedListener(new ISelectionChangedListener() {
-			@Override
+
 			public void selectionChanged(SelectionChangedEvent event) {
 				updateActions((IStructuredSelection) event.getSelection());
 			}
 		});
 		
 		treeViewer.addDoubleClickListener(new IDoubleClickListener() {
-			@Override
+
 			public void doubleClick(DoubleClickEvent event) {
 				ISyncItem syncItem = (ISyncItem) ((IStructuredSelection) event.getSelection()).getFirstElement();
 				if (syncItem.getChanges() == Changes.CONFLICT) {
@@ -322,7 +323,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		});
 		
 		menuManager.addMenuListener(new IMenuListener() {
-			@Override
+
 			public void menuAboutToShow(IMenuManager manager) {
 				fillContextMenu(manager, (IStructuredSelection) treeViewer.getSelection());
 			}
@@ -430,10 +431,9 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.events.ISyncSessionListener#handleEvent(com.aptana.syncing.core.events.SyncSessionEvent)
 	 */
-	@Override
 	public void handleEvent(final SyncSessionEvent event) {
 		getShell().getDisplay().asyncExec(new Runnable() {
-			@Override
+
 			public void run() {
 				handleEventUI(event);
 			}
@@ -565,7 +565,8 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		toolBarManager.add(new SearchToolbarControl() {
 			@Override
 			public void search(String text, boolean isCaseSensitive, boolean isRegularExpression) {
-				setSearchFilter(text.isEmpty() ? null : new SearchViewerFilter(text, isCaseSensitive, isRegularExpression));
+				setSearchFilter(StringUtil.isEmpty(text) ? null : new SearchViewerFilter(text, isCaseSensitive,
+						isRegularExpression));
 			}
 		});
 		toolBarManager.update(true);
@@ -621,7 +622,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	private void setSearchFilter(final ViewerFilter filter) {
 		this.searchFilter = filter;
 		getShell().getDisplay().timerExec(500, new Runnable() {
-			@Override
+
 			public void run() {
 				if (searchFilter == filter) {
 					updateFilters();

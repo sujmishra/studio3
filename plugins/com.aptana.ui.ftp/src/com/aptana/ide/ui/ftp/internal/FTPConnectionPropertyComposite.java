@@ -336,6 +336,7 @@ public class FTPConnectionPropertyComposite extends Composite implements IOption
 		}
 		else if (ftpConnectionPoint != originalFtpConnectionPoint)
 		{
+			ftpConnectionPoint.setId(originalFtpConnectionPoint.getId());
 			CoreIOPlugin.getConnectionPointManager().removeConnectionPoint(originalFtpConnectionPoint);
 			CoreIOPlugin.getConnectionPointManager().addConnectionPoint(ftpConnectionPoint);
 		}
@@ -372,7 +373,6 @@ public class FTPConnectionPropertyComposite extends Composite implements IOption
 		super.dispose();
 	}
 
-	@Override
 	public boolean isValid()
 	{
 		String message = null;
@@ -396,7 +396,6 @@ public class FTPConnectionPropertyComposite extends Composite implements IOption
 		return (message == null);
 	}
 
-	@Override
 	public boolean testConnection(ConnectionContext context, final IConnectionRunnable connectRunnable)
 	{
 		// WORKAROUND: getting contents after the control is disabled will return empty string if not called here
@@ -488,7 +487,6 @@ public class FTPConnectionPropertyComposite extends Composite implements IOption
 		return false;
 	}
 
-	@Override
 	public void validate()
 	{
 		if (isDisposed())

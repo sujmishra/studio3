@@ -84,7 +84,7 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 			ISyncSessionListener listener;
 			int oldCount = syncItems.size();
 			session.addListener(listener = new  ISyncSessionListener() {
-				@Override
+
 				public void handleEvent(SyncSessionEvent event) {
 					if (event.getKind() == SyncSessionEvent.ITEMS_ADDED && event.getSource() instanceof ISyncItem) {
 						Operation parentOp = ((ISyncItem) event.getSource()).getOperation();
@@ -155,7 +155,7 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	
 	private static ISyncItem[] sort(ISyncItem[] items) {
 		Arrays.sort(items, new Comparator<ISyncItem>() {
-			@Override
+
 			public int compare(ISyncItem o1, ISyncItem o2) {
 				int cat1 = category(o1);
 				int cat2 = category(o2);

@@ -76,7 +76,7 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	private SyncDispatcher dispatcher;
 
 	private ISyncSessionListener syncItemListener = new ISyncSessionListener() {
-		@Override
+
 		public void handleEvent(SyncSessionEvent event) {
 			notifyListeners(event);
 		}
@@ -93,7 +93,6 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncSession#getSourceConnectionPoint()
 	 */
-	@Override
 	public IConnectionPoint getSourceConnectionPoint() {
 		return leftConnectionPoint;
 	}
@@ -101,7 +100,6 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncSession#getDestinationConnectionPoint()
 	 */
-	@Override
 	public IConnectionPoint getDestinationConnectionPoint() {
 		return rightConnectionPoint;
 	}
@@ -109,7 +107,6 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncSession#addListener(com.aptana.syncing.core.model.ISyncSessionListener)
 	 */
-	@Override
 	public void addListener(ISyncSessionListener listener) {
 		listeners.add(listener);
 	}
@@ -117,7 +114,6 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncSession#removeListener(com.aptana.syncing.core.model.ISyncSessionListener)
 	 */
-	@Override
 	public void removeListener(ISyncSessionListener listener) {
 		listeners.remove(listener);
 	}
@@ -232,7 +228,6 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncSession#fetchTree(com.aptana.syncing.core.model.ISyncItem[], org.eclipse.core.runtime.IProgressMonitor)
 	 */
-	@Override
 	public void fetchTree(ISyncItem[] items, boolean deep, IProgressMonitor monitor) throws CoreException {
 		fetchTreeInternal(items, deep, monitor);
 	}
@@ -240,7 +235,6 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncSession#fetchTree(org.eclipse.core.runtime.IProgressMonitor)
 	 */
-	@Override
 	public void fetchTree(IProgressMonitor monitor) throws CoreException {
 		fetchTreeInternal(new IPath[] { Path.ROOT }, false, monitor);
 	}
@@ -248,7 +242,6 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncSession#fetchTree(org.eclipse.core.runtime.IPath[], boolean, org.eclipse.core.runtime.IProgressMonitor)
 	 */
-	@Override
 	public void fetchTree(IPath[] paths, boolean deep, IProgressMonitor monitor) throws CoreException {
 		fetchTreeInternal(paths, deep, monitor);
 	}
@@ -256,7 +249,6 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncSession#synchronize(com.aptana.syncing.core.model.ISyncItem[], org.eclipse.core.runtime.IProgressMonitor)
 	 */
-	@Override
 	public void synchronize(ISyncItem[] items, IProgressMonitor monitor) throws CoreException {
 		SubMonitor progress = SubMonitor.convert(monitor, items.length);
 		for (ISyncItem item : items) {
@@ -268,7 +260,6 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncSession#getItems()
 	 */
-	@Override
 	public ISyncItem[] getItems() {
 		return rootItems;
 	}
@@ -276,7 +267,6 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	/* (non-Javadoc)
 	 * @see org.eclipse.core.runtime.jobs.ISchedulingRule#contains(org.eclipse.core.runtime.jobs.ISchedulingRule)
 	 */
-	@Override
 	public boolean contains(ISchedulingRule rule) {
 		return this == rule;
 	}
@@ -284,7 +274,6 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	/* (non-Javadoc)
 	 * @see org.eclipse.core.runtime.jobs.ISchedulingRule#isConflicting(org.eclipse.core.runtime.jobs.ISchedulingRule)
 	 */
-	@Override
 	public boolean isConflicting(ISchedulingRule rule) {
 		if (rule instanceof ISyncSession) {
 			return leftConnectionPoint.equals(((ISyncSession) rule).getSourceConnectionPoint())
@@ -296,7 +285,6 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncSession#getStage()
 	 */
-	@Override
 	public Stage getStage() {
 		return stage;
 	}
@@ -304,7 +292,6 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	/**
 	 * @param stage the stage to set
 	 */
-	@Override
 	public void setStage(Stage stage) {
 		this.stage = stage;
 		notifyListeners(new SyncSessionEvent(this, SyncSessionEvent.SESSION_STAGE_CHANGED, null));
@@ -313,7 +300,6 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncSession#getSyncItems()
 	 */
-	@Override
 	public ISyncItem[] getSyncItems() {
 		return dispatcher.getSyncItems();
 	}
@@ -321,7 +307,6 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncSession#setSyncItems(java.util.List)
 	 */
-	@Override
 	public void setSyncItems(List<ISyncItem> syncItems) {
 		dispatcher = new SyncDispatcher(syncItems);
 	}
@@ -333,7 +318,6 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 	/* (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */
-	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("[").append( //$NON-NLS-1$

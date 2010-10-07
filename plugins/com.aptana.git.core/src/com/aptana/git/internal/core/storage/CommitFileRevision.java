@@ -32,6 +32,7 @@ import com.aptana.git.core.model.GitExecutable;
 public class CommitFileRevision extends GitFileRevision
 {
 
+	private static final String NO_COMMIT = "<no commit>"; //$NON-NLS-1$
 	private GitCommit commit;
 
 	public CommitFileRevision(GitCommit gitCommit, String filename)
@@ -93,7 +94,7 @@ public class CommitFileRevision extends GitFileRevision
 	{
 		if (commit == null)
 		{
-			return null;
+			return NO_COMMIT;
 		}
 		return commit.getAuthor();
 	}
@@ -103,7 +104,7 @@ public class CommitFileRevision extends GitFileRevision
 	{
 		if (commit == null)
 		{
-			return null;
+			return NO_COMMIT;
 		}
 		return commit.getComment();
 	}
@@ -123,7 +124,7 @@ public class CommitFileRevision extends GitFileRevision
 	{
 		if (commit == null)
 		{
-			return null;
+			return NO_COMMIT;
 		}
 		return commit.sha();
 	}
@@ -138,5 +139,28 @@ public class CommitFileRevision extends GitFileRevision
 			return false;
 		CommitFileRevision other = (CommitFileRevision) revision;
 		return commit.parents().contains(other.commit.sha());
+	}
+
+	@Override
+	public boolean equals(Object obj)
+	{
+		if (obj instanceof CommitFileRevision)
+		{
+			if (!super.equals(obj)) // check path
+			{
+				return false;
+			}
+			CommitFileRevision other = (CommitFileRevision) obj;
+			return other.commit.equals(commit); // check commit
+		}
+		return false;
+	}
+
+	@Override
+	public int hashCode()
+	{
+		int hash = 31 * super.hashCode();
+		hash = hash + ((commit == null) ? 0 : commit.hashCode());
+		return hash;
 	}
 }

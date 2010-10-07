@@ -63,7 +63,6 @@ public class SyncProgressViewerLabelProvider extends DecoratingLabelProvider imp
 	/* (non-Javadoc)
 	 * @see org.eclipse.jface.viewers.ITableLabelProvider#getColumnImage(java.lang.Object, int)
 	 */
-	@Override
 	public Image getColumnImage(Object element, int columnIndex) {
         switch (columnIndex) {
         case 0:
@@ -87,7 +86,6 @@ public class SyncProgressViewerLabelProvider extends DecoratingLabelProvider imp
 	/* (non-Javadoc)
 	 * @see org.eclipse.jface.viewers.ITableLabelProvider#getColumnText(java.lang.Object, int)
 	 */
-	@Override
 	public String getColumnText(Object element, int columnIndex) {
         switch (columnIndex) {
         case 0:

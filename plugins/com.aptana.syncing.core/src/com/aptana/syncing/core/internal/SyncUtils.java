@@ -1,5 +1,5 @@
 /**
- * This file Copyright (c) 2005-2009 Aptana, Inc. This program is
+ * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
  * dual-licensed under both the Aptana Public License and the GNU General
  * Public license. You may elect to use one or the other of these licenses.
  * 
@@ -32,7 +32,6 @@
  * 
  * Any modifications to this file must keep this entire header intact.
  */
-
 package com.aptana.syncing.core.internal;
 
 import java.io.IOException;
@@ -70,7 +69,8 @@ public final class SyncUtils {
 		try {
 			checkCanceled(monitor);
 			monitor.beginTask("", sourceInfo == null ? 3 : 2); //$NON-NLS-1$
-			if (sourceInfo == null) {
+			if (sourceInfo == null)
+			{
 				sourceInfo = source.fetchInfo(IExtendedFileStore.DETAILED, subMonitorFor(monitor, 1));
 			}
 			checkCanceled(monitor);
@@ -86,20 +86,25 @@ public final class SyncUtils {
 					in = source.openInputStream(EFS.NONE, subMonitorFor(monitor, 0));
 					out = destination.openOutputStream(EFS.NONE, subMonitorFor(monitor, 0));
 					IProgressMonitor subMonitor = subMonitorFor(monitor, 2);
-					subMonitor.beginTask(MessageFormat.format(Messages.SyncUtils_Copying_0, source.toString()), totalWork);
-					while (true) {
+					subMonitor.beginTask(MessageFormat.format(Messages.SyncUtils_Copying, source.toString()), totalWork);
+					while (true)
+					{
 						int bytesRead = -1;
 						try {
 							bytesRead = in.read(buffer);
-						} catch (IOException e) {
-							error(MessageFormat.format(Messages.SyncUtils_FailedRead_0, source.toString()), e);
+						}
+						catch (IOException e)
+						{
+							error(MessageFormat.format(Messages.SyncUtils_ERR_Reading, source.toString()), e);
 						}
 						if (bytesRead == -1)
 							break;
 						try {
 							out.write(buffer, 0, bytesRead);
-						} catch (IOException e) {
-							error(MessageFormat.format(Messages.SyncUtils_FailedWrite_0, destination.toString()), e);
+						}
+						catch (IOException e)
+						{
+							error(MessageFormat.format(Messages.SyncUtils_ERR_Writing, destination.toString()), e);
 						}
 						subMonitor.worked(1);
 					}

@@ -1,5 +1,5 @@
 /**
- * This file Copyright (c) 2005-2008 Aptana, Inc. This program is
+ * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
  * dual-licensed under both the Aptana Public License and the GNU General
  * Public license. You may elect to use one or the other of these licenses.
  * 
@@ -72,7 +72,6 @@ import org.eclipse.swt.widgets.TreeColumn;
 import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.PlatformUI;
 
-import com.aptana.ide.core.io.efs.EFSUtils;
 import com.aptana.ide.syncing.core.old.ISyncResource;
 import com.aptana.ide.syncing.core.old.SyncFile;
 import com.aptana.ide.syncing.core.old.SyncFolder;
@@ -461,22 +460,25 @@ public class SmartSyncViewer
 								|| file.getSyncState() == SyncState.ServerItemIsNewer)
 						{
 							final VirtualFileSyncPair pair = file.getPair();
-							File local = new File(EFSUtils.getAbsolutePath(pair.getSourceFile()));
+							File local = null;
+							try
+							{
+								local = pair.getSourceFile().toLocalFile(EFS.CACHE, null);
+							} catch (CoreException ex) {
+								ex.printStackTrace();
+							}
+							
 							FileCompareEditorInput input = new FileCompareEditorInput(new CompareConfiguration())
 							{
 
 								@Override
 								protected void prepareFiles(IProgressMonitor monitor)
 								{
-									// IFileStore file = pair.getDestinationFile();
-									File temp = null; //$NON-NLS-1$ //$NON-NLS-2$
+									File temp = null;
 									try
 									{
 										temp = pair.getDestinationFile().toLocalFile(EFS.CACHE, null);
-									}
-									catch (CoreException e)
-									{
-										// TODO Auto-generated catch block
+									} catch (CoreException e) {
 										e.printStackTrace();
 									}
 									setRightResource(temp);

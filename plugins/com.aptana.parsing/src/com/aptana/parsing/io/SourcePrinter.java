@@ -1,5 +1,5 @@
 /**
- * This file Copyright (c) 2005-2008 Aptana, Inc. This program is
+ * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
  * dual-licensed under both the Aptana Public License and the GNU General
  * Public license. You may elect to use one or the other of these licenses.
  * 
@@ -62,7 +62,7 @@ public class SourcePrinter
 	public SourcePrinter(String indent)
 	{
 		this._buffer = new StringBuffer();
-		this._indentText = indent; //$NON-NLS-1$
+		this._indentText = indent;
 		this._currentIndent = ""; //$NON-NLS-1$
 		this._newLine = DEFAULT_NEWLINE;
 	}

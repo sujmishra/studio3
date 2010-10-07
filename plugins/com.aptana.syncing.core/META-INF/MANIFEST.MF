@@ -11,8 +11,8 @@ Require-Bundle: org.eclipse.core.runtime,
  com.aptana.core,
  com.aptana.core.epl,
  com.aptana.core.io,
- org.tmatesoft.sqljet;bundle-version="1.0.3"
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+ org.tmatesoft.sqljet
+Bundle-RequiredExecutionEnvironment: J2SE-1.5
 Bundle-ActivationPolicy: lazy
 Export-Package: com.aptana.ide.syncing.core,
  com.aptana.ide.syncing.core.events,

@@ -92,7 +92,6 @@ public final class SyncManager implements ISyncManager {
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncManager#getSyncSession(com.aptana.ide.syncing.core.ISiteConnection)
 	 */
-	@Override
 	public synchronized ISyncSession getSyncSession(ISiteConnection siteConnection) {
 		return sessions.get(siteConnection);
 	}
@@ -100,7 +99,6 @@ public final class SyncManager implements ISyncManager {
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncManager#createSyncSession(com.aptana.ide.syncing.core.ISiteConnection)
 	 */
-	@Override
 	public synchronized ISyncSession createSyncSession(ISiteConnection siteConnection) {
 		ISyncSession session =  new SyncSession(siteConnection.getSource(), siteConnection.getDestination());
 		sessions.put(siteConnection, session);
@@ -110,7 +108,6 @@ public final class SyncManager implements ISyncManager {
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncManager#closeSession(com.aptana.syncing.core.model.ISyncSession)
 	 */
-	@Override
 	public synchronized void closeSession(ISyncSession session) {
 		for (Entry<ISiteConnection, ISyncSession> i : sessions.entrySet()) {
 			if (i.getValue() == session) {
@@ -127,7 +124,6 @@ public final class SyncManager implements ISyncManager {
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncManager#runFetchTree(com.aptana.syncing.core.model.ISyncSession, com.aptana.syncing.core.model.ISyncItem[])
 	 */
-	@Override
 	public Job runFetchTree(final ISyncSession session, final ISyncItem[] items) {
 		((SyncSession) session).setStage(Stage.FETCHING);
 		Job job = new Job(MessageFormat.format(Messages.SyncManager_FetchingData_0, session.toString())) {
@@ -254,7 +250,6 @@ public final class SyncManager implements ISyncManager {
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncManager#synchronize(com.aptana.syncing.core.model.ISyncSession)
 	 */
-	@Override
 	public Job synchronize(final ISyncSession session) {
 		return doOperationInternal(session, null);
 	}
@@ -262,10 +257,9 @@ public final class SyncManager implements ISyncManager {
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncManager#doOperation(com.aptana.syncing.core.model.ISyncSession, org.eclipse.core.runtime.IPath[], com.aptana.syncing.core.model.ISyncItem.Operation)
 	 */
-	@Override
 	public Job doOperation(final ISyncSession session, final IPath[] paths, final Operation operation) {
 		return doOperationInternal(session, new IOperationRunnable() {
-			@Override
+
 			public void run(ISyncSession session, IProgressMonitor monitor) throws CoreException {
 				session.fetchTree(paths, false, monitor);
 				ISyncItem[] items = session.getItems();
@@ -347,7 +341,6 @@ public final class SyncManager implements ISyncManager {
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncManager#isSyncInProgress(com.aptana.syncing.core.model.ISyncSession)
 	 */
-	@Override
 	public boolean isSyncInProgress(ISyncSession session) {
 		Job job = findSessionJob(session);
 		return (job != null && job.getState() != Job.NONE);
@@ -356,7 +349,6 @@ public final class SyncManager implements ISyncManager {
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncManager#addProgressMonitorListener(com.aptana.syncing.core.model.ISyncSession, org.eclipse.core.runtime.IProgressMonitor)
 	 */
-	@Override
 	public void addProgressMonitorListener(ISyncSession session, IProgressMonitor monitor) {
 		Job job = findSessionJob(session);
 		if (job != null) {
@@ -370,7 +362,6 @@ public final class SyncManager implements ISyncManager {
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.model.ISyncManager#removeProgressMonitorListener(com.aptana.syncing.core.model.ISyncSession, org.eclipse.core.runtime.IProgressMonitor)
 	 */
-	@Override
 	public void removeProgressMonitorListener(ISyncSession session, IProgressMonitor monitor) {
 		Job job = findSessionJob(session);
 		if (job != null) {

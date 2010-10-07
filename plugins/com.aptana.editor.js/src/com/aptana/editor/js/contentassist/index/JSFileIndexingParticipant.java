@@ -1,3 +1,37 @@
+/**
+ * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
+ * dual-licensed under both the Aptana Public License and the GNU General
+ * Public license. You may elect to use one or the other of these licenses.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * AS-IS and WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE, TITLE, or
+ * NONINFRINGEMENT. Redistribution, except as permitted by whichever of
+ * the GPL or APL you select, is prohibited.
+ *
+ * 1. For the GPL license (GPL), you can redistribute and/or modify this
+ * program under the terms of the GNU General Public License,
+ * Version 3, as published by the Free Software Foundation.  You should
+ * have received a copy of the GNU General Public License, Version 3 along
+ * with this program; if not, write to the Free Software Foundation, Inc., 51
+ * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ * 
+ * Aptana provides a special exception to allow redistribution of this file
+ * with certain other free and open source software ("FOSS") code and certain additional terms
+ * pursuant to Section 7 of the GPL. You may view the exception and these
+ * terms on the web at http://www.aptana.com/legal/gpl/.
+ * 
+ * 2. For the Aptana Public License (APL), this program and the
+ * accompanying materials are made available under the terms of the APL
+ * v1.0 which accompanies this distribution, and is available at
+ * http://www.aptana.com/legal/apl/.
+ * 
+ * You may view the GPL, Aptana's exception and additional terms, and the
+ * APL in the file titled license.html at the root of the corresponding
+ * plugin containing this source file.
+ * 
+ * Any modifications to this file must keep this entire header intact.
+ */
 package com.aptana.editor.js.contentassist.index;
 
 import java.net.URI;
@@ -11,6 +45,7 @@ import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileStore;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.SubMonitor;
 import org.jaxen.JaxenException;
 import org.jaxen.XPath;
@@ -23,7 +58,6 @@ import com.aptana.editor.js.contentassist.model.ContentSelector;
 import com.aptana.editor.js.contentassist.model.PropertyElement;
 import com.aptana.editor.js.contentassist.model.TypeElement;
 import com.aptana.editor.js.inferencing.JSScope;
-import com.aptana.editor.js.inferencing.JSSymbolCollector;
 import com.aptana.editor.js.inferencing.JSSymbolTypeInferrer;
 import com.aptana.editor.js.inferencing.JSTypeUtil;
 import com.aptana.editor.js.parsing.IJSParserConstants;
@@ -47,7 +81,8 @@ public class JSFileIndexingParticipant implements IFileStoreIndexingParticipant
 	{
 		try
 		{
-			LAMBDAS_IN_SCOPE = new ParseNodeXPath("invoke[position() = 1]/group/function|invoke[position() = 1]/function"); //$NON-NLS-1$
+			LAMBDAS_IN_SCOPE = new ParseNodeXPath(
+					"invoke[position() = 1]/group/function|invoke[position() = 1]/function"); //$NON-NLS-1$
 		}
 		catch (JaxenException e)
 		{
@@ -75,11 +110,7 @@ public class JSFileIndexingParticipant implements IFileStoreIndexingParticipant
 
 		if (root instanceof JSParseRootNode)
 		{
-			JSSymbolCollector s = new JSSymbolCollector();
-
-			((JSParseRootNode) root).accept(s);
-
-			result = s.getScope();
+			result = ((JSParseRootNode) root).getGlobals();
 		}
 
 		return result;
@@ -90,70 +121,86 @@ public class JSFileIndexingParticipant implements IFileStoreIndexingParticipant
 	 * @see com.aptana.index.core.IFileIndexingParticipant#index(java.util.Set, com.aptana.index.core.Index,
 	 * org.eclipse.core.runtime.IProgressMonitor)
 	 */
-	@Override
-	public void index(Set<IFileStore> files, Index index, IProgressMonitor monitor)
+	public void index(Set<IFileStore> files, Index index, IProgressMonitor monitor) throws CoreException
 	{
-		SubMonitor sub = SubMonitor.convert(monitor, files.size());
+		SubMonitor sub = SubMonitor.convert(monitor, files.size() * 100);
 
 		for (IFileStore file : files)
 		{
 			if (sub.isCanceled())
 			{
-				return;
+				throw new CoreException(Status.CANCEL_STATUS);
 			}
+			
+			Thread.yield(); // be nice to other threads, let them get in before each file...
+			
+			this.indexFileStore(index, file, sub.newChild(100));
+		}
+
+		sub.done();
+	}
+
+	/**
+	 * indexFileStore
+	 * 
+	 * @param index
+	 * @param file
+	 * @param monitor
+	 */
+	private void indexFileStore(Index index, IFileStore file, IProgressMonitor monitor)
+	{
+		SubMonitor sub = SubMonitor.convert(monitor, 100);
+		
+		if (file == null)
+		{
+			return;
+		}
+		try
+		{
+			sub.subTask(file.getName());
 
 			try
 			{
-				if (file == null)
+				// grab the source of the file we're going to parse
+				String source = IOUtil.read(file.openInputStream(EFS.NONE, sub.newChild(20)));
+
+				// minor optimization when creating a new empty file
+				if (source != null && source.length() > 0)
 				{
-					continue;
-				}
+					// create parser and associated parse state
+					IParserPool pool = ParserPoolFactory.getInstance().getParserPool(IJSParserConstants.LANGUAGE);
 
-				sub.subTask(file.getName());
-
-				try
-				{
-					// grab the source of the file we're going to parse
-					String source = IOUtil.read(file.openInputStream(EFS.NONE, sub.newChild(-1)));
-
-					// minor optimization when creating a new empty file
-					if (source != null && source.length() > 0)
+					if (pool != null)
 					{
-						// create parser and associated parse state
-						IParserPool pool = ParserPoolFactory.getInstance().getParserPool(IJSParserConstants.LANGUAGE);
+						IParser parser = pool.checkOut();
 
-						if (pool != null)
-						{
-							IParser parser = pool.checkOut();
+						// apply the source to the parse state and parse
+						ParseState parseState = new ParseState();
+						parseState.setEditState(source, source, 0, 0);
+						parser.parse(parseState);
 
-							// apply the source to the parse state and parse
-							ParseState parseState = new ParseState();
-							parseState.setEditState(source, source, 0, 0);
-							parser.parse(parseState);
+						pool.checkIn(parser);
+						sub.worked(50);
 
-							pool.checkIn(parser);
-
-							// process results
-							this.processParseResults(index, file, parseState.getParseResult());
-						}
+						// process results
+						this.processParseResults(index, parseState.getParseResult(), file.toURI());
 					}
 				}
-				catch (CoreException e)
-				{
-					Activator.logError(e.getMessage(), e);
-				}
-				catch (Throwable e)
-				{
-					Activator.logError(e.getMessage(), e);
-				}
 			}
-			finally
+			catch (beaver.Parser.Exception e)
 			{
-				sub.worked(1);
+				// just like in FileServer ... "not logging the parsing error here since
+				// the source could be in an intermediate state of being edited by the user"
+			}
+			catch (Throwable e)
+			{
+				Activator.logError(e.getMessage(), e);
 			}
 		}
-
-		monitor.done();
+		finally
+		{
+			sub.done();
+		}
 	}
 
 	/**
@@ -210,9 +257,8 @@ public class JSFileIndexingParticipant implements IFileStoreIndexingParticipant
 	 * @param file
 	 * @param parseState
 	 */
-	private void processParseResults(Index index, IFileStore file, IParseNode ast)
+	public void processParseResults(Index index, IParseNode ast, URI location)
 	{
-		URI location = file.toURI();
 		JSScope globals = this.getGlobals(ast);
 
 		if (globals != null)

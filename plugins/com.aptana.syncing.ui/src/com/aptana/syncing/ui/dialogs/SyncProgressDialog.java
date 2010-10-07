@@ -233,10 +233,9 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 	/* (non-Javadoc)
 	 * @see com.aptana.syncing.core.events.ISyncSessionListener#handleEvent(com.aptana.syncing.core.events.SyncSessionEvent)
 	 */
-	@Override
 	public void handleEvent(final SyncSessionEvent event) {
 		getShell().getDisplay().asyncExec(new Runnable() {
-			@Override
+
 			public void run() {
 				handleEventUI(event);
 			}

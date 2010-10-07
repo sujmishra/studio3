@@ -23,15 +23,16 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.ui.console,
  org.eclipse.compare,
  org.eclipse.search,
- com.aptana.theme,
  org.eclipse.core.expressions,
+ com.aptana.theme,
  org.eclipse.ui.forms
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Bundle-RequiredExecutionEnvironment: J2SE-1.5
 Bundle-ActivationPolicy: lazy
 Export-Package: com.aptana.ide.syncing.ui,
  com.aptana.ide.syncing.ui.actions,
  com.aptana.ide.syncing.ui.dialogs,
  com.aptana.ide.syncing.ui.editors,
+ com.aptana.ide.syncing.ui.internal,
  com.aptana.ide.syncing.ui.navigator,
  com.aptana.ide.syncing.ui.navigator.actions,
  com.aptana.ide.syncing.ui.preferences,
