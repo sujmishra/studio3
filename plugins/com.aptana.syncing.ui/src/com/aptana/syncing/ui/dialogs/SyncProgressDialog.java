@@ -61,6 +61,7 @@ import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
 
 import com.aptana.ide.syncing.core.SyncingPlugin;
+import com.aptana.ide.syncing.ui.SyncingUIPlugin;
 import com.aptana.syncing.core.events.ISyncSessionListener;
 import com.aptana.syncing.core.events.SyncSessionEvent;
 import com.aptana.syncing.core.model.ISyncItem;
@@ -79,6 +80,7 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 
 	public static final String TITLE = Messages.SyncProgressDialog_WindowTitle;
 	private static final String PROGRESSBAR_TABLEEDITOR_KEY = "table_editor.progress_bar"; //$NON-NLS-1$
+	private static final String IMAGE = "/icons/full/wizban/sync.png"; //$NON-NLS-1$
 
 	private TableViewer tableViewer;
 	private ISyncSession session;
@@ -116,9 +118,9 @@ public class SyncProgressDialog extends TitleAreaDialog implements ISyncSessionL
 	@Override
 	protected Control createDialogArea(Composite parent) {
 		Composite dialogArea = (Composite) super.createDialogArea(parent);
-		
+
+		setTitleImage(SyncingUIPlugin.getImage(IMAGE));
 		setTitle(Messages.SyncProgressDialog_Title);
-		setMessage(Messages.SyncProgressDialog_Message);
 		
 		Composite container = new Composite(dialogArea, SWT.NONE);
 		container.setLayoutData(GridDataFactory.fillDefaults().grab(true, true).create());
