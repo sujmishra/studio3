@@ -78,12 +78,17 @@ import org.eclipse.jface.wizard.ProgressMonitorPart;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.events.ControlEvent;
+import org.eclipse.swt.events.DisposeEvent;
+import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.Tree;
@@ -183,7 +188,11 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	
 	private ViewerFilter searchFilter;
 	private Boolean hasUnfetched;
-	
+
+	private Composite syncedComposite;
+	private Label syncedIcon;
+	private Label syncedText;
+
 	/**
 	 * @param parentShell
 	 */
@@ -266,6 +275,8 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		tree.setMenu(menuManager.createContextMenu(tree));
 		menuManager.setRemoveAllWhenShown(true);
 
+		syncedComposite = createSyncedSection(container);
+
 		statsComposite = new SyncStatsComposite(container, SWT.NONE);
 		statsComposite.setLayoutData(GridDataFactory.fillDefaults().grab(true, false).exclude(true).create());
 
@@ -333,7 +344,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 				fillContextMenu(manager, (IStructuredSelection) treeViewer.getSelection());
 			}
 		});
-		
+
 		createActions();
 		fillToolBar(toolBarManager);
 		
@@ -342,7 +353,35 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		
 		return dialogArea;
 	}
-	
+
+	private Composite createSyncedSection(Composite parent)
+	{
+		Composite main = new Composite(parent, SWT.NONE);
+		main.setLayout(new GridLayout(2, false));
+		main.setBackgroundMode(SWT.INHERIT_DEFAULT);
+		main.setLayoutData(GridDataFactory.fillDefaults().grab(true, true).exclude(true).create());
+
+		syncedIcon = new Label(main, SWT.CENTER);
+		syncedIcon.setImage(SyncingUIPlugin.getImage("icons/full/obj16/synced.png")); //$NON-NLS-1$
+		syncedIcon.setLayoutData(GridDataFactory.swtDefaults().align(SWT.END, SWT.CENTER).grab(true, true).create());
+		syncedText = new Label(main, SWT.CENTER | SWT.WRAP);
+		final Font font = new Font(main.getDisplay(), "Arial", 12, SWT.NONE); //$NON-NLS-1$
+		syncedText.setFont(font);
+		syncedText.addDisposeListener(new DisposeListener()
+		{
+			public void widgetDisposed(DisposeEvent e)
+			{
+				font.dispose();
+			}
+		});
+		syncedText.setLayoutData(GridDataFactory.swtDefaults().align(SWT.BEGINNING, SWT.CENTER).grab(true, true)
+				.create());
+		syncedText.setText(MessageFormat.format(Messages.SyncDialog_inSyncMessage, session.getSourceConnectionPoint()
+				.getName(), session.getDestinationConnectionPoint().getName()));
+
+		return main;
+	}
+
 	private TableLayout createTableLayout() {
 		TableLayout tableLayout = new TableLayout();
 		tableLayout.addColumnData(new ColumnWeightData(50, 200));
@@ -404,10 +443,14 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	private void postCreate() {
 		getShell().setDefaultButton(null);
 		session.addListener(this);
-		showProgress(SyncingPlugin.getSyncManager().isSyncInProgress(session));
+		boolean inProgress = SyncingPlugin.getSyncManager().isSyncInProgress(session);
+		showProgress(inProgress);
 		treeViewer.setInput(session);
 		if (hideSameAction.isChecked()) {
 			treeViewer.expandAll();
+		}
+		if (!inProgress && treeViewer.getTree().getItemCount() == 0) {
+			showSyncedSection();
 		}
 		updateState();
 	}
@@ -707,9 +750,25 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	private void onFetchComplete() {
 		showProgress(false);
 		treeViewer.refresh(true);
+		if (treeViewer.getTree().getItemCount() == 0)
+		{
+			showSyncedSection();
+		}
 		updateState();
 	}
-	
+
+	private void showSyncedSection() {
+		// completely in sync
+		GridData data = (GridData) treeViewer.getControl().getLayoutData();
+		data.exclude = true;
+		treeViewer.getControl().setVisible(false);
+		data = (GridData) syncedComposite.getLayoutData();
+		data.exclude = false;
+		syncedComposite.setVisible(true);
+		syncedComposite.getParent().layout(true, true);
+		getButton(IDialogConstants.CANCEL_ID).setText(Messages.SyncDialog_Close);
+	}
+
 	private void showDiff(final ISyncItem syncItem) {
 		FileCompareEditorInput compareInput = new FileCompareEditorInput(new CompareConfiguration()) {
 			@Override

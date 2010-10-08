@@ -13,6 +13,8 @@ public class Messages extends NLS {
 	public static String SyncDialog_Action_HideIdenticalFiles;
 	public static String SyncDialog_Action_IncomingOnly;
 	public static String SyncDialog_Action_ShowDiff;
+	public static String SyncDialog_Close;
+	public static String SyncDialog_inSyncMessage;
 	public static String SyncDialog_Message;
 	public static String SyncDialog_RunInBackground;
 	public static String SyncDialog_StopConfirmation;
