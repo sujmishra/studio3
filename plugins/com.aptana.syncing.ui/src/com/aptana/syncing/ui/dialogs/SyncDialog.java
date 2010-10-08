@@ -36,6 +36,7 @@
 package com.aptana.syncing.ui.dialogs;
 
 import java.io.File;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -158,7 +159,9 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 		}
 
 	}
-	
+
+	private static final String IMAGE = "/icons/full/wizban/sync.png"; //$NON-NLS-1$
+
 	private SyncTreeViewer treeViewer;
 	private ISyncSession session;
 	private ProgressMonitorPart progressMonitorPart;
@@ -213,10 +216,12 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	@Override
 	protected Control createDialogArea(Composite parent) {
 		Composite dialogArea = (Composite) super.createDialogArea(parent);
-		
+
+		setTitleImage(SyncingUIPlugin.getImage(IMAGE));
 		setTitle(Messages.SyncDialog_Title);
-		setMessage(Messages.SyncDialog_Message);
-		
+		setMessage(MessageFormat.format(Messages.SyncDialog_Message, session.getSourceConnectionPoint().getName(),
+				session.getDestinationConnectionPoint().getName()));
+
 		Composite container = new Composite(dialogArea, SWT.NONE);
 		container.setLayoutData(GridDataFactory.fillDefaults().grab(true, true).create());
 		container.setLayout(GridLayoutFactory.swtDefaults()
