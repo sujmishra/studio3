@@ -102,11 +102,12 @@ public final class SyncUIManager {
 		ISyncSession session = SyncingPlugin.getSyncManager().getSyncSession(siteConnection);
 		if (session == null) {
 			session = SyncingPlugin.getSyncManager().createSyncSession(siteConnection);
-			Job job = SyncingPlugin.getSyncManager().runFetchTree(session, null);
-			setupJob(job, session);
-			if (!showUI) {
-				return;
-			}
+		}
+		session.setStage(Stage.INITIAL);
+		Job job = SyncingPlugin.getSyncManager().runFetchTree(session, null);
+		setupJob(job, session);
+		if (!showUI) {
+			return;
 		}
 		showUI(session);
 	}
