@@ -62,10 +62,10 @@ import com.aptana.ide.syncing.core.SyncingPlugin;
 import com.aptana.ide.syncing.ui.SyncingUIPlugin;
 import com.aptana.ide.syncing.ui.preferences.IPreferenceConstants;
 import com.aptana.syncing.core.model.ISyncItem;
-import com.aptana.syncing.core.model.ISyncSession;
 import com.aptana.syncing.core.model.ISyncItem.Operation;
 import com.aptana.syncing.core.model.ISyncItem.SyncStatus;
 import com.aptana.syncing.core.model.ISyncItem.Type;
+import com.aptana.syncing.core.model.ISyncSession;
 import com.aptana.syncing.core.model.ISyncSession.Stage;
 import com.aptana.syncing.ui.dialogs.SyncDialog;
 import com.aptana.syncing.ui.dialogs.SyncProgressDialog;
@@ -198,6 +198,7 @@ public final class SyncUIManager {
 			dlg.setSession(session);
 			uiSessions.add(session);
 			if (dlg.open() == Window.OK && session.getStage() == Stage.SYNCED) {
+				SyncingPlugin.getSyncManager().runFetchTree(session, null);
 				session.setStage(Stage.FETCHED);
 				showUI(session);
 			}
