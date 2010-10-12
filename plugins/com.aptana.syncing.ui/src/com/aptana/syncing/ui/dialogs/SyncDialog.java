@@ -300,6 +300,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 					((GridData) progressMonitorPart.getLayoutData()).exclude = true;
 					progressMonitorPart.setVisible(false);
 					progressMonitorPart.getParent().layout();
+					updateState();
 				}
 			}
 		}, progressMonitorPart.getDisplay());
