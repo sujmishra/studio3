@@ -36,7 +36,6 @@
 package com.aptana.ide.core.io.efs;
 
 import java.io.File;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -100,30 +99,6 @@ public final class EFSUtils
 	 * Returns the child files of the filestore
 	 * 
 	 * @param file
-	 * @return
-	 * @throws CoreException
-	 */
-	public static IFileStore[] getFiles(IFileStore file) throws CoreException
-	{
-		return getFiles(file, false, true);
-	}
-
-	/**
-	 * Returns the child files of the filestore
-	 * 
-	 * @param file
-	 * @return
-	 * @throws CoreException
-	 */
-	public static IFileStore[] getFiles(IFileStore file, IProgressMonitor monitor) throws CoreException
-	{
-		return getFiles(file, false, true, monitor);
-	}
-
-	/**
-	 * Returns the child files of the filestore
-	 * 
-	 * @param file
 	 * @param recurse
 	 *            Do we recurse through sub-directories?
 	 * @param includeCloakedFiles
@@ -155,6 +130,7 @@ public final class EFSUtils
 	 * 
 	 * @return
 	 * @throws CoreException
+	 * @deprecated
 	 */
 	public static String getRelativePath(IFileStore parent, IFileStore file, Object obsoleted)
 	{
@@ -192,6 +168,7 @@ public final class EFSUtils
 	 * 
 	 * @return
 	 * @throws CoreException
+	 * @deprecated
 	 */
 	public static String getRelativePath(IConnectionPoint point, IFileStore file, Object obsoleted)
 	{
@@ -203,53 +180,6 @@ public final class EFSUtils
 		{
 			return null;
 		}
-	}
-
-	/**
-	 * @param sourceStore
-	 *            the file to be copied
-	 * @param destinationStore
-	 *            the destination location
-	 * @param monitor
-	 *            the progress monitor
-	 * @return true if the file is successfully copied, false if the operation did not go through for any reason
-	 * @throws CoreException
-	 */
-	public static boolean copyFile(IFileStore sourceStore, IFileStore destinationStore, IProgressMonitor monitor)
-			throws CoreException
-	{
-		if (sourceStore == null || CloakingUtils.isFileCloaked(sourceStore))
-		{
-			return false;
-		}
-
-		monitor = Policy.monitorFor(monitor);
-		monitor.subTask(MessageFormat.format(Messages.EFSUtils_Copying, sourceStore.getName(), destinationStore.getName()));
-		sourceStore.copy(destinationStore, EFS.OVERWRITE, monitor);
-		return true;
-	}
-
-	/**
-	 * @param sourceStore
-	 *            the file to be copied
-	 * @param destinationStore
-	 *            the destination location
-	 * @param monitor
-	 *            the progress monitor
-	 * @param info
-	 *            info to transfer
-	 * @return true if the file is successfully copied, false if the operation did not go through for any reason
-	 * @throws CoreException
-	 */
-	public static boolean copyFileWithAttributes(IFileStore sourceStore, IFileStore destinationStore,
-			IProgressMonitor monitor, IFileInfo info) throws CoreException
-	{
-		boolean success = copyFile(sourceStore, destinationStore, monitor);
-		if (success)
-		{
-			EFSUtils.setModificationTime(info.getLastModified(), destinationStore);
-		}
-		return success;
 	}
 
 	/**
@@ -279,7 +209,7 @@ public final class EFSUtils
 	 * @return
 	 * @throws CoreException
 	 */
-	public static IFileStore[] getFiles(IFileStore[] files, boolean recurse, boolean includeCloakedFiles,
+	private static IFileStore[] getFiles(IFileStore[] files, boolean recurse, boolean includeCloakedFiles,
 			IProgressMonitor monitor) throws CoreException
 	{
 		List<IFileStore> fileList = new ArrayList<IFileStore>();
@@ -359,6 +289,31 @@ public final class EFSUtils
 		}
 	}
 	
+	/**
+	 * Determines if the listed item is a file or a folder.
+	 * 
+	 * @param file
+	 * @param monitor
+	 * @return
+	 * @throws CoreException
+	 */
+	private static boolean isFolder(IFileStore file, IProgressMonitor monitor) throws CoreException
+	{
+		// if we are an IContainer, folder == true;
+		// if we are an IFile, folder == false
+		// if neither, then check info for isDirectory()
+		IResource resource = (IResource) file.getAdapter(IResource.class);
+		if (resource instanceof IContainer)
+		{
+			return true;
+		}
+		if (!(resource instanceof IFile) && file.fetchInfo(EFS.NONE, monitor).isDirectory())
+		{
+			return true;
+		}
+		return false;
+	}
+	
 	/*
 	 * TODO: cleanup everything above
 	 */
@@ -390,28 +345,4 @@ public final class EFSUtils
 		return null;
 	}
 
-	/**
-	 * Determines if the listed item is a file or a folder.
-	 * 
-	 * @param file
-	 * @param monitor
-	 * @return
-	 * @throws CoreException
-	 */
-	private static boolean isFolder(IFileStore file, IProgressMonitor monitor) throws CoreException
-	{
-		// if we are an IContainer, folder == true;
-		// if we are an IFile, folder == false
-		// if neither, then check info for isDirectory()
-		IResource resource = (IResource) file.getAdapter(IResource.class);
-		if (resource instanceof IContainer)
-		{
-			return true;
-		}
-		if (!(resource instanceof IFile) && file.fetchInfo(EFS.NONE, monitor).isDirectory())
-		{
-			return true;
-		}
-		return false;
-	}
 }

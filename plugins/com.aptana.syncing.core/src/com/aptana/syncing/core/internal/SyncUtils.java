@@ -65,12 +65,30 @@ public final class SyncUtils {
 	private SyncUtils() {
 	}
 
-	public static void copy(IFileStore source, IFileInfo sourceInfo, IFileStore destination, int options, IProgressMonitor monitor) throws CoreException {
+	/**
+	 * This method functionally duplicates EFS FileStore.copy() method with the following exceptions:
+	 * 1. it transfers precise datetime
+	 * 2. it transfers file permissions if requested
+	 * 3. it does not delete destination file on failure
+	 *   (FTP implementation always uploads to a temporary file first and always cleans up afterwards)
+	 * 4. it does not ignore exceptions on output stream close (FTP implementation finalizes transfer on close)
+	 * 5. it always works as it EFS.SHALLOW would be set
+	 * 6. EFS implementation prevent concurrent copying of FileStores due static synchronized buffer (see org.eclipse.core.filesystem.provider.FileStore.transferStreams)
+	 * 
+	 * @param source
+	 * @param sourceInfo
+	 * @param destination
+	 * @param options
+	 * @param monitor
+	 * @throws CoreException
+	 */
+	public static void copy(IFileStore source, IFileInfo sourceInfo, IFileStore destination, int options,
+			IProgressMonitor monitor) throws CoreException {
 		try {
+			monitor = (monitor == null) ? new NullProgressMonitor() : monitor;
 			checkCanceled(monitor);
 			monitor.beginTask("", sourceInfo == null ? 3 : 2); //$NON-NLS-1$
-			if (sourceInfo == null)
-			{
+			if (sourceInfo == null) {
 				sourceInfo = source.fetchInfo(IExtendedFileStore.DETAILED, subMonitorFor(monitor, 1));
 			}
 			checkCanceled(monitor);
@@ -86,24 +104,23 @@ public final class SyncUtils {
 					in = source.openInputStream(EFS.NONE, subMonitorFor(monitor, 0));
 					out = destination.openOutputStream(EFS.NONE, subMonitorFor(monitor, 0));
 					IProgressMonitor subMonitor = subMonitorFor(monitor, 2);
-					subMonitor.beginTask(MessageFormat.format(Messages.SyncUtils_Copying, source.toString()), totalWork);
-					while (true)
-					{
+					subMonitor
+							.beginTask(MessageFormat.format(Messages.SyncUtils_Copying, source.toString()), totalWork);
+					while (true) {
+						checkCanceled(monitor);
 						int bytesRead = -1;
 						try {
 							bytesRead = in.read(buffer);
-						}
-						catch (IOException e)
-						{
+						} catch (IOException e) {
 							error(MessageFormat.format(Messages.SyncUtils_ERR_Reading, source.toString()), e);
 						}
-						if (bytesRead == -1)
+						if (bytesRead == -1) {
 							break;
+						}
+						checkCanceled(monitor);
 						try {
 							out.write(buffer, 0, bytesRead);
-						}
-						catch (IOException e)
-						{
+						} catch (IOException e) {
 							error(MessageFormat.format(Messages.SyncUtils_ERR_Writing, destination.toString()), e);
 						}
 						subMonitor.worked(1);
@@ -114,12 +131,13 @@ public final class SyncUtils {
 					safeClose(out);	
 				}
 			}
-			destination.putInfo(sourceInfo, EFS.SET_ATTRIBUTES | EFS.SET_LAST_MODIFIED | options, subMonitorFor(monitor, 1));
+			destination.putInfo(sourceInfo, EFS.SET_ATTRIBUTES | EFS.SET_LAST_MODIFIED | options, subMonitorFor(
+					monitor, 1));
 		} finally {
 			monitor.done();
 		}
 	}
-	
+
 	private static IProgressMonitor subMonitorFor(IProgressMonitor monitor, int ticks) {
 		if (monitor == null) {
 			return new NullProgressMonitor();
@@ -134,7 +152,7 @@ public final class SyncUtils {
 		if (monitor.isCanceled())
 			throw new OperationCanceledException();
 	}
-	
+
 	private static void error(String message, Exception e) throws CoreException {
 		throw new CoreException(new Status(IStatus.ERROR, SyncingPlugin.PLUGIN_ID, message, e));
 	}
@@ -148,12 +166,13 @@ public final class SyncUtils {
 		}
 	}
 
-	private static void safeClose(OutputStream out) {
+	private static void safeClose(OutputStream out) throws CoreException {
 		try {
 			if (out != null) {
 				out.close();
 			}
-		} catch (IOException ignore) {
+		} catch (IOException e) {
+			throw new CoreException(new Status(IStatus.ERROR, SyncingPlugin.PLUGIN_ID, "Close output stream failed.", e));
 		}
 	}
 
