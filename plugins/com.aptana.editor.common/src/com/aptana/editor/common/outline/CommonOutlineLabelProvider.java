@@ -32,16 +32,35 @@
  * 
  * Any modifications to this file must keep this entire header intact.
  */
-package org.eclipse.tm.terminal.model;
+package com.aptana.editor.common.outline;
 
-import org.eclipse.jface.text.hyperlink.IHyperlink;
+import org.eclipse.jface.viewers.LabelProvider;
+import org.eclipse.swt.graphics.Image;
 
-/**
- * An interface for clients to detect and contribute hyperlinks to Terminals.
- * 
- * @author cwilliams
- */
-public interface IHyperlinkDetector
+public class CommonOutlineLabelProvider extends LabelProvider
 {
-	IHyperlink[] detectHyperlinks(String contents);
+
+	public CommonOutlineLabelProvider()
+	{
+	}
+
+	@Override
+	public Image getImage(Object element)
+	{
+		if (element instanceof CommonOutlineItem)
+		{
+			return getImage(((CommonOutlineItem) element).getReferenceNode());
+		}
+		return super.getImage(element);
+	}
+
+	@Override
+	public String getText(Object element)
+	{
+		if (element instanceof CommonOutlineItem)
+		{
+			return getText(((CommonOutlineItem) element).getReferenceNode());
+		}
+		return super.getText(element);
+	}
 }

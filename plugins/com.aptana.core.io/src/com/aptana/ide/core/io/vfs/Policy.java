@@ -32,32 +32,42 @@
  * 
  * Any modifications to this file must keep this entire header intact.
  */
-package com.aptana.parsing.io;
 
-import org.eclipse.osgi.util.NLS;
+package com.aptana.ide.core.io.vfs;
+
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.core.runtime.OperationCanceledException;
+import org.eclipse.core.runtime.SubProgressMonitor;
 
 /**
- * @author Kevin Lindsey
+ * @author Max Stepanov
+ *
  */
-public final class Messages extends NLS
-{
-	private static final String BUNDLE_NAME = "com.aptana.parsing.io.messages"; //$NON-NLS-1$
+/* package */ final class Policy {
 
-	private Messages()
-	{
+	/**
+	 * 
+	 */
+	private Policy() {
+	}
+		
+	public static IProgressMonitor monitorFor(IProgressMonitor monitor) {
+		return monitor == null ? new NullProgressMonitor() : monitor;
 	}
 
-	static
-	{
-		// initialize resource bundle
-		NLS.initializeMessages(BUNDLE_NAME, Messages.class);
+	public static IProgressMonitor subMonitorFor(IProgressMonitor monitor, int ticks) {
+		if (monitor == null)
+			return new NullProgressMonitor();
+		if (monitor instanceof NullProgressMonitor)
+			return monitor;
+		return new SubProgressMonitor(monitor, ticks);
 	}
 
-	public static String FileUtilities_Text_Undefined;
-	public static String SourceWriter_Offset_Below_Zero;
-	public static String SourceWriter_Remove_Length_Below_Zero;
-	public static String SourceWriter_Remove_Beyond_Length;
-	public static String TabledInputStream_Input_Undefined;
-	public static String TabledInputStream_Incompatible_Format;
-	public static String TabledOutputStream_Output_Undefined;
+	public static void checkCanceled(IProgressMonitor monitor) {
+		if (monitor.isCanceled())
+			throw new OperationCanceledException();
+	}
+
+
 }
