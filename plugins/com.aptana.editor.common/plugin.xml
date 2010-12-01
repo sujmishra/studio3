@@ -2,6 +2,7 @@
 <?eclipse version="3.4"?>
 <plugin>
    <extension-point id="userAgent" name="%extension-point.name" schema="schema/userAgent.exsd"/>
+   <extension-point id="validator" name="Validator" schema="schema/validator.exsd"/>
    <extension
          point="org.eclipse.ui.commands">
        <command
