@@ -56,6 +56,7 @@ import com.aptana.syncing.core.model.ISyncManager;
 import com.aptana.syncing.core.model.ISyncSession;
 import com.aptana.syncing.core.model.ISyncItem.Operation;
 import com.aptana.syncing.core.model.ISyncSession.Stage;
+import com.aptana.syncing.core.model.SyncModelUtil;
 
 /**
  * @author Max Stepanov
@@ -266,23 +267,13 @@ public final class SyncManager implements ISyncManager {
 				List<ISyncItem> all = new ArrayList<ISyncItem>();
 				for (ISyncItem item : items) {
 					item.setOperation(operation);
-					collectItems(item, all);
+					all.addAll(SyncModelUtil.getAllItems(item));
 				}
 				session.setSyncItems(all);
 			}
 		});
 	}
 	
-	private static void collectItems(ISyncItem syncItem, List<ISyncItem> list) {
-		list.add(syncItem);
-		ISyncItem[] childItems = syncItem.getChildItems();
-		if (childItems != null && childItems.length > 0) {
-			for (ISyncItem i : childItems) {
-				collectItems(i, list);
-			}
-		}
-	}
-
 	private Job createSyncWorker(final ISyncSession session, final SyncDispatcher dispatcher, final Object updateLock) {
 		Job job = new Job(Messages.SyncManager_SyncWorker_Name) {
 			@Override

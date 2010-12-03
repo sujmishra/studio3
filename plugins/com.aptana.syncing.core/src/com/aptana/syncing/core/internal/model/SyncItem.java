@@ -176,23 +176,29 @@ import com.aptana.syncing.core.model.ISyncItem;
 	 * @see com.aptana.syncing.core.model.ISyncItem#setOperation(com.aptana.syncing.core.model.ISyncItem.Operation)
 	 */
 	public void setOperation(Operation operation) {
-		switch (operation) {
-		case COPY_TO_RIGHT:
-		case ADD_TO_RIGHT:
-		case DELETE_ON_RIGHT:
-			syncPair.setForceDirection(Direction.LEFT_TO_RIGHT);
-			break;
-		case COPY_TO_LEFT:
-		case ADD_TO_LEFT:
-		case DELETE_ON_LEFT:
-			syncPair.setForceDirection(Direction.RIGHT_TO_LEFT);
-			break;
-		case NONE:
-			syncPair.setForceDirection(Direction.NONE);
-			break;
-		default:
+		if (operation != null) {
+			switch (operation) {
+			case COPY_TO_RIGHT:
+			case ADD_TO_RIGHT:
+			case DELETE_ON_RIGHT:
+				syncPair.setForceDirection(Direction.LEFT_TO_RIGHT);
+				break;
+			case COPY_TO_LEFT:
+			case ADD_TO_LEFT:
+			case DELETE_ON_LEFT:
+				syncPair.setForceDirection(Direction.RIGHT_TO_LEFT);
+				break;
+			case NONE:
+				syncPair.setForceDirection(Direction.NONE);
+				break;
+			case MARK_SAME:
+				syncPair.markAsSame();
+				return; // no child iteration
+			default:
+				break;
+			}			
+		} else {
 			syncPair.setForceDirection(null);
-			break;
 		}
 		if (childItems != null) {
 			for (ISyncItem child: childItems) {

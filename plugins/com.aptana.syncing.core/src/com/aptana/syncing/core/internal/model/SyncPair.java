@@ -41,6 +41,7 @@ import org.eclipse.core.filesystem.IFileStore;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.NullProgressMonitor;
 
 import com.aptana.ide.core.io.vfs.IExtendedFileInfo;
 import com.aptana.ide.core.io.vfs.IExtendedFileStore;
@@ -218,6 +219,18 @@ public final class SyncPair {
 			return false;
 		}
 		return true;
+	}
+	
+	public synchronized void markAsSame() {
+		if (leftFileInfo != null && rightFileInfo != null) {
+			SyncState.save(state, leftFileInfo, rightFileInfo);
+			defaultDirection = null;
+			state = null;
+			try {
+				calculateDirection(new NullProgressMonitor());
+			} catch (CoreException ignore) {
+			}
+		}
 	}
 
 	private Direction compareFileInfos() {

@@ -178,7 +178,8 @@ public class SyncStatsComposite extends Composite {
 			}
 		}
 		leftText.setText(getLeftText(left_new, left_new_size, left_folder_new, left_file_delete, left_folder_delete, left_mod, left_mod_size), true, false);
-		rightText.setText(getRightText(right_new, right_new_size, right_folder_new, right_file_delete, right_folder_delete, right_mod, right_mod_size), true, false);		
+		rightText.setText(getRightText(right_new, right_new_size, right_folder_new, right_file_delete, right_folder_delete, right_mod, right_mod_size), true, false);
+		getParent().layout();
 	}
 	
 	private String getLeftText(int created, long created_size, int created_folders, int deleted_files, int deleted_folders, int modified, long modified_size) {
