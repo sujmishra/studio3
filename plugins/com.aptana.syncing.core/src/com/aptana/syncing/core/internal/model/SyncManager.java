@@ -38,8 +38,8 @@ package com.aptana.syncing.core.internal.model;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.WeakHashMap;
 import java.util.Map.Entry;
+import java.util.WeakHashMap;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
@@ -54,9 +54,9 @@ import com.aptana.ide.syncing.core.ISiteConnection;
 import com.aptana.syncing.core.model.ISyncItem;
 import com.aptana.syncing.core.model.ISyncManager;
 import com.aptana.syncing.core.model.ISyncSession;
-import com.aptana.syncing.core.model.ISyncItem.Operation;
 import com.aptana.syncing.core.model.ISyncSession.Stage;
 import com.aptana.syncing.core.model.SyncModelUtil;
+import com.aptana.syncing.core.model.SyncOperation;
 
 /**
  * @author Max Stepanov
@@ -256,19 +256,17 @@ public final class SyncManager implements ISyncManager {
 	}
 
 	/* (non-Javadoc)
-	 * @see com.aptana.syncing.core.model.ISyncManager#doOperation(com.aptana.syncing.core.model.ISyncSession, org.eclipse.core.runtime.IPath[], com.aptana.syncing.core.model.ISyncItem.Operation)
+	 * @see com.aptana.syncing.core.model.ISyncManager#doOperation(com.aptana.syncing.core.model.ISyncSession, org.eclipse.core.runtime.IPath[], com.aptana.syncing.core.model.SyncOperation)
 	 */
-	public Job doOperation(final ISyncSession session, final IPath[] paths, final Operation operation) {
+	public Job doOperation(ISyncSession session, final IPath[] paths, final SyncOperation operation) {
 		return doOperationInternal(session, new IOperationRunnable() {
 
 			public void run(ISyncSession session, IProgressMonitor monitor) throws CoreException {
 				session.fetchTree(paths, false, monitor);
-				ISyncItem[] items = session.getItems();
 				List<ISyncItem> all = new ArrayList<ISyncItem>();
-				for (ISyncItem item : items) {
-					item.setOperation(operation);
-					all.addAll(SyncModelUtil.getAllItems(item));
-				}
+				ISyncItem[] items = session.getItems();
+				all.addAll(SyncModelUtil.getAllItems(items));
+				SyncModelUtil.setOperation(all, operation, false);
 				session.setSyncItems(all);
 			}
 		});

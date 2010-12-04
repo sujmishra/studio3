@@ -111,6 +111,7 @@ import com.aptana.ide.ui.io.navigator.FileTreeContentProvider;
 import com.aptana.syncing.core.events.ISyncSessionListener;
 import com.aptana.syncing.core.events.SyncSessionEvent;
 import com.aptana.syncing.core.model.ISyncItem;
+import com.aptana.syncing.core.model.SyncOperation;
 import com.aptana.syncing.core.model.ISyncItem.Changes;
 import com.aptana.syncing.core.model.ISyncItem.Operation;
 import com.aptana.syncing.core.model.ISyncItem.Type;
@@ -767,7 +768,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 			@Override
 			public void run() {
 				List<?> selection = ((IStructuredSelection) treeViewer.getSelection()).toList();
-				SyncModelUtil.setOperation(selection, Operation.COPY_TO_LEFT);
+				SyncModelUtil.setOperation(selection, SyncOperation.DOWNLOAD_OR_DELETE, true);
 				treeViewer.update(selection.toArray(), null);
 			}
 		};
@@ -778,7 +779,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 			@Override
 			public void run() {
 				List<?> selection = ((IStructuredSelection) treeViewer.getSelection()).toList();
-				SyncModelUtil.setOperation(selection, Operation.COPY_TO_RIGHT);
+				SyncModelUtil.setOperation(selection, SyncOperation.UPLOAD_OR_DELETE, true);
 				treeViewer.update(selection.toArray(), null);
 			}
 		};
@@ -789,7 +790,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 			@Override
 			public void run() {
 				List<?> selection = ((IStructuredSelection) treeViewer.getSelection()).toList();
-				SyncModelUtil.setOperation(selection, Operation.NONE);
+				SyncModelUtil.setOperation(selection, Operation.NONE, true);
 				treeViewer.update(selection.toArray(), null);
 			}
 		};
@@ -800,7 +801,7 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 			@Override
 			public void run() {
 				List<?> selection = ((IStructuredSelection) treeViewer.getSelection()).toList();
-				SyncModelUtil.setOperation(selection, null);
+				SyncModelUtil.setOperation(selection, (Operation)null, true);
 				treeViewer.update(selection.toArray(), null);
 			}
 		};

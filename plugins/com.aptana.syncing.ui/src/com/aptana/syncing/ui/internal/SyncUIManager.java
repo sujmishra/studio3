@@ -62,6 +62,7 @@ import com.aptana.ide.syncing.core.SyncingPlugin;
 import com.aptana.ide.syncing.ui.SyncingUIPlugin;
 import com.aptana.ide.syncing.ui.preferences.IPreferenceConstants;
 import com.aptana.syncing.core.model.ISyncItem;
+import com.aptana.syncing.core.model.SyncOperation;
 import com.aptana.syncing.core.model.ISyncItem.Operation;
 import com.aptana.syncing.core.model.ISyncItem.SyncStatus;
 import com.aptana.syncing.core.model.ISyncItem.Type;
@@ -112,7 +113,7 @@ public final class SyncUIManager {
 		showUI(session);
 	}
 	
-	public Job initiateOperation(ISiteConnection siteConnection, IPath[] paths, Operation operation) {
+	public Job initiateOperation(ISiteConnection siteConnection, IPath[] paths, SyncOperation operation) {
 		ISyncSession session = SyncingPlugin.getSyncManager().createSyncSession(siteConnection);
 		setSessionProperty(session, PROP_OPERATION, operation);
 		Job job = SyncingPlugin.getSyncManager().doOperation(session, paths, operation);

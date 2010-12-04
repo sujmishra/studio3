@@ -44,7 +44,7 @@ import com.aptana.core.util.StringUtil;
 import com.aptana.ide.core.io.efs.EFSUtils;
 import com.aptana.ide.syncing.core.ISiteConnection;
 import com.aptana.ide.syncing.ui.internal.SyncUtils;
-import com.aptana.syncing.core.model.ISyncItem.Operation;
+import com.aptana.syncing.core.model.SyncOperation;
 import com.aptana.syncing.ui.internal.SyncUIManager;
 
 /**
@@ -62,7 +62,7 @@ public class UploadAction extends BaseSyncAction {
 		for (int i = 0; i < files.length; ++i) {
 			paths[i] = EFSUtils.getRelativePath(siteConnection.getSource(), SyncUtils.getFileStore(files[i]));
 		}
-		Job job = SyncUIManager.getInstance().initiateOperation(siteConnection, paths, Operation.COPY_TO_RIGHT);
+		Job job = SyncUIManager.getInstance().initiateOperation(siteConnection, paths, SyncOperation.UPLOAD);
 		if (jobListener != null) {
 			job.addJobChangeListener(jobListener);
 		}		

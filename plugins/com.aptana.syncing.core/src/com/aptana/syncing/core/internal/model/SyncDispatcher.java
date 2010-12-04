@@ -51,6 +51,7 @@ import com.aptana.syncing.core.model.ISyncItem;
 import com.aptana.syncing.core.model.ISyncSession;
 import com.aptana.syncing.core.model.ISyncItem.Operation;
 import com.aptana.syncing.core.model.ISyncItem.Type;
+import com.aptana.syncing.core.model.SyncModelUtil;
 
 /**
  * @author Max Stepanov
@@ -88,10 +89,9 @@ import com.aptana.syncing.core.model.ISyncItem.Type;
 				public void handleEvent(SyncSessionEvent event) {
 					if (event.getKind() == SyncSessionEvent.ITEMS_ADDED && event.getSource() instanceof ISyncItem) {
 						Operation parentOp = ((ISyncItem) event.getSource()).getOperation();
-						for (ISyncItem i : event.getItems()) {
-							i.setOperation(parentOp);
-							syncItems.add(i);
-						}
+						ISyncItem[] items = event.getItems();
+						SyncModelUtil.setOperation(items, parentOp, false);
+						syncItems.addAll(Arrays.asList(items));
 					}
 				}
 			});

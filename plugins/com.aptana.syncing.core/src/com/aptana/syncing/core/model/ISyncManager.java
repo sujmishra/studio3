@@ -40,7 +40,6 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.jobs.Job;
 
 import com.aptana.ide.syncing.core.ISiteConnection;
-import com.aptana.syncing.core.model.ISyncItem.Operation;
 
 /**
  * @author Max Stepanov
@@ -54,7 +53,7 @@ public interface ISyncManager {
 	
 	public Job runFetchTree(ISyncSession session, ISyncItem[] items);
 	public Job synchronize(ISyncSession session);
-	public Job doOperation(ISyncSession session, IPath[] paths, Operation operation);
+	public Job doOperation(ISyncSession session, IPath[] paths, SyncOperation operation);
 	
 	public boolean isSyncInProgress(ISyncSession session);
 	

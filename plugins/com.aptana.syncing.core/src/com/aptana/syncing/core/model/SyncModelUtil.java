@@ -36,6 +36,7 @@
 package com.aptana.syncing.core.model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -93,34 +94,50 @@ public final class SyncModelUtil {
 			}
 		}
 	}
-	
-	public static void setOperation(ISyncItem[] items, Operation operation) {
-		for (ISyncItem item : items) {
-			item.setOperation(operation);
-		}
+
+	public static void setOperation(List<?> list, SyncOperation operation, boolean deep) {
+		setOperation(list, operation.getAllowedOperations(), deep);
 	}
 
-	public static void setOperation(List<?> list, Operation operation) {
+	public static void setOperation(ISyncItem[] items, Operation operation, boolean deep) {
+		setOperation(items, new Operation[] { operation }, deep);
+	}
+
+	public static void setOperation(List<?> list, Operation operation, boolean deep) {
+		setOperation(list, new Operation[] { operation }, deep);
+	}
+
+
+	private static void setOperation(ISyncItem[] items, Operation[] operations, boolean deep) {
+		setOperation(Arrays.asList(items), operations, deep);
+	}
+
+	private static void setOperation(List<?> list, Operation[] operations, boolean deep) {
 		Set<Operation> set = new HashSet<Operation>();
-		set.add(operation);
-		if (operation == Operation.COPY_TO_LEFT) {
-			set.add(Operation.ADD_TO_LEFT);
-			set.add(Operation.DELETE_ON_LEFT);
-		} else if (operation == Operation.COPY_TO_RIGHT) {
-			set.add(Operation.ADD_TO_RIGHT);
-			set.add(Operation.DELETE_ON_RIGHT);
+		if (operations != null) {
+			set.addAll(Arrays.asList(operations));
 		}
 		for (Object i : list) {
 			if ( i instanceof ISyncItem) {
 				ISyncItem item = (ISyncItem) i;
-				if (operation != null) {
+				if (!set.isEmpty()) {
 					Set<ISyncItem.Operation> allowed = item.getAllowedOperations();
 					allowed.retainAll(set);
 					if (!allowed.isEmpty()) {
-						item.setOperation(operation);
+						for (Operation operation : operations) {
+							if (allowed.contains(operation)) {
+								item.setOperation(operation);
+								break;
+							}
+						}
+					} else if (deep) {
+						ISyncItem[] children = item.getChildItems();
+						if (children != null && children.length > 0) {
+							setOperation(children, operations, deep);
+						}
 					}
 				} else {
-					item.setOperation(operation);
+					item.setOperation(null);
 				}
 			}
 		}
