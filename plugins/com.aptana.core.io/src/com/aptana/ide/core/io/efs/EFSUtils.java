@@ -337,7 +337,9 @@ public final class EFSUtils
 	 * @return
 	 */
 	public static IPath getRelativePath(IFileStore parentFileStore, IFileStore childFileStore) {
-		if (parentFileStore.isParentOf(childFileStore)) {
+		if (parentFileStore.equals(childFileStore)) {
+			return Path.ROOT;
+		} else if (parentFileStore.isParentOf(childFileStore)) {
 			IPath parentPath = Path.fromPortableString(parentFileStore.toURI().getPath());
 			IPath childPath = Path.fromPortableString(childFileStore.toURI().getPath());
 			return childPath.makeRelativeTo(parentPath);
