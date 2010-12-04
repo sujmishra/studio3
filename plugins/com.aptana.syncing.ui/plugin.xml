@@ -199,6 +199,15 @@
                tooltip="%action.siteConnectionSynchronize.tooltip">
          </action>
          <action
+               class="com.aptana.syncing.ui.actions.SynchronizeAction"
+               enablesFor="1"
+               icon="icons/full/elcl16/arrow_up_down.png"
+               id="com.aptana.syncing.ui.actions.ProjectSynchronizeAction"
+               label="%action.siteConnectionSynchronizeBeta.label"
+               menubarPath="group.edit"
+               tooltip="%Action.Synchronize.tooltip">
+         </action>
+         <action
                class="com.aptana.ide.ui.io.actions.ConnectionPropertiesAction"
                enablesFor="1"
                id="com.aptana.ide.ui.io.actions.connectionProperties"
@@ -221,15 +230,6 @@
                id="com.aptana.ide.syncing.ui.navigator.actions.ProjectConnectionDisconnectAction"
                label="%disconnectAction.label"
                menubarPath="group.edit">
-         </action>
-         <action
-               class="com.aptana.syncing.ui.actions.SynchronizeAction"
-               enablesFor="1"
-               icon="icons/full/obj16/sync_vertical.gif"
-               id="com.aptana.syncing.ui.actions.ResourceSynchronizeAction"
-               label="%action.siteConnectionSynchronize.label"
-               menubarPath="group.edit"
-               tooltip="%Action.Synchronize.tooltip">
          </action>
       </objectContribution>
       <objectContribution
@@ -286,6 +286,14 @@
                label="%Action.SynchronizeNew.name"
                menubarPath="aptanasynchronize/syncingGroup"
                tooltip="%Action.SynchronizeNew.tooltip">
+         </action>
+         <action
+               class="com.aptana.syncing.ui.actions.SynchronizeFilesAction"
+               icon="icons/full/elcl16/arrow_up_down.png"
+               id="com.aptana.syncing.ui.actions.ResourceSynchronizeAction"
+               label="%action.siteConnectionSynchronizeBeta.label"
+               menubarPath="aptanasynchronize/syncingGroup"
+               tooltip="%Action.Synchronize.tooltip">
          </action>
          <action
                class="com.aptana.ide.syncing.ui.actions.SynchronizeAction"
