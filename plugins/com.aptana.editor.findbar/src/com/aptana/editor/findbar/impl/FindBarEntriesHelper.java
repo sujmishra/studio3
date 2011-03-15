@@ -1,35 +1,8 @@
 /**
- * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
- * dual-licensed under both the Aptana Public License and the GNU General
- * Public license. You may elect to use one or the other of these licenses.
- * 
- * This program is distributed in the hope that it will be useful, but
- * AS-IS and WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE, TITLE, or
- * NONINFRINGEMENT. Redistribution, except as permitted by whichever of
- * the GPL or APL you select, is prohibited.
- *
- * 1. For the GPL license (GPL), you can redistribute and/or modify this
- * program under the terms of the GNU General Public License,
- * Version 3, as published by the Free Software Foundation.  You should
- * have received a copy of the GNU General Public License, Version 3 along
- * with this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Aptana provides a special exception to allow redistribution of this file
- * with certain other free and open source software ("FOSS") code and certain additional terms
- * pursuant to Section 7 of the GPL. You may view the exception and these
- * terms on the web at http://www.aptana.com/legal/gpl/.
- * 
- * 2. For the Aptana Public License (APL), this program and the
- * accompanying materials are made available under the terms of the APL
- * v1.0 which accompanies this distribution, and is available at
- * http://www.aptana.com/legal/apl/.
- * 
- * You may view the GPL, Aptana's exception and additional terms, and the
- * APL in the file titled license.html at the root of the corresponding
- * plugin containing this source file.
- * 
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the GNU Public License (GPL) v3 (with exceptions).
+ * Please see the license.html included with this distribution for details.
  * Any modifications to this file must keep this entire header intact.
  */
 package com.aptana.editor.findbar.impl;
@@ -39,20 +12,53 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.eclipse.jface.preference.IPreferenceStore;
+import org.eclipse.jface.util.IPropertyChangeListener;
+import org.eclipse.jface.util.PropertyChangeEvent;
+import org.eclipse.swt.widgets.Combo;
 
 import com.aptana.editor.findbar.FindBarPlugin;
 
 /**
  * Helper class to deal with the entries for find and replace in the preferences.
+ * 
+ * @author fabioz
  */
 public class FindBarEntriesHelper
 {
 
-	public static Properties createPropertiesFromString(String asPortableString)
+	/**
+	 * Keep the items that we're controlling so that we can update the combo when the preferences change. Note that it's
+	 * identity compared/hashed.
+	 */
+	static class EntriesControlHandle
+	{
+
+		final String preferenceName;
+		final Combo combo;
+		final IStartEndIgnore modifyListener;
+
+		public EntriesControlHandle(String preferenceName, Combo combo, IStartEndIgnore modifyListener)
+		{
+			this.preferenceName = preferenceName;
+			this.combo = combo;
+			this.modifyListener = modifyListener;
+		}
+	}
+
+	/**
+	 * Map from the preference name > combos to be updated when the preference changes.
+	 */
+	private Map<String, Set<EntriesControlHandle>> preferenceToComboAndListener = new HashMap<String, Set<EntriesControlHandle>>();
+
+	private Properties createPropertiesFromString(String asPortableString)
 	{
 		Properties properties = new Properties();
 		try
@@ -66,7 +72,7 @@ public class FindBarEntriesHelper
 		return properties;
 	}
 
-	public static String createStringFromProperties(Properties properties)
+	private String createStringFromProperties(Properties properties)
 	{
 		OutputStream out = new ByteArrayOutputStream();
 		try
@@ -80,7 +86,7 @@ public class FindBarEntriesHelper
 		return out.toString();
 	}
 
-	public static Properties createPropertiesFromList(List<String> list)
+	public Properties createPropertiesFromList(List<String> list)
 	{
 		Properties properties = new Properties();
 
@@ -94,7 +100,7 @@ public class FindBarEntriesHelper
 	/**
 	 * Create a list from a property that was previously created from createPropertiesFromList.
 	 */
-	public static List<String> createListFromProperties(Properties properties)
+	private List<String> createListFromProperties(Properties properties)
 	{
 		List<String> list = new ArrayList<String>();
 		for (int i = 0; i < properties.size(); i++)
@@ -110,8 +116,17 @@ public class FindBarEntriesHelper
 
 	private static final Object lock = new Object();
 
-	public static List<String> addEntry(String entry, String preferenceName)
+	/**
+	 * When a search is entered, this method should be called to add the searched text to the list of available searches
+	 * (and it'll be replicated for all the combos controlled).
+	 */
+	public void addEntry(String entry, String preferenceName)
 	{
+		if (entry.length() == 0)
+		{
+			return; // nothing to do in this case
+		}
+
 		synchronized (lock)
 		{
 			IPreferenceStore preferenceStore = FindBarPlugin.getDefault().getPreferenceStore();
@@ -123,13 +138,15 @@ public class FindBarEntriesHelper
 			{ // Hold at most 50 entries in the cache
 				items.remove(items.size() - 1); // remove the last
 			}
-			Properties props = FindBarEntriesHelper.createPropertiesFromList(items);
-			preferenceStore.setValue(preferenceName, FindBarEntriesHelper.createStringFromProperties(props));
-			return items;
+			Properties props = createPropertiesFromList(items);
+			preferenceStore.setValue(preferenceName, createStringFromProperties(props));
 		}
 	}
 
-	public static List<String> loadEntries(String preferenceName)
+	/**
+	 * Load the available entries from a given preference name.
+	 */
+	public List<String> loadEntries(String preferenceName)
 	{
 		synchronized (lock)
 		{
@@ -137,10 +154,80 @@ public class FindBarEntriesHelper
 			String current = preferenceStore.getString(preferenceName);
 			if (current.trim().length() > 0)
 			{
-				Properties props = FindBarEntriesHelper.createPropertiesFromString(current);
-				return FindBarEntriesHelper.createListFromProperties(props);
+				Properties props = createPropertiesFromString(current);
+				return createListFromProperties(props);
 			}
 			return new ArrayList<String>();
+		}
+	}
+
+	/**
+	 * Set the items available in the combo (and ask it to ignore any changes while that's done).
+	 */
+	private void setItemsInCombo(Combo combo, IStartEndIgnore modifyListener, List<String> items)
+	{
+		modifyListener.startIgnore();
+		try
+		{
+			combo.setItems(items.toArray(new String[items.size()]));
+			combo.select(0);
+		}
+		finally
+		{
+			modifyListener.endIgnore();
+		}
+	}
+
+	/**
+	 * Start taking control of the combo (i.e.: when the preference changes, update the combo).
+	 * 
+	 * @return a handle that should be used to later unregister it.
+	 */
+	public EntriesControlHandle register(Combo combo, IStartEndIgnore modifyListener, final String preferenceName)
+	{
+		List<String> items = loadEntries(preferenceName);
+		setItemsInCombo(combo, modifyListener, items);
+		Set<EntriesControlHandle> set = preferenceToComboAndListener.get(preferenceName);
+		if (set == null)
+		{
+			set = new HashSet<EntriesControlHandle>();
+			preferenceToComboAndListener.put(preferenceName, set);
+			// preference that's still not treated: start to hear it.
+			IPreferenceStore preferenceStore = FindBarPlugin.getDefault().getPreferenceStore();
+			final Set<EntriesControlHandle> usedInternal = set;
+			preferenceStore.addPropertyChangeListener(new IPropertyChangeListener()
+			{
+
+				public void propertyChange(PropertyChangeEvent event)
+				{
+					if (preferenceName.equals(event.getProperty()))
+					{
+						List<String> entries = loadEntries(preferenceName);
+						for (EntriesControlHandle entry : usedInternal)
+						{
+							setItemsInCombo(entry.combo, entry.modifyListener, entries);
+						}
+					}
+				}
+			});
+		}
+		EntriesControlHandle handle = new EntriesControlHandle(preferenceName, combo, modifyListener);
+		set.add(handle);
+		return handle;
+	}
+
+	/**
+	 * No longer update the given combos (from the handles passed) when the preference changes.
+	 */
+	public void unregister(List<EntriesControlHandle> entriesControlHandles)
+	{
+		for (EntriesControlHandle entriesControlHandle : entriesControlHandles)
+		{
+			Set<EntriesControlHandle> set = preferenceToComboAndListener.get(entriesControlHandle.preferenceName);
+			if (set != null)
+			{
+				set.remove(entriesControlHandle);
+			}
 		}
 	}
 

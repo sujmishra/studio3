@@ -1,11 +1,9 @@
 /**
- * Copyright (c) 2005-2010 Aptana, Inc.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html. If redistributing this code,
- * this entire header must remain intact.
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the Eclipse Public License (EPL).
+ * Please see the license-epl.html included with this distribution for details.
+ * Any modifications to this file must keep this entire header intact.
  */
 package com.aptana.index.core;
 
@@ -107,7 +105,7 @@ abstract class IndexRequestJob extends Job
 		}
 		catch (CoreException e)
 		{
-			IndexActivator.logError(e);
+			IndexPlugin.logError(e);
 		}
 		return null;
 	}
@@ -154,7 +152,7 @@ abstract class IndexRequestJob extends Job
 			return map;
 		}
 
-		IExtensionPoint extensionPoint = registry.getExtensionPoint(IndexActivator.PLUGIN_ID, FILE_INDEXING_PARTICIPANTS_ID);
+		IExtensionPoint extensionPoint = registry.getExtensionPoint(IndexPlugin.PLUGIN_ID, FILE_INDEXING_PARTICIPANTS_ID);
 		if (extensionPoint == null)
 		{
 			return map;
@@ -202,7 +200,7 @@ abstract class IndexRequestJob extends Job
 
 			if (registry != null)
 			{
-				IExtensionPoint extensionPoint = registry.getExtensionPoint(IndexActivator.PLUGIN_ID, INDEX_FILTER_PARTICIPANTS_ID);
+				IExtensionPoint extensionPoint = registry.getExtensionPoint(IndexPlugin.PLUGIN_ID, INDEX_FILTER_PARTICIPANTS_ID);
 
 				if (extensionPoint != null)
 				{
@@ -220,7 +218,7 @@ abstract class IndexRequestJob extends Job
 								}
 								catch (CoreException e)
 								{
-									IndexActivator.logError(e);
+									IndexPlugin.logError(e);
 								}
 							}
 						}
@@ -328,7 +326,7 @@ abstract class IndexRequestJob extends Job
 					}
 					catch (CoreException e)
 					{
-						IndexActivator.logError(e);
+						IndexPlugin.logError(e);
 					}
 				}
 			}

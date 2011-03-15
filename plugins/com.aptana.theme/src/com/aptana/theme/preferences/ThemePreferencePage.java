@@ -1,35 +1,8 @@
 /**
- * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
- * dual-licensed under both the Aptana Public License and the GNU General
- * Public license. You may elect to use one or the other of these licenses.
- * 
- * This program is distributed in the hope that it will be useful, but
- * AS-IS and WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE, TITLE, or
- * NONINFRINGEMENT. Redistribution, except as permitted by whichever of
- * the GPL or APL you select, is prohibited.
- *
- * 1. For the GPL license (GPL), you can redistribute and/or modify this
- * program under the terms of the GNU General Public License,
- * Version 3, as published by the Free Software Foundation.  You should
- * have received a copy of the GNU General Public License, Version 3 along
- * with this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Aptana provides a special exception to allow redistribution of this file
- * with certain other free and open source software ("FOSS") code and certain additional terms
- * pursuant to Section 7 of the GPL. You may view the exception and these
- * terms on the web at http://www.aptana.com/legal/gpl/.
- * 
- * 2. For the Aptana Public License (APL), this program and the
- * accompanying materials are made available under the terms of the APL
- * v1.0 which accompanies this distribution, and is available at
- * http://www.aptana.com/legal/apl/.
- * 
- * You may view the GPL, Aptana's exception and additional terms, and the
- * APL in the file titled license.html at the root of the corresponding
- * plugin containing this source file.
- * 
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the GNU Public License (GPL) v3 (with exceptions).
+ * Please see the license.html included with this distribution for details.
  * Any modifications to this file must keep this entire header intact.
  */
 package com.aptana.theme.preferences;
@@ -258,7 +231,7 @@ public class ThemePreferencePage extends PreferencePage implements IWorkbenchPre
 		Label label = new Label(themesComp, SWT.NONE);
 		label.setText(Messages.ThemePreferencePage_FontNameLabel);
 
-		fFont = JFaceResources.getFontRegistry().get(IThemeManager.VIEW_FONT_NAME);
+		fFont = JFaceResources.getFontRegistry().get(JFaceResources.TEXT_FONT);
 		fFontText = new Text(themesComp, SWT.BORDER | SWT.SINGLE | SWT.READ_ONLY);
 		fFontText.setText(toString(fFont));
 		fFontText.setFont(fFont);
@@ -467,10 +440,13 @@ public class ThemePreferencePage extends PreferencePage implements IWorkbenchPre
 					lastSelected.setBackground(0, lastSelectedColor);
 				}
 				TableItem item = (TableItem) e.item;
-				lastSelectedColor = item.getBackground(0);
-				lastSelected = item;
-				item.setBackground(0,
-						ThemePlugin.getDefault().getColorManager().getColor(getTheme().getSelectionAgainstBG()));
+				if (item != null)
+				{
+					lastSelectedColor = item.getBackground(0);
+					lastSelected = item;
+					item.setBackground(0,
+							ThemePlugin.getDefault().getColorManager().getColor(getTheme().getSelectionAgainstBG()));
+				}
 			}
 
 			public void widgetDefaultSelected(SelectionEvent e)
@@ -981,36 +957,62 @@ public class ThemePreferencePage extends PreferencePage implements IWorkbenchPre
 
 	protected void performOkFonts()
 	{
-		final String[] fontIds = new String[] { IThemeManager.VIEW_FONT_NAME, JFaceResources.TEXT_FONT,
+		final String[] fontIds = new String[] { JFaceResources.TEXT_FONT,
 				"org.eclipse.ui.workbench.texteditor.blockSelectionModeFont" }; //$NON-NLS-1$
-		ITheme currentTheme = PlatformUI.getWorkbench().getThemeManager().getCurrentTheme();
-		IPreferenceStore store = WorkbenchPlugin.getDefault().getPreferenceStore();
-		String fdString = PreferenceConverter.getStoredRepresentation(fFont.getFontData());
+
+		FontData[] data = fFont.getFontData();
 		for (String fontId : fontIds)
 		{
-			// Only set new values if they're different from existing!
-			Font existing = JFaceResources.getFont(fontId);
-			String existingString = ""; //$NON-NLS-1$
-			if (!existing.isDisposed())
+			setFont(fontId, data);
+		}
+
+		// Shrink by 2 for views!
+		data = fFont.getFontData();
+		FontData[] smaller = new FontData[data.length];
+		int i = 0;
+		for (FontData fd : data)
+		{
+			int height = fd.getHeight();
+			if (height >= 12)
 			{
-				existingString = PreferenceConverter.getStoredRepresentation(existing.getFontData());
+				fd.setHeight(height - 2);
 			}
-			if (!existingString.equals(fdString))
+			else if (height >= 10)
 			{
-				// put in registry...
-				JFaceResources.getFontRegistry().put(fontId, fFont.getFontData());
-				// Save to prefs...
-				String key = ThemeElementHelper.createPreferenceKey(currentTheme, IThemeManager.VIEW_FONT_NAME);
-				store.setValue(key, fdString);
+				fd.setHeight(height - 1);
 			}
+			smaller[i++] = fd;
+		}
+		setFont(IThemeManager.VIEW_FONT_NAME, smaller);
+	}
+
+	private void setFont(String fontId, FontData[] data)
+	{
+		String fdString = PreferenceConverter.getStoredRepresentation(data);
+		// Only set new values if they're different from existing!
+		Font existing = JFaceResources.getFont(fontId);
+		String existingString = ""; //$NON-NLS-1$
+		if (!existing.isDisposed())
+		{
+			existingString = PreferenceConverter.getStoredRepresentation(existing.getFontData());
+		}
+		if (!existingString.equals(fdString))
+		{
+			// put in registry...
+			JFaceResources.getFontRegistry().put(fontId, data);
+			// Save to prefs...
+			ITheme currentTheme = PlatformUI.getWorkbench().getThemeManager().getCurrentTheme();
+			String key = ThemeElementHelper.createPreferenceKey(currentTheme, fontId);
+			IPreferenceStore store = WorkbenchPlugin.getDefault().getPreferenceStore();
+			store.setValue(key, fdString);
 		}
 	}
 
 	@Override
 	protected void performDefaults()
 	{
-		// Reset the font to what it was originally! TODO Grab the original default for TEXT_FONT?
-		setFont(JFaceResources.getFont(IThemeManager.VIEW_FONT_NAME));
+		// Reset the font to what it was originally!
+		setFont(JFaceResources.getFont(JFaceResources.TEXT_FONT));
 		try
 		{
 			Theme theme = getTheme();

@@ -1,35 +1,8 @@
 /**
- * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
- * dual-licensed under both the Aptana Public License and the GNU General
- * Public license. You may elect to use one or the other of these licenses.
- * 
- * This program is distributed in the hope that it will be useful, but
- * AS-IS and WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE, TITLE, or
- * NONINFRINGEMENT. Redistribution, except as permitted by whichever of
- * the GPL or APL you select, is prohibited.
- *
- * 1. For the GPL license (GPL), you can redistribute and/or modify this
- * program under the terms of the GNU General Public License,
- * Version 3, as published by the Free Software Foundation.  You should
- * have received a copy of the GNU General Public License, Version 3 along
- * with this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Aptana provides a special exception to allow redistribution of this file
- * with certain other free and open source software ("FOSS") code and certain additional terms
- * pursuant to Section 7 of the GPL. You may view the exception and these
- * terms on the web at http://www.aptana.com/legal/gpl/.
- * 
- * 2. For the Aptana Public License (APL), this program and the
- * accompanying materials are made available under the terms of the APL
- * v1.0 which accompanies this distribution, and is available at
- * http://www.aptana.com/legal/apl/.
- * 
- * You may view the GPL, Aptana's exception and additional terms, and the
- * APL in the file titled license.html at the root of the corresponding
- * plugin containing this source file.
- * 
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the GNU Public License (GPL) v3 (with exceptions).
+ * Please see the license.html included with this distribution for details.
  * Any modifications to this file must keep this entire header intact.
  */
 package com.aptana.explorer.internal.ui;
@@ -49,6 +22,7 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
@@ -78,6 +52,7 @@ import org.eclipse.ui.progress.UIJob;
 
 import com.aptana.explorer.ExplorerPlugin;
 import com.aptana.git.core.GitPlugin;
+import com.aptana.git.core.IPreferenceConstants;
 import com.aptana.git.core.model.BranchAddedEvent;
 import com.aptana.git.core.model.BranchChangedEvent;
 import com.aptana.git.core.model.BranchRemovedEvent;
@@ -160,12 +135,22 @@ public class GitProjectView extends SingleProjectView implements IGitRepositoryL
 			@Override
 			protected IStatus run(IProgressMonitor monitor)
 			{
+				// Don't do any work if user has turned off calc'ing pull indicators.
+				boolean performFetches = Platform.getPreferencesService().getBoolean(GitPlugin.getPluginId(),
+						IPreferenceConstants.GIT_CALCULATE_PULL_INDICATOR, false, null);
+				if (!performFetches)
+				{
+					// FIXME Listen for change to this pref and then schedule if it gets turned on!
+					return Status.OK_STATUS;
+				}
+
 				if (monitor != null && monitor.isCanceled())
 					return Status.CANCEL_STATUS;
 
 				GitRepository repo = getGitRepositoryManager().getAttached(selectedProject);
 				if (repo == null)
 				{
+					// FIXME Don't reschedule, listen for repo attachment and then start running this.
 					schedule(5 * 60 * 1000); // reschedule for 5 minutes after we return!
 					return Status.OK_STATUS;
 				}
@@ -177,15 +162,14 @@ public class GitProjectView extends SingleProjectView implements IGitRepositoryL
 				{
 					branchToPullIndicator.clear();
 				}
+				Set<String> branchesToPull = repo.getOutOfDateBranches();
 				for (String branch : repo.localBranches())
 				{
 					if (monitor != null && monitor.isCanceled())
 						return Status.CANCEL_STATUS;
-
-					boolean shouldPull = repo.shouldPull(branch);
 					synchronized (branchToPullIndicator)
 					{
-						branchToPullIndicator.put(branch, shouldPull);
+						branchToPullIndicator.put(branch, branchesToPull.contains(branch));
 					}
 				}
 
@@ -194,6 +178,7 @@ public class GitProjectView extends SingleProjectView implements IGitRepositoryL
 				if (monitor != null && monitor.isCanceled())
 					return Status.CANCEL_STATUS;
 
+				// TODO Allow user to have control over how often we poll
 				schedule(5 * 60 * 1000); // reschedule for 5 minutes after we return!
 				return Status.OK_STATUS;
 			}
@@ -314,7 +299,7 @@ public class GitProjectView extends SingleProjectView implements IGitRepositoryL
 				return false;
 			}
 		}
-		if (repo.switchBranch(branchName))
+		if (repo.switchBranch(branchName, new NullProgressMonitor()))
 		{
 			refreshViewer(); // might be new file structure
 			return true;

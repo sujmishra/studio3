@@ -1,35 +1,8 @@
 /**
- * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
- * dual-licensed under both the Aptana Public License and the GNU General
- * Public license. You may elect to use one or the other of these licenses.
- * 
- * This program is distributed in the hope that it will be useful, but
- * AS-IS and WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE, TITLE, or
- * NONINFRINGEMENT. Redistribution, except as permitted by whichever of
- * the GPL or APL you select, is prohibited.
- *
- * 1. For the GPL license (GPL), you can redistribute and/or modify this
- * program under the terms of the GNU General Public License,
- * Version 3, as published by the Free Software Foundation.  You should
- * have received a copy of the GNU General Public License, Version 3 along
- * with this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Aptana provides a special exception to allow redistribution of this file
- * with certain other free and open source software ("FOSS") code and certain additional terms
- * pursuant to Section 7 of the GPL. You may view the exception and these
- * terms on the web at http://www.aptana.com/legal/gpl/.
- * 
- * 2. For the Aptana Public License (APL), this program and the
- * accompanying materials are made available under the terms of the APL
- * v1.0 which accompanies this distribution, and is available at
- * http://www.aptana.com/legal/apl/.
- * 
- * You may view the GPL, Aptana's exception and additional terms, and the
- * APL in the file titled license.html at the root of the corresponding
- * plugin containing this source file.
- * 
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the GNU Public License (GPL) v3 (with exceptions).
+ * Please see the license.html included with this distribution for details.
  * Any modifications to this file must keep this entire header intact.
  */
 package com.aptana.core.util;
@@ -85,20 +58,22 @@ public abstract class IOUtil
 		{
 			InputStreamReader inReader;
 			if (charset != null)
-				inReader = new InputStreamReader(stream, charset);
-			else
-				inReader = new InputStreamReader(stream);
-			BufferedReader reader = new BufferedReader(inReader);
-			StringBuilder template = new StringBuilder();
-			String line = null;
-			while ((line = reader.readLine()) != null)
 			{
-				template.append(line);
-				template.append("\n"); //$NON-NLS-1$
+				inReader = new InputStreamReader(stream, charset);
 			}
-			if (template.length() > 0)
-				template.deleteCharAt(template.length() - 1); // delete last extraneous newline
-			return template.toString();
+			else
+			{
+				inReader = new InputStreamReader(stream);
+			}
+			BufferedReader reader = new BufferedReader(inReader);
+			StringBuilder output = new StringBuilder();
+			char[] buffer = new char[1024 * 4];
+			int read = 0;
+			while ((read = reader.read(buffer)) != -1)
+			{
+				output.append(buffer, 0, read);
+			}
+			return output.toString();
 		}
 		catch (IOException e)
 		{
@@ -126,13 +101,11 @@ public abstract class IOUtil
 	}
 
 	/**
-	 * Recursively copy one directory to a new destination directory. If a file
-	 * is passed in instead of a directory, this method will delegate to
-	 * copyFile to perform the copy. Various tests for existence, readability,
-	 * and writability are performed before copying. If any of these tests fail,
-	 * the copy be aborted. Note that this means that if a failure occurs
-	 * somewhere in a descendant file/directory, all files up to that point will
-	 * exist, but no files after that point will be copied. 
+	 * Recursively copy one directory to a new destination directory. If a file is passed in instead of a directory,
+	 * this method will delegate to copyFile to perform the copy. Various tests for existence, readability, and
+	 * writability are performed before copying. If any of these tests fail, the copy be aborted. Note that this means
+	 * that if a failure occurs somewhere in a descendant file/directory, all files up to that point will exist, but no
+	 * files after that point will be copied.
 	 * 
 	 * @param source
 	 * @param destination
@@ -177,11 +150,11 @@ public abstract class IOUtil
 			else
 			{
 				String message = MessageFormat.format( //
-					Messages.IOUtil_Unable_To_Copy_Because, //
-					source, //
-					destination, //
-					error //
-				);
+						Messages.IOUtil_Unable_To_Copy_Because, //
+						source, //
+						destination, //
+						error //
+						);
 
 				CorePlugin.logError(message, null);
 			}
@@ -324,6 +297,23 @@ public abstract class IOUtil
 			{
 				// ignore
 			}
+		}
+	}
+
+	/**
+	 * Pipes from input stream to output stream. Uses a byte buffer of size 1024. Does no flushing or closing of
+	 * streams!
+	 * 
+	 * @param inputStream
+	 * @param outputStream
+	 * @throws IOException
+	 */
+	public static void pipe(InputStream input, OutputStream output) throws IOException
+	{
+		byte[] buffer = new byte[1024];
+		for (int bytes = input.read(buffer); bytes >= 0; bytes = input.read(buffer))
+		{
+			output.write(buffer, 0, bytes);
 		}
 	}
 

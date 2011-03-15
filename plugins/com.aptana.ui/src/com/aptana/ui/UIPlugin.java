@@ -1,45 +1,37 @@
 /**
- * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
- * dual-licensed under both the Aptana Public License and the GNU General
- * Public license. You may elect to use one or the other of these licenses.
- * 
- * This program is distributed in the hope that it will be useful, but
- * AS-IS and WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE, TITLE, or
- * NONINFRINGEMENT. Redistribution, except as permitted by whichever of
- * the GPL or APL you select, is prohibited.
- *
- * 1. For the GPL license (GPL), you can redistribute and/or modify this
- * program under the terms of the GNU General Public License,
- * Version 3, as published by the Free Software Foundation.  You should
- * have received a copy of the GNU General Public License, Version 3 along
- * with this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Aptana provides a special exception to allow redistribution of this file
- * with certain other free and open source software ("FOSS") code and certain additional terms
- * pursuant to Section 7 of the GPL. You may view the exception and these
- * terms on the web at http://www.aptana.com/legal/gpl/.
- * 
- * 2. For the Aptana Public License (APL), this program and the
- * accompanying materials are made available under the terms of the APL
- * v1.0 which accompanies this distribution, and is available at
- * http://www.aptana.com/legal/apl/.
- * 
- * You may view the GPL, Aptana's exception and additional terms, and the
- * APL in the file titled license.html at the root of the corresponding
- * plugin containing this source file.
- * 
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the GNU Public License (GPL) v3 (with exceptions).
+ * Please see the license.html included with this distribution for details.
  * Any modifications to this file must keep this entire header intact.
  */
 package com.aptana.ui;
 
+import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+import org.eclipse.core.runtime.preferences.InstanceScope;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.ui.IPerspectiveDescriptor;
+import org.eclipse.ui.IPerspectiveListener;
+import org.eclipse.ui.IWindowListener;
+import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
+import org.eclipse.ui.progress.UIJob;
 import org.osgi.framework.BundleContext;
+import org.osgi.service.prefs.BackingStoreException;
+
+import com.aptana.ui.internal.WebPerspectiveFactory;
+import com.aptana.ui.preferences.IPreferenceConstants;
+import com.aptana.ui.util.UIUtils;
 
 /**
  * The activator class controls the plug-in life cycle
@@ -52,6 +44,82 @@ public class UIPlugin extends AbstractUIPlugin
 
 	// The shared instance
 	private static UIPlugin plugin;
+
+	private final IPerspectiveListener perspectiveListener = new IPerspectiveListener()
+	{
+
+		public void perspectiveActivated(IWorkbenchPage page, IPerspectiveDescriptor perspective)
+		{
+			if (WebPerspectiveFactory.ID.equals(perspective.getId()))
+			{
+				int version = Platform.getPreferencesService().getInt(PLUGIN_ID,
+						IPreferenceConstants.PERSPECTIVE_VERSION, 0, null);
+				if (WebPerspectiveFactory.VERSION > version)
+				{
+					resetPerspective(page);
+					// we will only ask once regardless if user chose to update the perspective
+					IEclipsePreferences prefs = (new InstanceScope()).getNode(PLUGIN_ID);
+					prefs.putInt(IPreferenceConstants.PERSPECTIVE_VERSION, WebPerspectiveFactory.VERSION);
+					try
+					{
+						prefs.flush();
+					}
+					catch (BackingStoreException e)
+					{
+						// ignores the exception
+					}
+				}
+			}
+		}
+
+		public void perspectiveChanged(IWorkbenchPage page, IPerspectiveDescriptor perspective, String changeId)
+		{
+		}
+
+		private void resetPerspective(final IWorkbenchPage page)
+		{
+			UIJob job = new UIJob("Resetting Studio perspective...") //$NON-NLS-1$
+			{
+
+				@Override
+				public IStatus runInUIThread(IProgressMonitor monitor)
+				{
+					if (MessageDialog.openQuestion(UIUtils.getActiveShell(),
+							com.aptana.ui.Messages.UIPlugin_ResetPerspective_Title,
+							com.aptana.ui.Messages.UIPlugin_ResetPerspective_Description))
+					{
+						page.resetPerspective();
+					}
+					return Status.OK_STATUS;
+				}
+			};
+			job.setSystem(true);
+			job.setPriority(Job.INTERACTIVE);
+			job.schedule();
+		}
+	};
+
+	private final IWindowListener windowListener = new IWindowListener()
+	{
+
+		public void windowActivated(IWorkbenchWindow window)
+		{
+		}
+
+		public void windowClosed(IWorkbenchWindow window)
+		{
+			window.removePerspectiveListener(perspectiveListener);
+		}
+
+		public void windowDeactivated(IWorkbenchWindow window)
+		{
+		}
+
+		public void windowOpened(IWorkbenchWindow window)
+		{
+			window.addPerspectiveListener(perspectiveListener);
+		}
+	};
 
 	/**
 	 * The constructor
@@ -68,6 +136,8 @@ public class UIPlugin extends AbstractUIPlugin
 	{
 		super.start(context);
 		plugin = this;
+		updateInitialPerspectiveVersion();
+		addPerspectiveListener();
 	}
 
 	/*
@@ -76,6 +146,7 @@ public class UIPlugin extends AbstractUIPlugin
 	 */
 	public void stop(BundleContext context) throws Exception
 	{
+		removePerspectiveListener();
 		plugin = null;
 		super.stop(context);
 	}
@@ -90,9 +161,24 @@ public class UIPlugin extends AbstractUIPlugin
 		return plugin;
 	}
 
-	public static void logError(String msg, Throwable e)
+	public static void log(Throwable e)
 	{
-		getDefault().getLog().log(new Status(IStatus.ERROR, PLUGIN_ID, msg, e));
+		log(new Status(IStatus.ERROR, PLUGIN_ID, IStatus.ERROR, e.getLocalizedMessage(), e));
+	}
+
+	public static void log(String msg)
+	{
+		log(new Status(IStatus.INFO, PLUGIN_ID, IStatus.OK, msg, null));
+	}
+
+	public static void log(String msg, Throwable e)
+	{
+		log(new Status(IStatus.INFO, PLUGIN_ID, IStatus.OK, msg, e));
+	}
+
+	public static void log(IStatus status)
+	{
+		getDefault().getLog().log(status);
 	}
 
 	public static Image getImage(String string)
@@ -119,5 +205,71 @@ public class UIPlugin extends AbstractUIPlugin
 			}
 		}
 		return getDefault().getImageRegistry().getDescriptor(string);
+	}
+
+	private void addPerspectiveListener()
+	{
+		IWorkbench workbench = null;
+		try
+		{
+			workbench = PlatformUI.getWorkbench();
+		}
+		catch (Exception e)
+		{
+			// ignore, may be running headless, like in tests
+		}
+		if (workbench != null)
+		{
+			IWorkbenchWindow[] windows = workbench.getWorkbenchWindows();
+			for (IWorkbenchWindow window : windows)
+			{
+				window.addPerspectiveListener(perspectiveListener);
+			}
+			// listens on any future windows
+			PlatformUI.getWorkbench().addWindowListener(windowListener);
+		}
+	}
+
+	private void removePerspectiveListener()
+	{
+		IWorkbench workbench = null;
+		try
+		{
+			workbench = PlatformUI.getWorkbench();
+		}
+		catch (Exception e)
+		{
+			// ignore, may be running headless, like in tests
+		}
+		if (workbench != null)
+		{
+			IWorkbenchWindow[] windows = workbench.getWorkbenchWindows();
+			for (IWorkbenchWindow window : windows)
+			{
+				window.removePerspectiveListener(perspectiveListener);
+			}
+			PlatformUI.getWorkbench().removeWindowListener(windowListener);
+		}
+	}
+
+	private void updateInitialPerspectiveVersion()
+	{
+		// updates the initial stored version so that user won't get a prompt on a new workspace
+		boolean hasStartedBefore = Platform.getPreferencesService().getBoolean(PLUGIN_ID,
+				IPreferenceConstants.IDE_HAS_LAUNCHED_BEFORE, false, null);
+		if (!hasStartedBefore)
+		{
+			IEclipsePreferences prefs = (new InstanceScope()).getNode(PLUGIN_ID);
+			prefs.putInt(IPreferenceConstants.PERSPECTIVE_VERSION, WebPerspectiveFactory.VERSION);
+			prefs.putBoolean(IPreferenceConstants.IDE_HAS_LAUNCHED_BEFORE, true);
+			try
+			{
+				prefs.flush();
+			}
+			catch (BackingStoreException e)
+			{
+				log(new Status(IStatus.ERROR, PLUGIN_ID, Messages.UIPlugin_ERR_FailToSetPref, e));
+			}
+		}
 	}
 }

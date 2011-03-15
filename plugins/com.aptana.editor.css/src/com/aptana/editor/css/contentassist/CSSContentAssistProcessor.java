@@ -1,35 +1,8 @@
 /**
- * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
- * dual-licensed under both the Aptana Public License and the GNU General
- * Public license. You may elect to use one or the other of these licenses.
- *
- * This program is distributed in the hope that it will be useful, but
- * AS-IS and WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE, TITLE, or
- * NONINFRINGEMENT. Redistribution, except as permitted by whichever of
- * the GPL or APL you select, is prohibited.
- *
- * 1. For the GPL license (GPL), you can redistribute and/or modify this
- * program under the terms of the GNU General Public License,
- * Version 3, as published by the Free Software Foundation.  You should
- * have received a copy of the GNU General Public License, Version 3 along
- * with this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * Aptana provides a special exception to allow redistribution of this file
- * with certain other free and open source software ("FOSS") code and certain additional terms
- * pursuant to Section 7 of the GPL. You may view the exception and these
- * terms on the web at http://www.aptana.com/legal/gpl/.
- *
- * 2. For the Aptana Public License (APL), this program and the
- * accompanying materials are made available under the terms of the APL
- * v1.0 which accompanies this distribution, and is available at
- * http://www.aptana.com/legal/apl/.
- *
- * You may view the GPL, Aptana's exception and additional terms, and the
- * APL in the file titled license.html at the root of the corresponding
- * plugin containing this source file.
- *
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the GNU Public License (GPL) v3 (with exceptions).
+ * Please see the license.html included with this distribution for details.
  * Any modifications to this file must keep this entire header intact.
  */
 package com.aptana.editor.css.contentassist;
@@ -42,6 +15,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextViewer;
@@ -59,7 +33,7 @@ import com.aptana.editor.common.CommonContentAssistProcessor;
 import com.aptana.editor.common.contentassist.CommonCompletionProposal;
 import com.aptana.editor.common.contentassist.LexemeProvider;
 import com.aptana.editor.common.contentassist.UserAgentManager;
-import com.aptana.editor.css.Activator;
+import com.aptana.editor.css.CSSPlugin;
 import com.aptana.editor.css.CSSScopeScanner;
 import com.aptana.editor.css.contentassist.index.CSSIndexConstants;
 import com.aptana.editor.css.contentassist.model.ElementElement;
@@ -68,22 +42,15 @@ import com.aptana.editor.css.contentassist.model.PseudoClassElement;
 import com.aptana.editor.css.contentassist.model.PseudoElementElement;
 import com.aptana.editor.css.contentassist.model.ValueElement;
 import com.aptana.editor.css.parsing.lexer.CSSTokenType;
+import com.aptana.editor.css.preferences.IPreferenceConstants;
 import com.aptana.parsing.lexer.IRange;
 import com.aptana.parsing.lexer.Lexeme;
 import com.aptana.parsing.lexer.Range;
 
 public class CSSContentAssistProcessor extends CommonContentAssistProcessor
 {
-	/**
-	 * LocationType
-	 */
-	static enum LocationType
-	{
-		ERROR, OUTSIDE_RULE, INSIDE_RULE, INSIDE_ARG, INSIDE_PROPERTY, INSIDE_VALUE
-	};
-
-	private static final Image ELEMENT_ICON = Activator.getImage("/icons/element.png"); //$NON-NLS-1$
-	private static final Image PROPERTY_ICON = Activator.getImage("/icons/property.png"); //$NON-NLS-1$
+	private static final Image ELEMENT_ICON = CSSPlugin.getImage("/icons/element.png"); //$NON-NLS-1$
+	private static final Image PROPERTY_ICON = CSSPlugin.getImage("/icons/property.png"); //$NON-NLS-1$
 
 	private IContextInformationValidator _validator;
 	private CSSIndexQueryHelper _queryHelper;
@@ -117,7 +84,7 @@ public class CSSContentAssistProcessor extends CommonContentAssistProcessor
 			for (ElementElement element : elements)
 			{
 				String description = CSSModelFormatter.getDescription(element);
-				String[] userAgents = element.getUserAgentNames();
+				List<String> userAgents = element.getUserAgentNames();
 				Image[] userAgentIcons = UserAgentManager.getInstance().getUserAgentImages(userAgents);
 
 				proposals.add(createProposal(element.getName(), ELEMENT_ICON, description, userAgentIcons, offset));
@@ -153,7 +120,7 @@ public class CSSContentAssistProcessor extends CommonContentAssistProcessor
 					for (ValueElement value : values)
 					{
 						// String description = CSSModelFormatter.getDescription(value);
-						String[] userAgents = pseudoClass.getUserAgentNames();
+						List<String> userAgents = pseudoClass.getUserAgentNames();
 						Image[] userAgentIcons = UserAgentManager.getInstance().getUserAgentImages(userAgents);
 
 						proposals.add(createProposal(value.getName(), ELEMENT_ICON, value.getDescription(),
@@ -179,7 +146,7 @@ public class CSSContentAssistProcessor extends CommonContentAssistProcessor
 			for (PseudoClassElement pseudoClass : classes)
 			{
 				String description = CSSModelFormatter.getDescription(pseudoClass);
-				String[] userAgents = pseudoClass.getUserAgentNames();
+				List<String> userAgents = pseudoClass.getUserAgentNames();
 				Image[] userAgentIcons = UserAgentManager.getInstance().getUserAgentImages(userAgents);
 
 				proposals.add(createProposal(pseudoClass.getName(), ELEMENT_ICON, description, userAgentIcons, offset));
@@ -196,7 +163,7 @@ public class CSSContentAssistProcessor extends CommonContentAssistProcessor
 					continue;
 				}
 				String description = CSSModelFormatter.getDescription(pseudoElement);
-				String[] userAgents = pseudoElement.getUserAgentNames();
+				List<String> userAgents = pseudoElement.getUserAgentNames();
 				Image[] userAgentIcons = UserAgentManager.getInstance().getUserAgentImages(userAgents);
 
 				proposals
@@ -219,7 +186,7 @@ public class CSSContentAssistProcessor extends CommonContentAssistProcessor
 			for (PseudoElementElement pseudoElement : elements)
 			{
 				String description = CSSModelFormatter.getDescription(pseudoElement);
-				String[] userAgents = pseudoElement.getUserAgentNames();
+				List<String> userAgents = pseudoElement.getUserAgentNames();
 				Image[] userAgentIcons = UserAgentManager.getInstance().getUserAgentImages(userAgents);
 
 				proposals
@@ -284,7 +251,7 @@ public class CSSContentAssistProcessor extends CommonContentAssistProcessor
 			for (PropertyElement property : properties)
 			{
 				String description = CSSModelFormatter.getDescription(property);
-				String[] userAgents = property.getUserAgentNames();
+				List<String> userAgents = property.getUserAgentNames();
 				Image[] userAgentIcons = UserAgentManager.getInstance().getUserAgentImages(userAgents);
 
 				proposals.add(createProposal(property.getName(), property.getName() + postfix, PROPERTY_ICON,
@@ -502,7 +469,7 @@ public class CSSContentAssistProcessor extends CommonContentAssistProcessor
 							UserAgentManager.getInstance().getActiveUserAgentIDs());
 					for (String color : colors)
 					{
-						ImageRegistry reg = Activator.getDefault().getImageRegistry();
+						ImageRegistry reg = CSSPlugin.getDefault().getImageRegistry();
 						Image img = reg.get(color);
 						if (img == null)
 						{
@@ -661,9 +628,14 @@ public class CSSContentAssistProcessor extends CommonContentAssistProcessor
 	@Override
 	public char[] getCompletionProposalAutoActivationCharacters()
 	{
-		// TODO: these should be defined in a preference page
-		return new char[] { '.', '#', ':', '\t' };
-		// return new char[] { ':', '\t', '{', ';' };
+		String chars = Platform.getPreferencesService().getString( //
+				CSSPlugin.PLUGIN_ID, //
+				IPreferenceConstants.CSS_ACTIVATION_CHARACTERS, //
+				"", //$NON-NLS-1$
+				null //
+				);
+
+		return (chars != null) ? chars.toCharArray() : null;
 	}
 
 	/*
@@ -1128,5 +1100,17 @@ public class CSSContentAssistProcessor extends CommonContentAssistProcessor
 				this._replaceRange = this._currentLexeme = null;
 			}
 		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.aptana.editor.common.CommonContentAssistProcessor#triggerAdditionalAutoActivation(char, int,
+	 * org.eclipse.jface.text.IDocument, int)
+	 */
+	public boolean triggerAdditionalAutoActivation(char c, int keyCode, IDocument document, int offset)
+	{
+		LexemeProvider<CSSTokenType> lexemeProvider = this.createLexemeProvider(document, offset);
+		Lexeme<CSSTokenType> lexeme = lexemeProvider.getFloorLexeme(offset);
+		return (lexeme != null && (lexeme.getType() == CSSTokenType.IDENTIFIER || lexeme.getType() == CSSTokenType.COLON));
 	}
 }

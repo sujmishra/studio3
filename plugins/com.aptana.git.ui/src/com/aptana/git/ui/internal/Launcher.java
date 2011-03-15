@@ -1,35 +1,8 @@
 /**
- * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
- * dual-licensed under both the Aptana Public License and the GNU General
- * Public license. You may elect to use one or the other of these licenses.
- * 
- * This program is distributed in the hope that it will be useful, but
- * AS-IS and WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE, TITLE, or
- * NONINFRINGEMENT. Redistribution, except as permitted by whichever of
- * the GPL or APL you select, is prohibited.
- *
- * 1. For the GPL license (GPL), you can redistribute and/or modify this
- * program under the terms of the GNU General Public License,
- * Version 3, as published by the Free Software Foundation.  You should
- * have received a copy of the GNU General Public License, Version 3 along
- * with this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Aptana provides a special exception to allow redistribution of this file
- * with certain other free and open source software ("FOSS") code and certain additional terms
- * pursuant to Section 7 of the GPL. You may view the exception and these
- * terms on the web at http://www.aptana.com/legal/gpl/.
- * 
- * 2. For the Aptana Public License (APL), this program and the
- * accompanying materials are made available under the terms of the APL
- * v1.0 which accompanies this distribution, and is available at
- * http://www.aptana.com/legal/apl/.
- * 
- * You may view the GPL, Aptana's exception and additional terms, and the
- * APL in the file titled license.html at the root of the corresponding
- * plugin containing this source file.
- * 
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the GNU Public License (GPL) v3 (with exceptions).
+ * Please see the license.html included with this distribution for details.
  * Any modifications to this file must keep this entire header intact.
  */
 package com.aptana.git.ui.internal;
@@ -41,7 +14,6 @@ import java.util.Map;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.debug.core.DebugPlugin;
 import org.eclipse.debug.core.ILaunch;
@@ -54,6 +26,8 @@ import org.eclipse.ui.externaltools.internal.model.IExternalToolConstants;
 import com.aptana.console.process.ConsoleProcessFactory;
 import com.aptana.core.ShellExecutable;
 import com.aptana.git.core.GitPlugin;
+import com.aptana.git.core.model.GitExecutable;
+import com.aptana.git.core.model.GitRepository;
 
 /**
  * Launches a process through Eclipse's launching infrastructure, launching it into the console.
@@ -70,20 +44,22 @@ public abstract class Launcher
 			'\0' };
 
 	/**
-	 * @param command
-	 * @param workingDir
+	 * Launches a git process against the repository.
+	 * 
+	 * @param repo
+	 * @param monitor
 	 * @param args
 	 * @return
 	 */
-	public static ILaunch launch(String command, IPath workingDir, String... args) throws CoreException
+	public static ILaunch launch(GitRepository repo, IProgressMonitor monitor, String... args) throws CoreException
 	{
-		return launch(command, workingDir, new NullProgressMonitor(), args);
-	}
-
-	public static ILaunch launch(String command, IPath workingDir, IProgressMonitor monitor, String... args)
-			throws CoreException
-	{
-		ILaunchConfigurationWorkingCopy config = createLaunchConfig(command, workingDir, args);
+		IPath workingDir = null;
+		if (repo != null)
+		{
+			workingDir = repo.workingDirectory();
+		}
+		ILaunchConfigurationWorkingCopy config = createLaunchConfig(GitExecutable.instance().path().toOSString(),
+				workingDir, args);
 		return config.launch(ILaunchManager.RUN_MODE, monitor);
 	}
 
@@ -137,10 +113,33 @@ public abstract class Launcher
 		}
 		if (!env.isEmpty())
 		{
+			env = filterOutVariables(env);
 			config.setAttribute(ILaunchManager.ATTR_ENVIRONMENT_VARIABLES, env);
 			config.setAttribute(ILaunchManager.ATTR_APPEND_ENVIRONMENT_VARIABLES, true);
 		}
 		return config;
+	}
+
+	/**
+	 * Filter out any env vars that contain "${" in their value. Otherwise Eclipse will try to substitute and fail! TODO
+	 * Maybe we can escape the ${ to avoid the issue?
+	 * 
+	 * @param env
+	 * @return
+	 */
+	private static Map<String, String> filterOutVariables(Map<String, String> env)
+	{
+		Map<String, String> filtered = new HashMap<String, String>();
+		for (Map.Entry<String, String> entry : env.entrySet())
+		{
+			String value = entry.getValue();
+			if (value.contains("${")) //$NON-NLS-1$
+			{
+				continue;
+			}
+			filtered.put(entry.getKey(), value);
+		}
+		return filtered;
 	}
 
 	private static String getLastPortion(String command)

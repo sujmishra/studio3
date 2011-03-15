@@ -1,11 +1,9 @@
 /**
- * Copyright (c) 2005-2010 Aptana, Inc.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html. If redistributing this code,
- * this entire header must remain intact.
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the Eclipse Public License (EPL).
+ * Please see the license-epl.html included with this distribution for details.
+ * Any modifications to this file must keep this entire header intact.
  */
 package com.aptana.core.epl;
 
@@ -44,21 +42,21 @@ public class CoreEPLPlugin extends Plugin
 	/**
 	 * @see org.eclipse.core.runtime.Plugins#start(org.osgi.framework.BundleContext)
 	 */
-	public void start(BundleContext context) throws Exception
+	public void start(BundleContext bundleContext) throws Exception
 	{
-		CoreEPLPlugin.context = context;
-		CoreEPLPlugin.plugin = this;
-		super.start(context);
+		super.start(bundleContext);
+		context = bundleContext;
+		plugin = this;
 	}
 
 	/**
 	 * @see org.eclipse.core.runtime.Plugin#stop(org.osgi.framework.BundleContext)
 	 */
-	public void stop(BundleContext context) throws Exception
+	public void stop(BundleContext bundleContext) throws Exception
 	{
-		CoreEPLPlugin.plugin = null;
-		CoreEPLPlugin.context = null;
-		super.stop(context);
+		plugin = null;
+		context = null;
+		super.stop(bundleContext);
 	}
 
 	/**
@@ -68,12 +66,12 @@ public class CoreEPLPlugin extends Plugin
 	 */
 	public static CoreEPLPlugin getDefault()
 	{
-		return CoreEPLPlugin.plugin;
+		return plugin;
 	}
 
 	public static BundleContext getContext()
 	{
-		return CoreEPLPlugin.context;
+		return context;
 	}
 
 	/**

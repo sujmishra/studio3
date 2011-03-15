@@ -1,49 +1,22 @@
 /**
- * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
- * dual-licensed under both the Aptana Public License and the GNU General
- * Public license. You may elect to use one or the other of these licenses.
- * 
- * This program is distributed in the hope that it will be useful, but
- * AS-IS and WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE, TITLE, or
- * NONINFRINGEMENT. Redistribution, except as permitted by whichever of
- * the GPL or APL you select, is prohibited.
- *
- * 1. For the GPL license (GPL), you can redistribute and/or modify this
- * program under the terms of the GNU General Public License,
- * Version 3, as published by the Free Software Foundation.  You should
- * have received a copy of the GNU General Public License, Version 3 along
- * with this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Aptana provides a special exception to allow redistribution of this file
- * with certain other free and open source software ("FOSS") code and certain additional terms
- * pursuant to Section 7 of the GPL. You may view the exception and these
- * terms on the web at http://www.aptana.com/legal/gpl/.
- * 
- * 2. For the Aptana Public License (APL), this program and the
- * accompanying materials are made available under the terms of the APL
- * v1.0 which accompanies this distribution, and is available at
- * http://www.aptana.com/legal/apl/.
- * 
- * You may view the GPL, Aptana's exception and additional terms, and the
- * APL in the file titled license.html at the root of the corresponding
- * plugin containing this source file.
- * 
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the GNU Public License (GPL) v3 (with exceptions).
+ * Please see the license.html included with this distribution for details.
  * Any modifications to this file must keep this entire header intact.
  */
 package com.aptana.core.util;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 
 import com.aptana.core.CorePlugin;
 
@@ -63,42 +36,63 @@ public abstract class ProcessUtil
 
 	public static String outputForCommand(String command, IPath workingDir, Map<String, String> env, String... args)
 	{
-		Map<Integer, String> result = runInBackground(command, workingDir, env, args);
-		if (result == null || result.isEmpty())
+		IStatus result = runInBackground(command, workingDir, env, args);
+		if (result == null)
+		{
 			return null;
-		return result.values().iterator().next();
+		}
+		return result.getMessage();
 	}
 
 	/**
-	 * @deprecated Please use {@link IOUtil#read(InputStream, String)} instead with a value of "UTF-8".
-	 * @param stream
+	 * Runs a command in the workingDir with the passed in arguments. Returns an IStatus. Exit code of the process is
+	 * stored in the IStatuse.getCode(). Output is stored in IStatus.getMessage(). A non-zero exit code makes it an
+	 * IStatus with ERROR severity. Otherwise it uses OK severity.
+	 * 
+	 * @param command
+	 *            The executable/script to run
+	 * @param workingDir
+	 *            The working directory to use for the process.
+	 * @param args
+	 *            A List of String arguments to the command.
 	 * @return
 	 */
-	public static String read(InputStream stream)
-	{
-		return IOUtil.read(stream, "UTF-8"); //$NON-NLS-1$
-	}
-
-	public static Map<Integer, String> runInBackground(String command, IPath workingDir, String... args)
+	public static IStatus runInBackground(String command, IPath workingDir, String... args)
 	{
 		return runInBackground(command, workingDir, null, args);
 	}
 
-	public static Map<Integer, String> runInBackground(String command, IPath workingDir, Map<String, String> env,
-			String... args)
+	/**
+	 * Runs a command in the workingDir with the passed in arguments. Returns an IStatus. Exit code of the process is
+	 * stored in the IStatuse.getCode(). Output is stored in IStatus.getMessage(). A non-zero exit code makes it an
+	 * IStatus with ERROR severity. Otherwise it uses OK severity.
+	 * 
+	 * @param command
+	 *            The executable/script to run
+	 * @param workingDir
+	 *            The working directory to use for the process.
+	 * @param env
+	 *            Environment variable map to use for the process.
+	 * @param args
+	 *            A List of String arguments to the command.
+	 * @return
+	 */
+	public static IStatus runInBackground(String command, IPath workingDir, Map<String, String> env, String... args)
 	{
 		return runInBackground(command, workingDir, null, env, args);
 	}
 
 	public static String outputForProcess(Process process)
 	{
-		Map<Integer, String> result = processData(process, null);
-		if (result == null || result.isEmpty())
+		IStatus result = processData(process, null);
+		if (result == null)
+		{
 			return null;
-		return result.values().iterator().next();
+		}
+		return result.getMessage();
 	}
 
-	private static Map<Integer, String> processData(Process process, String input)
+	private static IStatus processData(Process process, String input)
 	{
 		String lineSeparator = ResourceUtil.getLineSeparatorValue(null);
 		try
@@ -145,9 +139,8 @@ public abstract class ProcessUtil
 					read = read.substring(0, read.length() - 1);
 				}
 			}
-			Map<Integer, String> result = new HashMap<Integer, String>();
-			result.put(exitValue, read);
-			return result;
+
+			return new Status(exitValue == 0 ? IStatus.OK : IStatus.ERROR, CorePlugin.PLUGIN_ID, exitValue, read, null);
 		}
 		catch (InterruptedException e)
 		{
@@ -157,16 +150,23 @@ public abstract class ProcessUtil
 	}
 
 	/**
-	 * Launches the process and returns a map from the exit value to the stdout output read in.
+	 * Launches the process, pipes input to STDIN and returns an IStatus representing the result of execution. Exit code
+	 * of the process is stored in the IStatuse.getCode(). Output is stored in IStatus.getMessage(). A non-zero exit
+	 * code makes it an IStatus with ERROR severity. Otherwise it uses OK severity.
 	 * 
 	 * @param command
-	 * @param workingDir
+	 *            The executable/script to run
 	 * @param input
-	 * @param env
-	 * @param args
+	 *            String input to pipe to STDIN after launching the process.
+	 * @param workingDirectory
+	 *            The working directory to use for the process.
+	 * @param environment
+	 *            Environment variable map to use for the process.
+	 * @param arguments
+	 *            A List of String arguments to the command.
 	 * @return
 	 */
-	public static Map<Integer, String> runInBackground(String command, IPath workingDirectory, String input,
+	public static IStatus runInBackground(String command, IPath workingDirectory, String input,
 			Map<String, String> environment, String... arguments)
 	{
 		try
@@ -189,9 +189,13 @@ public abstract class ProcessUtil
 	 * Launches the process and returns a handle to the active Process.
 	 * 
 	 * @param command
+	 *            The executable/script to run
 	 * @param workingDirectory
+	 *            The working directory to use for the process.
 	 * @param environment
+	 *            Environment variable map to use for the process.
 	 * @param arguments
+	 *            A List of String arguments to the command.
 	 * @return
 	 * @throws IOException
 	 * @throws CoreException
@@ -205,9 +209,14 @@ public abstract class ProcessUtil
 	}
 
 	/**
+	 * Launches the process and returns a handle to the active Process.
+	 * 
 	 * @param command
+	 *            The executable/script to run
 	 * @param workingDirectory
+	 *            The working directory to use for the process.
 	 * @param arguments
+	 *            A List of String arguments to the command.
 	 * @return
 	 * @throws IOException
 	 * @throws CoreException
@@ -222,8 +231,11 @@ public abstract class ProcessUtil
 	 * Launches the process and returns a handle to the active Process.
 	 * 
 	 * @param command
+	 *            The executable/script to run
 	 * @param workingDirectory
+	 *            The working directory to use for the process.
 	 * @param environment
+	 *            Environment variable map to use for the process.
 	 * @return
 	 * @throws IOException
 	 * @throws CoreException
@@ -241,6 +253,53 @@ public abstract class ProcessUtil
 			processBuilder.environment().putAll(environment);
 		}
 		return processBuilder.start();
+	}
+
+	public static int waitForProcess(Process process, final long timeout, boolean forceKillAfterTimeout)
+	{
+		final Thread waitingThread = Thread.currentThread();
+		Thread timeoutThread = new Thread()
+		{
+			public void run()
+			{
+				try
+				{
+					Thread.sleep(timeout);
+					waitingThread.interrupt();
+				}
+				catch (InterruptedException ignore)
+				{
+				}
+			}
+		};
+
+		int exitcode = 0;
+		if (timeout != -1)
+		{
+			try
+			{
+				timeoutThread.start();
+				exitcode = process.waitFor();
+				waitingThread.interrupt();
+			}
+			catch (InterruptedException e)
+			{
+				Thread.interrupted();
+			}
+			if (forceKillAfterTimeout)
+			{
+				process.destroy();
+			}
+		}
+		try
+		{
+			exitcode = process.waitFor();
+		}
+		catch (InterruptedException e)
+		{
+		}
+		return exitcode;
+
 	}
 
 }

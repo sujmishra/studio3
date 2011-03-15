@@ -47,7 +47,6 @@ import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.jface.resource.ImageDescriptor;
-import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.jface.viewers.CheckStateChangedEvent;
 import org.eclipse.jface.viewers.CheckboxTableViewer;
@@ -67,6 +66,8 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.ImageData;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
@@ -81,21 +82,24 @@ import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.ui.IWorkbenchPropertyPage;
 import org.eclipse.ui.actions.CloseResourceAction;
 import org.eclipse.ui.dialogs.PropertyPage;
+import org.eclipse.ui.internal.OverlayIcon;
 import org.eclipse.ui.internal.ide.IDEWorkbenchPlugin;
 import org.eclipse.ui.internal.progress.ProgressMonitorJobsDialog;
 import org.eclipse.ui.model.BaseWorkbenchContentProvider;
+import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.eclipse.ui.progress.UIJob;
 
+import com.aptana.core.util.ResourceUtil;
 import com.aptana.ui.epl.UIEplPlugin;
 
 @SuppressWarnings("restriction")
 public class ProjectNaturesPage extends PropertyPage implements IWorkbenchPropertyPage, ICheckStateListener,
 		SelectionListener
 {
-
-	private static final String APTANA_NATURE_PREFIX = "com.aptana."; //$NON-NLS-1$
-	private static final String RAILS_NATURE_PREFIX = "org.radrails.rails."; //$NON-NLS-1$
-	private static final Image APTANA_NATURE_IMAGE = UIEplPlugin.getImage("icons/aptana_nature.gif"); //$NON-NLS-1$;
+	private static final ImageDescriptor APTANA_NATURE_IMAGE = AbstractUIPlugin.imageDescriptorFromPlugin(
+			UIEplPlugin.PLUGIN_ID, "icons/aptana_nature.gif"); //$NON-NLS-1$;
+	private static final ImageDescriptor EMPTY_IMAGE = AbstractUIPlugin.imageDescriptorFromPlugin(
+			UIEplPlugin.PLUGIN_ID, "icons/transparent_16x16.png"); //$NON-NLS-1$;
 
 	private CheckboxTableViewer fTableViewer;
 	private MenuItem fSetPrimaryMenuItem;
@@ -126,7 +130,15 @@ public class ProjectNaturesPage extends PropertyPage implements IWorkbenchProper
 		fProject = (IProject) getElement().getAdapter(IResource.class);
 		try
 		{
-			fCurrentProjectNatures = fProject.getDescription().getNatureIds();
+			if (fProject.isOpen())
+			{
+				// Can only access decription if project exists and is open...
+				fCurrentProjectNatures = fProject.getDescription().getNatureIds();
+			}
+			else
+			{
+				fCurrentProjectNatures = new String[0];
+			}
 		}
 		catch (CoreException e)
 		{
@@ -147,6 +159,7 @@ public class ProjectNaturesPage extends PropertyPage implements IWorkbenchProper
 
 		fTableViewer = CheckboxTableViewer.newCheckList(tableComposite, SWT.TOP | SWT.BORDER);
 		Table table = fTableViewer.getTable();
+		table.setLinesVisible(true);
 		table.setLayoutData(GridDataFactory.fillDefaults().grab(true, true).create());
 
 		TableColumn column = new TableColumn(table, SWT.LEFT);
@@ -214,10 +227,7 @@ public class ProjectNaturesPage extends PropertyPage implements IWorkbenchProper
 				{
 					IProjectDescription description = fProject.getDescription();
 					description.setNatureIds(natureIds.toArray(new String[natureIds.size()]));
-					// Use IResource.AVOID_NATURE_CONFIG to avoid any warning about the natures.
-					// We have to use it since not all of the Natures that are defined in the system
-					// are valid and some are forced into the project in a non-standard way.
-					fProject.setDescription(description, IResource.AVOID_NATURE_CONFIG, monitor);
+					fProject.setDescription(description, monitor);
 				}
 				catch (CoreException e)
 				{
@@ -261,7 +271,8 @@ public class ProjectNaturesPage extends PropertyPage implements IWorkbenchProper
 		{
 			if (!event.getChecked() && isPrimary(event.getElement()))
 			{
-				// find the next available item which is checked and set it to the primary
+				// find the next available item which is checked and set it to
+				// the primary
 				if (checkedElements.length == 0)
 				{
 					fPrimaryNature = null;
@@ -334,7 +345,8 @@ public class ProjectNaturesPage extends PropertyPage implements IWorkbenchProper
 
 				public void run(final IProgressMonitor monitor) throws InvocationTargetException
 				{
-					// use the CloseResourceAction to provide a file saving dialog in case the project has some unsaved
+					// use the CloseResourceAction to provide a file saving
+					// dialog in case the project has some unsaved
 					// files
 					UIJob job = new UIJob(Messages.ProjectNaturesPage_CloseProjectJob_Title + "...") //$NON-NLS-1$
 					{
@@ -436,21 +448,24 @@ public class ProjectNaturesPage extends PropertyPage implements IWorkbenchProper
 					natureId = descriptor.getNatureId();
 					if (natureId != null)
 					{
-						if (isAptanaNature(natureId))
+						if (ResourceUtil.isAptanaNature(natureId))
 						{
 							elements.add(natureId);
 							fNatureDescriptions.put(natureId, descriptor.getLabel());
 						}
 					}
 				}
-				// add any natures that exist in the project but not in the workbench
-				// (this could happen when importing a project from a different workspace or when the nature provider
+				// add any natures that exist in the project but not in the
+				// workbench
+				// (this could happen when importing a project from a different
+				// workspace or when the nature provider
 				// got uninstalled)
 				for (String nature : fCurrentProjectNatures)
 				{
 					if (elements.add(nature))
 					{
-						// since we don't have the nature descriptor here, just use the nature id for the value instead
+						// since we don't have the nature descriptor here, just
+						// use the nature id for the value instead
 						fNatureDescriptions.put(nature, nature);
 					}
 				}
@@ -472,11 +487,11 @@ public class ProjectNaturesPage extends PropertyPage implements IWorkbenchProper
 			public int compare(String o1, String o2)
 			{
 				// set Aptana natures ahead of others
-				if (isAptanaNature(o1))
+				if (ResourceUtil.isAptanaNature(o1))
 				{
-					return isAptanaNature(o2) ? o1.compareTo(o2) : -1;
+					return ResourceUtil.isAptanaNature(o2) ? o1.compareTo(o2) : -1;
 				}
-				return isAptanaNature(o2) ? 1 : o1.compareTo(o2);
+				return ResourceUtil.isAptanaNature(o2) ? 1 : o1.compareTo(o2);
 			}
 		});
 	}
@@ -501,14 +516,11 @@ public class ProjectNaturesPage extends PropertyPage implements IWorkbenchProper
 
 	private boolean isPrimaryNatureModified()
 	{
-		return (fInitialPrimaryNature == null && fPrimaryNature != null)
-				|| !fInitialPrimaryNature.equals(fPrimaryNature);
-	}
-
-	private static boolean isAptanaNature(String natureId)
-	{
-		return natureId != null
-				&& (natureId.startsWith(APTANA_NATURE_PREFIX) || natureId.startsWith(RAILS_NATURE_PREFIX));
+		if (fInitialPrimaryNature == null)
+		{		
+			return fPrimaryNature != null;
+		}
+		return !fInitialPrimaryNature.equals(fPrimaryNature);
 	}
 
 	private class NaturesLabelProvider extends LabelProvider implements IFontProvider
@@ -532,19 +544,31 @@ public class ProjectNaturesPage extends PropertyPage implements IWorkbenchProper
 		@Override
 		public Image getImage(Object element)
 		{
+
 			String nature = element.toString();
-			try {
-				ImageRegistry reg = UIEplPlugin.getDefault().getImageRegistry();
-				if (reg.get(nature) == null)
+			OverlayIcon oi = null;
+			ImageData id = EMPTY_IMAGE.getImageData();
+
+			try
+			{
+				ImageDescriptor d = IDEWorkbenchPlugin.getDefault().getProjectImageRegistry()
+						.getNatureImage(element.toString());
+				oi = new CenterIcon(EMPTY_IMAGE, d, new Point(id.width, id.height));
+			}
+			catch (Exception e)
+			{
+				oi = new CenterIcon(EMPTY_IMAGE, APTANA_NATURE_IMAGE, new Point(id.width, id.height));
+			}
+
+			if (UIEplPlugin.getDefault().getImageRegistry().get(nature) == null)
+			{
+				if (oi != null)
 				{
-					ImageDescriptor d = IDEWorkbenchPlugin.getDefault().getProjectImageRegistry().getNatureImage(element.toString());
-					reg.put(nature, d);
+					UIEplPlugin.getDefault().getImageRegistry().put(nature, oi.createImage());
 				}
-				return reg.get(nature);
 			}
-			catch(Exception e) {
-				return isAptanaNature(element.toString()) ? APTANA_NATURE_IMAGE : null;				
-			}
+			return UIEplPlugin.getDefault().getImageRegistry().get(nature);
+
 		}
 
 		public Font getFont(Object element)
@@ -552,5 +576,28 @@ public class ProjectNaturesPage extends PropertyPage implements IWorkbenchProper
 			// make the primary nature bold
 			return isPrimary(element) ? JFaceResources.getFontRegistry().getBold(JFaceResources.DIALOG_FONT) : null;
 		}
+	}
+
+	public class CenterIcon extends OverlayIcon
+	{
+		public CenterIcon(ImageDescriptor base, ImageDescriptor overlay, Point size)
+		{
+			super(base, overlay, size);
+		}
+
+		protected void drawTopRight(ImageDescriptor overlay)
+		{
+			if (overlay == null)
+			{
+				return;
+			}
+			int x = getSize().x / 2;
+			int y = getSize().y / 2;
+			ImageData id = overlay.getImageData();
+			x -= id.width / 2;
+			y -= id.height / 2;
+			drawImage(id, x, y);
+		}
+
 	}
 }

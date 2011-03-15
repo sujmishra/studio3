@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.4"?>
 <plugin>
+   <extension-point id="com.aptana.editor.js.typeMaps" name="typeMaps" schema="schema/typeMaps.exsd"/>
    <extension
          point="org.eclipse.ui.editors">
       <editor
@@ -32,6 +33,13 @@
             name="%content-type.sdocml.name"
             priority="normal">
       </content-type>
+      <content-type
+            base-type="com.aptana.contenttype.json"
+            file-extensions="jsca"
+            id="com.aptana.contenttype.jsca"
+            name="%jsca.content-type.name"
+            priority="normal">
+      </content-type>
    </extension>
    <extension
          point="org.eclipse.core.runtime.preferences">
@@ -53,6 +61,12 @@
                contentTypeId="com.aptana.contenttype.sdocml">
          </contentTypeBinding>
       </fileIndexingParticipant>
+      <fileIndexingParticipant
+            class="com.aptana.editor.js.contentassist.index.JSCAFileIndexingParticipant">
+         <contentTypeBinding
+               contentTypeId="com.aptana.contenttype.jsca">
+         </contentTypeBinding>
+      </fileIndexingParticipant>
    </extension>
    <extension
          point="com.aptana.parsing.parser">
@@ -61,6 +75,75 @@
             content-type="com.aptana.contenttype.js"
             language="text/javascript">
       </parser>
+   </extension>
+   <extension
+         point="com.aptana.editor.common.validator">
+      <language
+            name="%validator.language.js.name"
+            type="text/javascript">
+      </language>
+      <validator
+            class="com.aptana.editor.js.validator.MozillaJsValidator"
+            language="text/javascript"
+            name="%validator.mozilla.name">
+      </validator>
+      <validator
+            class="com.aptana.editor.js.validator.JSLintValidator"
+            language="text/javascript"
+            name="%validator.jslint.name">
+      </validator>
+   </extension>
+   <extension
+         point="org.eclipse.ui.menus">
+      <menuContribution
+            allPopups="false"
+            locationURI="popup:#AbstractTextEditorContext?after=additions">
+         <command
+               commandId="com.aptana.editor.js.quick_outline"
+               style="push">
+         </command>
+      </menuContribution>
+   </extension>
+   <extension
+         point="org.eclipse.ui.commands">
+      <command
+            defaultHandler="com.aptana.editor.js.outline.QuickOutlineHandler"
+            id="com.aptana.editor.js.quick_outline"
+            name="Quick Outline">
+      </command>
+   </extension>
+   <extension
+         point="org.eclipse.ui.bindings">
+      <key
+            commandId="com.aptana.editor.js.quick_outline"
+            contextId="com.aptana.editor.context"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+            sequence="M1+O">
+      </key>
+   </extension>
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            category="com.aptana.editor.common.preferences.EditorsPreferencePage"
+            class="com.aptana.editor.js.preferences.JSPreferencePage"
+            id="com.aptana.editor.js.preferences.JSPreferencePage"
+            name="JavaScript">
+      </page>
+   </extension>
+   <extension
+         point="org.eclipse.core.filebuffers.annotationModelCreation">
+      <factory
+            class="com.aptana.editor.common.ExternalFileAnnotationModelFactory"
+            contentTypeId="com.aptana.contenttype.js">
+      </factory>
+   </extension>
+   <extension
+         point="com.aptana.editor.js.typeMaps">
+      <typeMap
+            destinationType="Function&lt;jQuery&gt;:jQuery"
+            name="jQuery Map"
+            sourceType="jQuery">
+      </typeMap>
    </extension>
 
 </plugin>

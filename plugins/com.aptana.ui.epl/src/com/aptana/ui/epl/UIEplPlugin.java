@@ -1,18 +1,21 @@
 /**
- * Copyright (c) 2005-2010 Aptana, Inc.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html. If redistributing this code,
- * this entire header must remain intact.
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the Eclipse Public License (EPL).
+ * Please see the license-epl.html included with this distribution for details.
+ * Any modifications to this file must keep this entire header intact.
  */
 package com.aptana.ui.epl;
 
+import java.net.URL;
+
+import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
@@ -30,6 +33,10 @@ public class UIEplPlugin extends AbstractUIPlugin
 
 	// The shared instance
 	private static UIEplPlugin plugin;
+
+	public final static String ICON_PATH = "$nl$/icons/"; //$NON-NLS-1$
+	public final static String IMG_TOOL_CLOSE = "close.gif"; //$NON-NLS-1$
+	public final static String IMG_TOOL_CLOSE_HOT = "close_hot.gif"; //$NON-NLS-1$
 
 	/**
 	 * The constructor
@@ -66,6 +73,26 @@ public class UIEplPlugin extends AbstractUIPlugin
 		return plugin;
 	}
 
+	public static void log(Throwable e)
+	{
+		log(new Status(IStatus.ERROR, PLUGIN_ID, IStatus.ERROR, e.getLocalizedMessage(), e));
+	}
+
+	public static void log(String msg)
+	{
+		log(new Status(IStatus.INFO, PLUGIN_ID, IStatus.OK, msg, null));
+	}
+
+	public static void log(String msg, Throwable e)
+	{
+		log(new Status(IStatus.INFO, PLUGIN_ID, IStatus.OK, msg, e));
+	}
+
+	public static void log(IStatus status)
+	{
+		getDefault().getLog().log(status);
+	}
+
 	public static void logError(String msg, Throwable e)
 	{
 		getDefault().getLog().log(new Status(IStatus.ERROR, PLUGIN_ID, msg, e));
@@ -83,4 +110,22 @@ public class UIEplPlugin extends AbstractUIPlugin
 		}
 		return getDefault().getImageRegistry().get(string);
 	}
+
+	protected void initializeImageRegistry(ImageRegistry reg)
+	{
+		createImageDescriptor(IMG_TOOL_CLOSE, reg);
+		createImageDescriptor(IMG_TOOL_CLOSE_HOT, reg);
+
+	}
+
+	/**
+	 * Creates the specified image descriptor and registers it
+	 */
+	private void createImageDescriptor(String id, ImageRegistry reg)
+	{
+		URL url = FileLocator.find(getBundle(), new Path(ICON_PATH).append(id), null);
+		ImageDescriptor desc = ImageDescriptor.createFromURL(url);
+		reg.put(id, desc);
+	}
+
 }

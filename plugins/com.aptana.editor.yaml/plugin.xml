@@ -26,5 +26,22 @@
             priority="normal">
       </content-type>
    </extension>
+   <extension
+         point="com.aptana.parsing.parser">
+      <parser
+            class="com.aptana.editor.yaml.parsing.YAMLParser"
+            content-type="com.aptana.contenttype.yml"
+            language="text/yaml">
+      </parser>
+   </extension>
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            category="com.aptana.editor.common.preferences.EditorsPreferencePage"
+            class="com.aptana.editor.yaml.preferences.YAMLPreferencePage"
+            id="com.aptana.editor.yaml.preferences.YamlPreferencePage"
+            name="YAML">
+      </page>
+   </extension>
 
 </plugin>

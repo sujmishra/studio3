@@ -20,7 +20,7 @@ import com.aptana.editor.common.ICommonConstants;
 import com.aptana.editor.common.scripting.IContentTypeTranslator;
 import com.aptana.editor.common.scripting.QualifiedContentType;
 import com.aptana.editor.common.scripting.commands.TextEditorUtils;
-import com.aptana.ui.UIUtils;
+import com.aptana.ui.util.UIUtils;
 
 public class DocumentScopeManagerTest extends TestCase
 {
@@ -94,19 +94,64 @@ public class DocumentScopeManagerTest extends TestCase
 		try
 		{
 			IWorkbenchPage page = UIUtils.getActivePage();
-			file = File.createTempFile("testing", ".rb");
+			file = File.createTempFile("testing", ".js");
 			FileWriter writer = new FileWriter(file);
-			writer.write("require 'something'\n\ndef method_name\n  @var = 1\nend\n");
+			writer.write("if(Object.isUndefined(Effect))\nthrow(\"dragdrop.js requires including script.aculo.us' effects.js library\");");
 			writer.close();
 
 			IEditorPart part = IDE.openEditorOnFileStore(page, EFS.getLocalFileSystem().fromLocalFile(file));
 			editor = (ITextEditor) part;
 			ISourceViewer viewer = TextEditorUtils.getSourceViewer(editor);
 
-			assertEquals("source.ruby.rails keyword.control.def.ruby", CommonEditorPlugin.getDefault()
-					.getDocumentScopeManager().getScopeAtOffset(viewer, 22));
-			assertEquals("source.ruby.rails variable.other.readwrite.instance.ruby", CommonEditorPlugin.getDefault()
-					.getDocumentScopeManager().getScopeAtOffset(viewer, 41));
+			assertEquals("source.js keyword.control.js", CommonEditorPlugin.getDefault().getDocumentScopeManager()
+					.getScopeAtOffset(viewer, 1));
+			assertEquals("source.js support.class.js", CommonEditorPlugin.getDefault().getDocumentScopeManager()
+					.getScopeAtOffset(viewer, 7));
+		}
+		finally
+		{
+			if (editor != null)
+			{
+				editor.close(false);
+			}
+			if (file != null)
+			{
+				if (!file.delete())
+				{
+					file.deleteOnExit();
+				}
+			}
+		}
+	}
+	
+	public void testOffByOneBug() throws Exception
+	{
+		ITextEditor editor = null;
+		File file = null;
+		try
+		{
+			IWorkbenchPage page = UIUtils.getActivePage();
+			file = File.createTempFile("testing", ".html");
+			FileWriter writer = new FileWriter(file);
+			writer.write("<html>\n  <head>\n" +
+					"    <style type=\"text/css\">\n" +
+					"    h1 { color: #f00; }\n" +
+					"  </style>\n" +
+					"</head>\n" +
+					"<body>\n" +
+					"</html>");
+			writer.close();
+
+			IEditorPart part = IDE.openEditorOnFileStore(page, EFS.getLocalFileSystem().fromLocalFile(file));
+			editor = (ITextEditor) part;
+			ISourceViewer viewer = TextEditorUtils.getSourceViewer(editor);
+
+			assertEquals("text.html.basic meta.tag.block.any.html string.quoted.double.html", CommonEditorPlugin.getDefault().getDocumentScopeManager()
+					.getScopeAtOffset(viewer, 32));
+			assertEquals("text.html.basic meta.tag.block.any.html string.quoted.double.html", CommonEditorPlugin.getDefault().getDocumentScopeManager()
+					.getScopeAtOffset(viewer, 41));
+			assertEquals("text.html.basic meta.tag.block.any.html punctuation.definition.tag.end.html", CommonEditorPlugin.getDefault().getDocumentScopeManager()
+					.getScopeAtOffset(viewer, 42));
 		}
 		finally
 		{
@@ -136,17 +181,21 @@ public class DocumentScopeManagerTest extends TestCase
 		try
 		{
 			IWorkbenchPage page = UIUtils.getActivePage();
-			file = File.createTempFile("testing", ".rb");
+			file = File.createTempFile("testing", ".js");
 			FileWriter writer = new FileWriter(file);
-			writer.write("require 'something'\n\ndef method_name\n  @var = 1\nend\n");
+			writer.write("if(Object.isUndefined(Effect))\nthrow(\"dragdrop.js requires including script.aculo.us' effects.js library\");");
 			writer.close();
 
 			IEditorPart part = IDE.openEditorOnFileStore(page, EFS.getLocalFileSystem().fromLocalFile(file));
 			editor = (ITextEditor) part;
 			ISourceViewer viewer = TextEditorUtils.getSourceViewer(editor);
 
-			assertEquals("source.ruby.rails string.quoted.single.ruby", CommonEditorPlugin.getDefault()
-					.getDocumentScopeManager().getScopeAtOffset(viewer.getDocument(), 12));
+			assertEquals("source.js",
+					CommonEditorPlugin.getDefault().getDocumentScopeManager().getScopeAtOffset(viewer.getDocument(), 1));
+			assertEquals("source.js",
+					CommonEditorPlugin.getDefault().getDocumentScopeManager().getScopeAtOffset(viewer.getDocument(), 7));
+			assertEquals("source.js string.quoted.double.js", CommonEditorPlugin.getDefault()
+					.getDocumentScopeManager().getScopeAtOffset(viewer.getDocument(), 50));
 		}
 		finally
 		{

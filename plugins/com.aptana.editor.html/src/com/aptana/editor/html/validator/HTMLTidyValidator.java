@@ -1,35 +1,8 @@
 /**
- * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
- * dual-licensed under both the Aptana Public License and the GNU General
- * Public license. You may elect to use one or the other of these licenses.
- * 
- * This program is distributed in the hope that it will be useful, but
- * AS-IS and WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE, TITLE, or
- * NONINFRINGEMENT. Redistribution, except as permitted by whichever of
- * the GPL or APL you select, is prohibited.
- *
- * 1. For the GPL license (GPL), you can redistribute and/or modify this
- * program under the terms of the GNU General Public License,
- * Version 3, as published by the Free Software Foundation.  You should
- * have received a copy of the GNU General Public License, Version 3 along
- * with this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Aptana provides a special exception to allow redistribution of this file
- * with certain other free and open source software ("FOSS") code and certain additional terms
- * pursuant to Section 7 of the GPL. You may view the exception and these
- * terms on the web at http://www.aptana.com/legal/gpl/.
- * 
- * 2. For the Aptana Public License (APL), this program and the
- * accompanying materials are made available under the terms of the APL
- * v1.0 which accompanies this distribution, and is available at
- * http://www.aptana.com/legal/apl/.
- * 
- * You may view the GPL, Aptana's exception and additional terms, and the
- * APL in the file titled license.html at the root of the corresponding
- * plugin containing this source file.
- * 
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the GNU Public License (GPL) v3 (with exceptions).
+ * Please see the license.html included with this distribution for details.
  * Any modifications to this file must keep this entire header intact.
  */
 package com.aptana.editor.html.validator;
@@ -52,7 +25,7 @@ import com.aptana.core.util.StringUtil;
 import com.aptana.editor.common.validator.IValidationItem;
 import com.aptana.editor.common.validator.IValidationManager;
 import com.aptana.editor.common.validator.IValidator;
-import com.aptana.editor.html.Activator;
+import com.aptana.editor.html.HTMLPlugin;
 import com.aptana.editor.html.parsing.IHTMLParserConstants;
 
 public class HTMLTidyValidator implements IValidator
@@ -60,6 +33,12 @@ public class HTMLTidyValidator implements IValidator
 
 	private static final Pattern PATTERN = Pattern
 			.compile("\\s*line\\s+(\\d+)\\s*column\\s+(\\d+)\\s*-\\s*(Warning|Error):\\s*(.+)$"); //$NON-NLS-1$
+
+	@SuppressWarnings("nls")
+	private static final String[] HTML5_ELEMENTS = { "article>", "aside>", "audio>", "canvas>", "command>",
+			"datalist>", "details>", "embed>", "figcaption>", "figure>", "footer>", "header>", "hgroup>", "keygen>",
+			"mark>", "meter>", "nav>", "output>", "progress>", "rp>", "rt>", "ruby>", "section>", "source>",
+			"summary>", "time>", "video>", "wbr>" };
 
 	public List<IValidationItem> validate(String source, URI path, IValidationManager manager)
 	{
@@ -84,7 +63,7 @@ public class HTMLTidyValidator implements IValidator
 		}
 		catch (Exception e)
 		{
-			Activator.logError(Messages.HTMLTidyValidator_ERR_ParseErrors, e);
+			HTMLPlugin.logError(Messages.HTMLTidyValidator_ERR_ParseErrors, e);
 		}
 		finally
 		{
@@ -115,7 +94,7 @@ public class HTMLTidyValidator implements IValidator
 		}
 		catch (Exception e)
 		{
-			Activator.logError(Messages.HTMLTidyValidator_ERR_Tidy, e);
+			HTMLPlugin.logError(Messages.HTMLTidyValidator_ERR_Tidy, e);
 		}
 		out.flush();
 
@@ -133,7 +112,8 @@ public class HTMLTidyValidator implements IValidator
 			String type = matcher.group(3);
 			String message = patchMessage(matcher.group(4));
 
-			if (message != null && !manager.isIgnored(message, IHTMLParserConstants.LANGUAGE))
+			if (message != null && !manager.isIgnored(message, IHTMLParserConstants.LANGUAGE)
+					&& !containsHTML5Element(message))
 			{
 				if (type.startsWith("Error")) //$NON-NLS-1$
 				{
@@ -157,5 +137,17 @@ public class HTMLTidyValidator implements IValidator
 		message = message.replaceFirst("inserting", "should insert"); //$NON-NLS-1$ //$NON-NLS-2$
 		message = message.replaceFirst("trimming", "should trim"); //$NON-NLS-1$ //$NON-NLS-2$
 		return message;
+	}
+
+	private static boolean containsHTML5Element(String message)
+	{
+		for (String element : HTML5_ELEMENTS)
+		{
+			if (message.indexOf(element) > -1)
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 }

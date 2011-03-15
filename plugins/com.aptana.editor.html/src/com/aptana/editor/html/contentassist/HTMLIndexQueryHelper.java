@@ -1,67 +1,77 @@
 /**
- * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
- * dual-licensed under both the Aptana Public License and the GNU General
- * Public license. You may elect to use one or the other of these licenses.
- * 
- * This program is distributed in the hope that it will be useful, but
- * AS-IS and WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE, TITLE, or
- * NONINFRINGEMENT. Redistribution, except as permitted by whichever of
- * the GPL or APL you select, is prohibited.
- *
- * 1. For the GPL license (GPL), you can redistribute and/or modify this
- * program under the terms of the GNU General Public License,
- * Version 3, as published by the Free Software Foundation.  You should
- * have received a copy of the GNU General Public License, Version 3 along
- * with this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Aptana provides a special exception to allow redistribution of this file
- * with certain other free and open source software ("FOSS") code and certain additional terms
- * pursuant to Section 7 of the GPL. You may view the exception and these
- * terms on the web at http://www.aptana.com/legal/gpl/.
- * 
- * 2. For the Aptana Public License (APL), this program and the
- * accompanying materials are made available under the terms of the APL
- * v1.0 which accompanies this distribution, and is available at
- * http://www.aptana.com/legal/apl/.
- * 
- * You may view the GPL, Aptana's exception and additional terms, and the
- * APL in the file titled license.html at the root of the corresponding
- * plugin containing this source file.
- * 
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the GNU Public License (GPL) v3 (with exceptions).
+ * Please see the license.html included with this distribution for details.
  * Any modifications to this file must keep this entire header intact.
  */
 package com.aptana.editor.html.contentassist;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.core.runtime.FileLocator;
-import org.eclipse.core.runtime.Path;
-
+import com.aptana.core.util.StringUtil;
 import com.aptana.editor.css.contentassist.index.CSSIndexConstants;
-import com.aptana.editor.html.Activator;
+import com.aptana.editor.html.HTMLPlugin;
+import com.aptana.editor.html.contentassist.index.HTMLIndexConstants;
 import com.aptana.editor.html.contentassist.index.HTMLIndexReader;
-import com.aptana.editor.html.contentassist.index.HTMLMetadataReader;
 import com.aptana.editor.html.contentassist.model.AttributeElement;
 import com.aptana.editor.html.contentassist.model.ElementElement;
 import com.aptana.editor.html.contentassist.model.EntityElement;
+import com.aptana.editor.html.contentassist.model.EventElement;
 import com.aptana.index.core.Index;
+import com.aptana.index.core.IndexManager;
 
 public class HTMLIndexQueryHelper
 {
+	/**
+	 * getIndex
+	 * 
+	 * @return
+	 */
+	public static Index getIndex()
+	{
+		return IndexManager.getInstance().getIndex(URI.create(HTMLIndexConstants.METADATA_INDEX_LOCATION));
+	}
+
 	private HTMLIndexReader _reader;
-	private HTMLMetadataReader _metadata;
 
 	/**
 	 * HTMLContentAssistHelper
 	 */
 	public HTMLIndexQueryHelper()
 	{
+		this._reader = new HTMLIndexReader();
+	}
+
+	/**
+	 * getAttribute
+	 * 
+	 * @param name
+	 * @return
+	 */
+	private List<AttributeElement> getAttribute(String name)
+	{
+		List<AttributeElement> result = Collections.emptyList();
+
+		if (name != null && name.length() > 0)
+		{
+			try
+			{
+				result = this._reader.getAttribute(getIndex(), name);
+			}
+			catch (IOException e)
+			{
+				HTMLPlugin.logError(e.getMessage(), e);
+			}
+		}
+
+		return result;
 	}
 
 	/**
@@ -74,29 +84,26 @@ public class HTMLIndexQueryHelper
 	{
 		AttributeElement result = null;
 
-		if (elementName != null && elementName.length() > 0 && attributeName != null && attributeName.length() > 0)
+		if (elementName != null && elementName.length() > 0)
 		{
 			AttributeElement defaultAttribute = null;
 			AttributeElement candidateAttribute = null;
 
 			// TODO: optimize with a name->attribute hash
-			for (AttributeElement attribute : this.getAttributes())
+			for (AttributeElement attribute : this.getAttribute(attributeName))
 			{
-				if (attributeName.equals(attribute.getName()))
-				{
-					String elementRef = attribute.getElement();
+				String elementRef = attribute.getElement();
 
-					if (elementRef != null && elementRef.length() > 0)
+				if (elementRef != null && elementRef.length() > 0)
+				{
+					if (elementName.equals(elementRef))
 					{
-						if (elementName.equals(elementRef))
-						{
-							candidateAttribute = attribute;
-						}
+						candidateAttribute = attribute;
 					}
-					else
-					{
-						defaultAttribute = attribute;
-					}
+				}
+				else
+				{
+					defaultAttribute = attribute;
 				}
 			}
 
@@ -116,11 +123,79 @@ public class HTMLIndexQueryHelper
 	/**
 	 * getAttributes
 	 * 
+	 * @param element
 	 * @return
 	 */
-	public List<AttributeElement> getAttributes()
+	public List<AttributeElement> getAttributes(ElementElement element)
 	{
-		return this.getMetadata().getAttributes();
+		List<AttributeElement> result = Collections.emptyList();
+
+		if (element != null)
+		{
+			List<AttributeElement> attributes = null;
+
+			try
+			{
+				attributes = this._reader.getAttributes(getIndex(), element.getAttributes());
+			}
+			catch (IOException e)
+			{
+				HTMLPlugin.logError(e.getMessage(), e);
+			}
+
+			if (attributes != null && attributes.isEmpty() == false)
+			{
+				String elementName = element.getName();
+				Map<String, AttributeElement> attributeMap = new HashMap<String, AttributeElement>();
+
+				// filter attribute list
+				for (AttributeElement attribute : attributes)
+				{
+					// grab the current attribute's name and any element to which it is bound
+					String attributeName = attribute.getName();
+					String owningElement = attribute.getElement();
+
+					// a null or empty owning element name means this attribute is good for any element, otherwise, we
+					// only want this attribute if it is specifically for this element
+					boolean validAttribute = (owningElement == null || owningElement.length() == 0 || owningElement.equals(elementName));
+
+					if (validAttribute)
+					{
+						// see if we already have an attribute with this name
+						AttributeElement previousAttribute = attributeMap.get(attributeName);
+
+						if (previousAttribute == null)
+						{
+							// no other attribute with this name, so use this one
+							attributeMap.put(attributeName, attribute);
+						}
+						else
+						{
+							boolean currentHasElement = StringUtil.isEmpty(owningElement) == false;
+							boolean previousHasElement = StringUtil.isEmpty(previousAttribute.getName()) == false;
+
+							// xnor element names
+							if ((currentHasElement && previousHasElement) || (!currentHasElement && !previousHasElement))
+							{
+								// either duplicate entry for this element, or dupe for any element
+								// last definition wins
+								attributeMap.put(attributeName, attribute);
+							}
+							else if (currentHasElement)
+							{
+								// element-specific attribute wins over general case
+								attributeMap.put(attributeName, attribute);
+							}
+							// else the one in the map is already more specific
+						}
+					}
+				}
+
+				result = new ArrayList<AttributeElement>(attributeMap.values());
+			}
+		}
+
+		return result;
 	}
 
 	/**
@@ -130,7 +205,7 @@ public class HTMLIndexQueryHelper
 	 */
 	public Map<String, String> getClasses(Index index)
 	{
-		return this.getReader().getValues(index, CSSIndexConstants.CLASS);
+		return this._reader.getValues(index, CSSIndexConstants.CLASS);
 	}
 
 	/**
@@ -145,14 +220,18 @@ public class HTMLIndexQueryHelper
 
 		if (name != null && name.length() > 0)
 		{
-			// TODO: optimize with a name->element hash
-			for (ElementElement element : this.getElements())
+			try
 			{
-				if (name.equals(element.getName()))
+				List<ElementElement> elements = this._reader.getElements(getIndex(), name);
+
+				if (elements.isEmpty() == false)
 				{
-					result = element;
-					break;
+					result = elements.get(0);
 				}
+			}
+			catch (IOException e)
+			{
+				HTMLPlugin.logError(e.getMessage(), e);
 			}
 		}
 
@@ -166,7 +245,18 @@ public class HTMLIndexQueryHelper
 	 */
 	public List<ElementElement> getElements()
 	{
-		return this.getMetadata().getElements();
+		List<ElementElement> result = Collections.emptyList();
+
+		try
+		{
+			result = this._reader.getElements(getIndex());
+		}
+		catch (IOException e)
+		{
+			HTMLPlugin.logError(e.getMessage(), e);
+		}
+
+		return result;
 	}
 
 	/**
@@ -176,7 +266,45 @@ public class HTMLIndexQueryHelper
 	 */
 	public List<EntityElement> getEntities()
 	{
-		return this.getMetadata().getEntities();
+		List<EntityElement> result = Collections.emptyList();
+
+		try
+		{
+			result = this._reader.getEntities(getIndex());
+		}
+		catch (IOException e)
+		{
+			HTMLPlugin.logError(e.getMessage(), e);
+		}
+
+		return result;
+	}
+
+	/**
+	 * getEvents
+	 * 
+	 * @param element
+	 * @return
+	 */
+	public List<EventElement> getEvents(ElementElement element)
+	{
+		List<EventElement> result = Collections.emptyList();
+
+		if (element != null)
+		{
+			List<String> names = element.getEvents();
+
+			try
+			{
+				result = this._reader.getEvents(getIndex(), names);
+			}
+			catch (IOException e)
+			{
+				HTMLPlugin.logError(e.getMessage(), e);
+			}
+		}
+
+		return result;
 	}
 
 	/**
@@ -187,81 +315,6 @@ public class HTMLIndexQueryHelper
 	 */
 	public Map<String, String> getIDs(Index index)
 	{
-		return this.getReader().getValues(index, CSSIndexConstants.IDENTIFIER);
-	}
-
-	/**
-	 * getMetadata
-	 * 
-	 * @return
-	 */
-	private HTMLMetadataReader getMetadata()
-	{
-		if (this._metadata == null)
-		{
-			this._metadata = new HTMLMetadataReader();
-			String[] resources = this.getMetadataResources();
-
-			for (String resource : resources)
-			{
-				URL url = FileLocator.find(Activator.getDefault().getBundle(), new Path(resource), null);
-
-				if (url != null)
-				{
-					InputStream stream = null;
-
-					try
-					{
-						stream = url.openStream();
-
-						this._metadata.loadXML(stream);
-					}
-					catch (Throwable t)
-					{
-						Activator.logError(Messages.HTMLIndexQueryHelper_Error_Loading_Metadata + ": " + resource, t); //$NON-NLS-1$
-					}
-					finally
-					{
-						if (stream != null)
-						{
-							try
-							{
-								stream.close();
-							}
-							catch (IOException e)
-							{
-							}
-						}
-					}
-				}
-			}
-		}
-
-		return this._metadata;
-	}
-
-	/**
-	 * getMetadataResources
-	 * 
-	 * @return
-	 */
-	protected String[] getMetadataResources()
-	{
-		return new String[] { "/metadata/html_metadata.xml" }; //$NON-NLS-1$
-	}
-
-	/**
-	 * getReader
-	 * 
-	 * @return
-	 */
-	protected HTMLIndexReader getReader()
-	{
-		if (this._reader == null)
-		{
-			this._reader = new HTMLIndexReader();
-		}
-
-		return this._reader;
+		return this._reader.getValues(index, CSSIndexConstants.IDENTIFIER);
 	}
 }

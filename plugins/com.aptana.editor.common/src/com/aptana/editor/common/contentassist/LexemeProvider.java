@@ -1,35 +1,8 @@
 /**
- * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
- * dual-licensed under both the Aptana Public License and the GNU General
- * Public license. You may elect to use one or the other of these licenses.
- * 
- * This program is distributed in the hope that it will be useful, but
- * AS-IS and WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE, TITLE, or
- * NONINFRINGEMENT. Redistribution, except as permitted by whichever of
- * the GPL or APL you select, is prohibited.
- *
- * 1. For the GPL license (GPL), you can redistribute and/or modify this
- * program under the terms of the GNU General Public License,
- * Version 3, as published by the Free Software Foundation.  You should
- * have received a copy of the GNU General Public License, Version 3 along
- * with this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Aptana provides a special exception to allow redistribution of this file
- * with certain other free and open source software ("FOSS") code and certain additional terms
- * pursuant to Section 7 of the GPL. You may view the exception and these
- * terms on the web at http://www.aptana.com/legal/gpl/.
- * 
- * 2. For the Aptana Public License (APL), this program and the
- * accompanying materials are made available under the terms of the APL
- * v1.0 which accompanies this distribution, and is available at
- * http://www.aptana.com/legal/apl/.
- * 
- * You may view the GPL, Aptana's exception and additional terms, and the
- * APL in the file titled license.html at the root of the corresponding
- * plugin containing this source file.
- * 
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the GNU Public License (GPL) v3 (with exceptions).
+ * Please see the license.html included with this distribution for details.
  * Any modifications to this file must keep this entire header intact.
  */
 package com.aptana.editor.common.contentassist;
@@ -59,30 +32,48 @@ public abstract class LexemeProvider<T extends ITypePredicate> implements Iterab
 	private List<Lexeme<T>> _lexemes;
 
 	/**
-	 * Convert the partition that contains the given offset into a list of
-	 * lexemes.
+	 * Convert the partition that contains the given offset into a list of lexemes.
 	 * 
 	 * @param document
 	 * @param offset
+	 * @param scanner
 	 */
 	public LexemeProvider(IDocument document, int offset, ITokenScanner scanner)
 	{
-		int length = 0;
-		
+		this(document, offset, offset, scanner);
+	}
+
+	/**
+	 * Convert the partition that contains the given offset into a list of lexemes. If the includeOffset is not within
+	 * the partition found at offset, then the range is extended to include it
+	 * 
+	 * @param document
+	 * @param offset
+	 * @param includeOffset
+	 * @param scanner
+	 */
+	public LexemeProvider(IDocument document, int offset, int includeOffset, ITokenScanner scanner)
+	{
+		int start = offset;
+		int end = offset;
+
 		try
 		{
 			ITypedRegion partition = document.getPartition(offset);
-			
-			offset = partition.getOffset();
-			length = partition.getLength();
+
+			start = partition.getOffset();
+			end = start + partition.getLength();
+
+			start = Math.min(start, includeOffset);
+			end = Math.min(Math.max(end, includeOffset), document.getLength());
 		}
 		catch (BadLocationException e)
 		{
 		}
-		
-		this.createLexemeList(document, offset, length, scanner);
+
+		this.createLexemeList(document, start, end - start, scanner);
 	}
-	
+
 	/**
 	 * Convert the specified range of text into a list of lexemes
 	 * 
@@ -97,9 +88,8 @@ public abstract class LexemeProvider<T extends ITypePredicate> implements Iterab
 	}
 
 	/**
-	 * Add the specified lexeme to the lexeme provider's list. Subclasses can
-	 * use override this method to filter which type of lexemes should be added
-	 * to the list
+	 * Add the specified lexeme to the lexeme provider's list. Subclasses can use override this method to filter which
+	 * type of lexemes should be added to the list
 	 * 
 	 * @param lexeme
 	 */
@@ -107,7 +97,7 @@ public abstract class LexemeProvider<T extends ITypePredicate> implements Iterab
 	{
 		this._lexemes.add(lexeme);
 	}
-	
+
 	/**
 	 * createLexemeList
 	 */
@@ -176,10 +166,12 @@ public abstract class LexemeProvider<T extends ITypePredicate> implements Iterab
 	}
 
 	/**
-	 * getCeilingLexeme
+	 * Gets the lexeme at the specified offset. If it is a whitespace character it will return the next (higher) lexeme
+	 * if one exists. If not found it will return null.
 	 * 
 	 * @param offset
-	 * @return
+	 * @return Returns the lexeme at the given offset or the lexeme immediately following the offset if none exists at
+	 *         the given offset
 	 */
 	public Lexeme<T> getCeilingLexeme(int offset)
 	{
@@ -189,20 +181,22 @@ public abstract class LexemeProvider<T extends ITypePredicate> implements Iterab
 	}
 
 	/**
-	 * getFirstLexeme
+	 * Returns the first lexeme in the list. If there is no lexeme at that position (i.e. empty list), returns null
 	 * 
-	 * @return
+	 * @return The first lexeme, or null
 	 */
 	public Lexeme<T> getFirstLexeme()
 	{
 		return this.getLexeme(0);
 	}
-	
+
 	/**
-	 * getFloorLexeme
+	 * Gets the lexeme at the specified offset. If it is a whitespace character it will return the previous (lower)
+	 * lexeme if one exists. If not found it will return null.
 	 * 
 	 * @param offset
-	 * @return
+	 * @return Returns the lexeme at the given offset or the lexeme immediately preceding the offset if none exists at
+	 *         the given offset
 	 */
 	public Lexeme<T> getFloorLexeme(int offset)
 	{
@@ -210,11 +204,11 @@ public abstract class LexemeProvider<T extends ITypePredicate> implements Iterab
 
 		return this.getLexeme(index);
 	}
-	
+
 	/**
-	 * getLastLexeme
+	 * Returns the last lexeme in the list. If there is no lexeme at that position (i.e. empty list), returns null
 	 * 
-	 * @return
+	 * @return The last lexeme, or null
 	 */
 	public Lexeme<T> getLastLexeme()
 	{
@@ -222,10 +216,12 @@ public abstract class LexemeProvider<T extends ITypePredicate> implements Iterab
 	}
 
 	/**
-	 * getLexeme
+	 * Get a lexeme at the specified index. This method will return null if the index is not within the range of this
+	 * lexeme list
 	 * 
 	 * @param index
-	 * @return
+	 *            The index to retrieve
+	 * @return The lexeme at the specified index
 	 */
 	public Lexeme<T> getLexeme(int index)
 	{
@@ -240,10 +236,12 @@ public abstract class LexemeProvider<T extends ITypePredicate> implements Iterab
 	}
 
 	/**
-	 * getLexemeCeilingIndex
+	 * Get the index of the lexeme at the specified offset. If it is a whitespace character it will return the next
+	 * (higher) lexeme if one exists. If not found it will return -1.
 	 * 
 	 * @param offset
-	 * @return
+	 * @return Returns the lexeme at the given offset or the lexeme immediately following the offset if none exists at
+	 *         the given offset
 	 */
 	public int getLexemeCeilingIndex(int offset)
 	{
@@ -274,10 +272,12 @@ public abstract class LexemeProvider<T extends ITypePredicate> implements Iterab
 	}
 
 	/**
-	 * getLexemeFloorIndex
+	 * Get the index of the lexeme at the specified offset. If it is a whitespace character it will return the previous
+	 * (lower) lexeme if one exists. If not found it will return -1.
 	 * 
 	 * @param offset
-	 * @return
+	 * @return Returns the lexeme at the given offset or the lexeme immediately preceding the offset if none exists at
+	 *         the given offset
 	 */
 	public int getLexemeFloorIndex(int offset)
 	{
@@ -307,10 +307,10 @@ public abstract class LexemeProvider<T extends ITypePredicate> implements Iterab
 	}
 
 	/**
-	 * getLexemeFromOffset
+	 * Get the index of the lexeme at the specified offset
 	 * 
 	 * @param offset
-	 * @return
+	 * @return Returns the lexeme at the given offset. Returns null if no lexeme is at the given offset.
 	 */
 	public Lexeme<T> getLexemeFromOffset(int offset)
 	{
@@ -320,10 +320,11 @@ public abstract class LexemeProvider<T extends ITypePredicate> implements Iterab
 	}
 
 	/**
-	 * getLexemeIndex
+	 * Get the index of the lexeme at the specified offset
 	 * 
 	 * @param offset
-	 * @return
+	 * @return Returns the index of the lexeme at the given offset. A negative value will be returned if there is no
+	 *         lexeme at the given offset
 	 */
 	public int getLexemeIndex(int offset)
 	{
@@ -369,9 +370,9 @@ public abstract class LexemeProvider<T extends ITypePredicate> implements Iterab
 	}
 
 	/**
-	 * size
+	 * Return the size of this list
 	 * 
-	 * @return
+	 * @return The list size
 	 */
 	public int size()
 	{

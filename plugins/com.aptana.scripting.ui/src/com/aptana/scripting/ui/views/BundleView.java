@@ -1,35 +1,8 @@
 /**
- * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
- * dual-licensed under both the Aptana Public License and the GNU General
- * Public license. You may elect to use one or the other of these licenses.
- * 
- * This program is distributed in the hope that it will be useful, but
- * AS-IS and WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE, TITLE, or
- * NONINFRINGEMENT. Redistribution, except as permitted by whichever of
- * the GPL or APL you select, is prohibited.
- *
- * 1. For the GPL license (GPL), you can redistribute and/or modify this
- * program under the terms of the GNU General Public License,
- * Version 3, as published by the Free Software Foundation.  You should
- * have received a copy of the GNU General Public License, Version 3 along
- * with this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Aptana provides a special exception to allow redistribution of this file
- * with certain other free and open source software ("FOSS") code and certain additional terms
- * pursuant to Section 7 of the GPL. You may view the exception and these
- * terms on the web at http://www.aptana.com/legal/gpl/.
- * 
- * 2. For the Aptana Public License (APL), this program and the
- * accompanying materials are made available under the terms of the APL
- * v1.0 which accompanies this distribution, and is available at
- * http://www.aptana.com/legal/apl/.
- * 
- * You may view the GPL, Aptana's exception and additional terms, and the
- * APL in the file titled license.html at the root of the corresponding
- * plugin containing this source file.
- * 
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the GNU Public License (GPL) v3 (with exceptions).
+ * Please see the license.html included with this distribution for details.
  * Any modifications to this file must keep this entire header intact.
  */
 package com.aptana.scripting.ui.views;
@@ -50,9 +23,14 @@ import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.jface.util.IPropertyChangeListener;
 import org.eclipse.jface.util.PropertyChangeEvent;
+import org.eclipse.jface.viewers.ContentViewer;
+import org.eclipse.jface.viewers.IBaseLabelProvider;
+import org.eclipse.jface.viewers.ILabelProvider;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.TreeSelection;
 import org.eclipse.jface.viewers.TreeViewer;
+import org.eclipse.jface.viewers.Viewer;
+import org.eclipse.jface.viewers.ViewerSorter;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
@@ -128,6 +106,44 @@ public class BundleView extends ViewPart
 		this._treeViewer.setContentProvider(this._contentProvider);
 		this._treeViewer.setLabelProvider(_labelProvider);
 		this._treeViewer.setInput(BundleManager.getInstance());
+		this._treeViewer.setSorter(new ViewerSorter()
+		{
+			/*
+			 * (non-Javadoc)
+			 * @see org.eclipse.jface.viewers.ViewerComparator#compare(org.eclipse.jface.viewers.Viewer,
+			 * java.lang.Object, java.lang.Object)
+			 */
+			@Override
+			public int compare(Viewer viewer, Object e1, Object e2)
+			{
+				String name1 = null;
+				String name2 = null;
+
+				if (viewer != null && viewer instanceof ContentViewer)
+				{
+					IBaseLabelProvider provider = ((ContentViewer) viewer).getLabelProvider();
+
+					if (provider instanceof ILabelProvider)
+					{
+						ILabelProvider labelProvider = (ILabelProvider) provider;
+
+						name1 = labelProvider.getText(e1);
+						name2 = labelProvider.getText(e2);
+					}
+				}
+
+				if (name1 == null)
+				{
+					name1 = e1.toString();
+				}
+				if (name2 == null)
+				{
+					name2 = e2.toString();
+				}
+
+				return name1.compareTo(name2);
+			}
+		});
 
 		// add selection provider
 		this.getSite().setSelectionProvider(this._treeViewer);
@@ -160,8 +176,7 @@ public class BundleView extends ViewPart
 		// remove theme change listener
 		if (this._themeChangeListener != null)
 		{
-			new InstanceScope().getNode(ThemePlugin.PLUGIN_ID).removePreferenceChangeListener(
-					this._themeChangeListener);
+			new InstanceScope().getNode(ThemePlugin.PLUGIN_ID).removePreferenceChangeListener(this._themeChangeListener);
 		}
 
 		super.dispose();
@@ -180,12 +195,12 @@ public class BundleView extends ViewPart
 		{
 			TreeSelection treeSelection = (TreeSelection) selection;
 			Object item = treeSelection.getFirstElement();
-			
+
 			if (item instanceof BaseNode)
 			{
 				BaseNode node = (BaseNode) item;
 				Action[] actions = node.getActions();
-				
+
 				if (actions != null)
 				{
 					for (Action action : actions)
@@ -310,8 +325,7 @@ public class BundleView extends ViewPart
 			}
 		};
 
-		new InstanceScope().getNode(ThemePlugin.PLUGIN_ID)
-				.addPreferenceChangeListener(this._themeChangeListener);
+		new InstanceScope().getNode(ThemePlugin.PLUGIN_ID).addPreferenceChangeListener(this._themeChangeListener);
 	}
 
 	/**

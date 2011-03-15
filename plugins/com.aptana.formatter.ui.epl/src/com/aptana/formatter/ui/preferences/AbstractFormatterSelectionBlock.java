@@ -72,8 +72,8 @@ import com.aptana.formatter.ui.IFormatterModifyDialog;
 import com.aptana.formatter.ui.IFormatterModifyDialogOwner;
 import com.aptana.formatter.ui.util.ExceptionHandler;
 import com.aptana.formatter.ui.util.IStatusChangeListener;
-import com.aptana.ui.SWTUtils;
 import com.aptana.ui.UIPlugin;
+import com.aptana.ui.util.SWTUtils;
 
 /**
  * Abstract formatter option block that displays multiple languages and let the user select a profile and a language to
@@ -124,7 +124,7 @@ public abstract class AbstractFormatterSelectionBlock extends AbstractOptionsBlo
 	public AbstractFormatterSelectionBlock(IStatusChangeListener context, IProject project,
 			IWorkbenchPreferenceContainer container)
 	{
-		super(context, project, ProfileManager.collectPreferenceKeys(TEMP_LIST), container);
+		super(context, project, ProfileManager.collectPreferenceKeys(TEMP_LIST, true), container);
 		Collections.sort(TEMP_LIST, new Comparator<IScriptFormatterFactory>()
 		{
 			public int compare(IScriptFormatterFactory s1, IScriptFormatterFactory s2)

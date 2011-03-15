@@ -1,35 +1,8 @@
 /**
- * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
- * dual-licensed under both the Aptana Public License and the GNU General
- * Public license. You may elect to use one or the other of these licenses.
- * 
- * This program is distributed in the hope that it will be useful, but
- * AS-IS and WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE, TITLE, or
- * NONINFRINGEMENT. Redistribution, except as permitted by whichever of
- * the GPL or APL you select, is prohibited.
- *
- * 1. For the GPL license (GPL), you can redistribute and/or modify this
- * program under the terms of the GNU General Public License,
- * Version 3, as published by the Free Software Foundation.  You should
- * have received a copy of the GNU General Public License, Version 3 along
- * with this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Aptana provides a special exception to allow redistribution of this file
- * with certain other free and open source software ("FOSS") code and certain additional terms
- * pursuant to Section 7 of the GPL. You may view the exception and these
- * terms on the web at http://www.aptana.com/legal/gpl/.
- * 
- * 2. For the Aptana Public License (APL), this program and the
- * accompanying materials are made available under the terms of the APL
- * v1.0 which accompanies this distribution, and is available at
- * http://www.aptana.com/legal/apl/.
- * 
- * You may view the GPL, Aptana's exception and additional terms, and the
- * APL in the file titled license.html at the root of the corresponding
- * plugin containing this source file.
- * 
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the GNU Public License (GPL) v3 (with exceptions).
+ * Please see the license.html included with this distribution for details.
  * Any modifications to this file must keep this entire header intact.
  */
 
@@ -74,6 +47,7 @@ import com.aptana.filesystem.ftp.IFTPConstants;
 import com.aptana.filesystem.ftp.Policy;
 import com.aptana.ide.core.io.ConnectionContext;
 import com.aptana.ide.core.io.CoreIOPlugin;
+import com.aptana.ide.core.io.PermissionDeniedException;
 import com.aptana.ide.core.io.preferences.PreferenceUtils;
 import com.aptana.ide.core.io.vfs.ExtendedFileInfo;
 import com.aptana.ide.core.io.vfs.IExtendedFileStore;
@@ -325,6 +299,7 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 				}
 			}
 		} catch (Exception e) {
+			e.getCause();
 		}
 		try {
 	        String[] validCodes = {"214"}; //$NON-NLS-1$
@@ -342,6 +317,7 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 				serverFeatures.add(MessageFormat.format("SITE {0}", cmd)); //$NON-NLS-1$
 			}
 		} catch (Exception e) {
+			e.getCause();
 		}
 		
 		Policy.checkCanceled(monitor);
@@ -907,6 +883,9 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 			try {
 				ftpClient.delete(path.lastSegment());
 			} catch (FTPException e) {
+				if (e.getReplyCode() == 532) {
+					throw new PermissionDeniedException(path.toPortableString(), e);
+				}
 				throw e;
 			}
 		} catch (FileNotFoundException e) {
@@ -925,7 +904,7 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 	 * @see com.aptana.filesystem.ftp.internal.BaseFTPConnectionFileManager#createFile(org.eclipse.core.runtime.IPath, org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	@Override
-	protected void createFile(IPath path, IProgressMonitor monitor) throws CoreException, FileNotFoundException {
+	protected void createFile(IPath path, IProgressMonitor monitor) throws CoreException, FileNotFoundException, PermissionDeniedException {
 		try {
 			IPath dirPath = path.removeLastSegments(1);
 			changeCurrentDir(dirPath);
@@ -933,6 +912,9 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 			try {
 				ftpClient.put(new ByteArrayInputStream(new byte[] {}), path.lastSegment());
 			} catch (FTPException e) {
+				if (e.getReplyCode() == 532) {
+					throw new PermissionDeniedException(path.toPortableString(), e);
+				}
 				throw e;
 			}
 		} catch (FileNotFoundException e) {
@@ -983,7 +965,6 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 				ftpClient.rename(sourcePath.toPortableString(), destinationPath.toPortableString());
 			} catch (FTPException e) {
 				throwFileNotFound(e, sourcePath);
-				System.out.println(e);
 				throw e;
 			}
 		} catch (FileNotFoundException e) {
@@ -1103,7 +1084,7 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 		ftpClient.validateReply(reply, validCodes);
 		String[] data = reply.getReplyData();
 		if (data == null) {
-			throw new RuntimeException("STAT returned empty data");
+			return null;
 		}
 		for (int i = 0; i < data.length; ++i) {
 			data[i] = data[i].trim();
@@ -1119,13 +1100,13 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 
 	private FTPFile[] listFiles(IPath dirPath, IProgressMonitor monitor) throws IOException, ParseException, FTPException {
 		FTPFile[] ftpFiles = null;
-		if (statSupported != Boolean.FALSE) {
+		if (!Boolean.FALSE.equals(statSupported)) {
 			try {
 				ftpFiles = ftpSTAT(dirPath.addTrailingSeparator().toPortableString());
 			} catch (MalformedReplyException e) {
 				statSupported = Boolean.FALSE;
 			} catch (FTPException e) {
-				if (e.getReplyCode() == 501 || e.getReplyCode() == 502) {
+				if (e.getReplyCode() == 501 || e.getReplyCode() == 502 || e.getReplyCode() == 504) {
 					statSupported = null;
 				} else if (e.getReplyCode() != 500) {
 					throwFileNotFound(e, dirPath);

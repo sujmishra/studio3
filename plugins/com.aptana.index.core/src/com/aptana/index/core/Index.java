@@ -1,11 +1,9 @@
 /**
- * Copyright (c) 2005-2010 Aptana, Inc.
- *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html. If redistributing this code,
- * this entire header must remain intact.
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the Eclipse Public License (EPL).
+ * Please see the license-epl.html included with this distribution for details.
+ * Any modifications to this file must keep this entire header intact.
  */
 package com.aptana.index.core;
 
@@ -24,9 +22,10 @@ import java.util.zip.CRC32;
 
 import org.eclipse.core.runtime.IPath;
 
+import com.aptana.core.epl.IReadWriteMonitor;
+import com.aptana.core.epl.ReadWriteMonitor;
 import com.aptana.internal.index.core.DiskIndex;
 import com.aptana.internal.index.core.MemoryIndex;
-import com.aptana.internal.index.core.ReadWriteMonitor;
 
 public class Index implements IReadWriteMonitor
 {
@@ -149,7 +148,7 @@ public class Index implements IReadWriteMonitor
 
 		String fileName = Long.toString(crc.getValue()) + ".index"; //$NON-NLS-1$
 
-		return IndexActivator.getDefault().getStateLocation().append(fileName);
+		return IndexPlugin.getDefault().getStateLocation().append(fileName);
 	}
 
 	/**
@@ -563,7 +562,7 @@ public class Index implements IReadWriteMonitor
 		}
 		catch (IOException e)
 		{
-			IndexActivator.logError("An error occurred while remove categories from the index", e); //$NON-NLS-1$
+			IndexPlugin.logError("An error occurred while remove categories from the index", e); //$NON-NLS-1$
 		}
 	}
 

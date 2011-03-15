@@ -1,35 +1,13 @@
 require 'rubygems/config_file'
+require 'rubygems/maven_gemify' # Maven support
 require 'rbconfig'
 
 module Gem
 
-  ConfigFile::PLATFORM_DEFAULTS['install'] = '--env-shebang'
-  ConfigFile::PLATFORM_DEFAULTS['update']  = '--env-shebang'
-
-  @jar_paths = []
+  ConfigFile::PLATFORM_DEFAULTS['install'] = '--no-rdoc --no-ri --env-shebang'
+  ConfigFile::PLATFORM_DEFAULTS['update']  = '--no-rdoc --no-ri --env-shebang'
 
   class << self
-    alias_method :original_ensure_gem_subdirectories, :ensure_gem_subdirectories
-    def ensure_gem_subdirectories(gemdir)
-      original_ensure_gem_subdirectories(gemdir) unless jarred_path? gemdir.to_s
-    end
-
-    alias_method :original_set_paths, :set_paths
-    def set_paths(gpaths)
-      original_set_paths(gpaths)
-      @gem_path.reject! {|p| !readable_path? p }
-      @jar_paths.each {|p| @gem_path << p unless @gem_path.include?(p) } if @jar_paths
-    end
-
-    alias_method :original_default_path, :default_path
-    def default_path
-      paths = RbConfig::CONFIG["default_gem_path"]
-      paths = paths.split(':').reject {|p| p.empty? }.compact if paths
-      paths ||= original_default_path
-      @jar_paths = paths.select {|p| jarred_path? p }
-      paths.reject {|p| jarred_path? p }
-    end
-
     alias_method :original_ruby, :ruby
     def ruby
       ruby_path = original_ruby
@@ -37,10 +15,6 @@ module Gem
         ruby_path = "java -jar #{ruby_path.sub(/^file:/,"").sub(/!.*/,"")}"
       end
       ruby_path
-    end
-
-    def readable_path?(p)
-      p =~ /^file:/ || File.exists?(p)
     end
 
     def jarred_path?(p)

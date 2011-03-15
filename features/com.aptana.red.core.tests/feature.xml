@@ -3,7 +3,7 @@
       id="com.aptana.red.core.tests"
       label="RED Core Tests"
       version="1.0.0.qualifier"
-      provider-name="Aptana, Inc.">
+      provider-name="Aptana">
 
    <description url="http://www.example.com/description">
       [Enter Feature Description here.]
@@ -24,7 +24,6 @@
       <import plugin="com.aptana.editor.css" version="1.0.0" match="greaterOrEqual"/>
       <import plugin="com.aptana.editor.html" version="1.0.0" match="greaterOrEqual"/>
       <import plugin="com.aptana.editor.js" version="1.0.0" match="greaterOrEqual"/>
-      <import plugin="com.aptana.editor.sass" version="1.0.0" match="greaterOrEqual"/>
       <import plugin="com.aptana.scripting" version="1.0.0" match="greaterOrEqual"/>
       <import plugin="com.aptana.editor.xml" version="1.0.0" match="greaterOrEqual"/>
       <import plugin="com.aptana.git.core" version="1.0.0" match="greaterOrEqual"/>
@@ -86,6 +85,12 @@
       <import plugin="com.aptana.editor.dtd"/>
       <import plugin="com.aptana.filesystem.s3"/>
       <import plugin="com.aptana.editor.yaml"/>
+      <import plugin="com.aptana.editor.idl"/>
+      <import plugin="com.aptana.editor.css.formatter"/>
+      <import plugin="com.aptana.editor.json"/>
+      <import plugin="com.aptana.editor.xml.formatter"/>
+      <import plugin="com.aptana.editor.html.formatter"/>
+      <import plugin="com.aptana.editor.js.formatter"/>
    </requires>
 
    <plugin
@@ -114,14 +119,6 @@
 
    <plugin
          id="com.aptana.editor.js.tests"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         fragment="true"
-         unpack="false"/>
-
-   <plugin
-         id="com.aptana.editor.sass.tests"
          download-size="0"
          install-size="0"
          version="0.0.0"
@@ -317,6 +314,54 @@
 
    <plugin
          id="com.aptana.editor.yaml.tests"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         fragment="true"
+         unpack="false"/>
+
+   <plugin
+         id="com.aptana.editor.idl.tests"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         fragment="true"
+         unpack="false"/>
+
+   <plugin
+         id="com.aptana.editor.css.formatter.tests"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         fragment="true"
+         unpack="false"/>
+
+   <plugin
+         id="com.aptana.editor.json.tests"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         fragment="true"
+         unpack="false"/>
+
+   <plugin
+         id="com.aptana.editor.xml.formatter.tests"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         fragment="true"
+         unpack="false"/>
+
+   <plugin
+         id="com.aptana.editor.html.formatter.tests"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         fragment="true"
+         unpack="false"/>
+
+   <plugin
+         id="com.aptana.editor.js.formatter.tests"
          download-size="0"
          install-size="0"
          version="0.0.0"

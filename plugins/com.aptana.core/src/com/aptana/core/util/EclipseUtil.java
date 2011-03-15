@@ -1,45 +1,23 @@
 /**
- * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
- * dual-licensed under both the Aptana Public License and the GNU General
- * Public license. You may elect to use one or the other of these licenses.
- * 
- * This program is distributed in the hope that it will be useful, but
- * AS-IS and WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE, TITLE, or
- * NONINFRINGEMENT. Redistribution, except as permitted by whichever of
- * the GPL or APL you select, is prohibited.
- *
- * 1. For the GPL license (GPL), you can redistribute and/or modify this
- * program under the terms of the GNU General Public License,
- * Version 3, as published by the Free Software Foundation.  You should
- * have received a copy of the GNU General Public License, Version 3 along
- * with this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Aptana provides a special exception to allow redistribution of this file
- * with certain other free and open source software ("FOSS") code and certain additional terms
- * pursuant to Section 7 of the GPL. You may view the exception and these
- * terms on the web at http://www.aptana.com/legal/gpl/.
- * 
- * 2. For the Aptana Public License (APL), this program and the
- * accompanying materials are made available under the terms of the APL
- * v1.0 which accompanies this distribution, and is available at
- * http://www.aptana.com/legal/apl/.
- * 
- * You may view the GPL, Aptana's exception and additional terms, and the
- * APL in the file titled license.html at the root of the corresponding
- * plugin containing this source file.
- * 
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the GNU Public License (GPL) v3 (with exceptions).
+ * Please see the license.html included with this distribution for details.
  * Any modifications to this file must keep this entire header intact.
  */
 package com.aptana.core.util;
 
+import java.io.File;
+import java.io.FilenameFilter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProduct;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Plugin;
+import org.eclipse.osgi.service.datalocation.Location;
 import org.osgi.framework.Bundle;
 
 public class EclipseUtil
@@ -161,4 +139,68 @@ public class EclipseUtil
 		Object commands = System.getProperties().get("eclipse.commands"); //$NON-NLS-1$
 		return (commands != null) ? commands.toString().contains("-testLoaderClass") : false; //$NON-NLS-1$
 	}
+	
+	/**
+	 * Returns path to application launcher executable
+	 * 
+	 * @return
+	 */
+	public static IPath getApplicationLauncher() {
+		return getApplicationLauncher(false);
+	}
+
+	/**
+	 * Returns path to application launcher executable
+	 * 
+	 * @param asSplashLauncher
+	 * @return
+	 */
+	public static IPath getApplicationLauncher(boolean asSplashLauncher) {
+		IPath launcher = null;
+		String cmdline = System.getProperty("eclipse.commands"); //$NON-NLS-1$
+		if ( cmdline != null && cmdline.length() > 0 ) {
+			String[] args = cmdline.split("\n"); //$NON-NLS-1$
+			for( int i = 0; i < args.length; ++i ) {
+				if ( "-launcher".equals(args[i]) && (i+1) < args.length ) { //$NON-NLS-1$
+					launcher = Path.fromOSString(args[i+1]);
+					break;
+				}
+			}
+		}
+		if ( launcher == null ) {
+			Location location = Platform.getInstallLocation();
+			if ( location != null ) {
+				launcher = new Path(location.getURL().getFile());
+				if ( launcher.toFile().isDirectory() ) {
+					String[] executableFiles = launcher.toFile().list(new FilenameFilter() {
+						public boolean accept(File dir, String name) {
+							IPath path = Path.fromOSString(dir.getAbsolutePath()).append(name);
+							name = path.removeFileExtension().lastSegment();
+							String ext = path.getFileExtension();
+							if (Platform.OS_MACOSX.equals(Platform.getOS())) {
+								if (!"app".equals(ext)) {
+									return false;
+								}
+							}
+							if ("Eclipse".equalsIgnoreCase(name) || "AptanaStudio3".equalsIgnoreCase(name)) { //$NON-NLS-1$ //$NON-NLS-2$
+								return true;
+							}
+							return false;
+						}
+					});
+					if (executableFiles.length > 0) {
+						launcher = launcher.append(executableFiles[0]);
+					}
+				}
+			}
+		}
+		if (launcher == null || !launcher.toFile().exists() ) {
+			return null;
+		}
+		if (Platform.OS_MACOSX.equals(Platform.getOS()) && asSplashLauncher) {
+			launcher = new Path(PlatformUtil.getApplicationExecutable(launcher.toOSString()).getAbsolutePath());
+		}
+		return launcher;
+	}
+
 }

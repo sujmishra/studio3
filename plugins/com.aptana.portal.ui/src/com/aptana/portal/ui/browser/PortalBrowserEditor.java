@@ -1,35 +1,8 @@
 /**
- * This file Copyright (c) 2005-2010 Aptana, Inc. This program is
- * dual-licensed under both the Aptana Public License and the GNU General
- * Public license. You may elect to use one or the other of these licenses.
- * 
- * This program is distributed in the hope that it will be useful, but
- * AS-IS and WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE, TITLE, or
- * NONINFRINGEMENT. Redistribution, except as permitted by whichever of
- * the GPL or APL you select, is prohibited.
- *
- * 1. For the GPL license (GPL), you can redistribute and/or modify this
- * program under the terms of the GNU General Public License,
- * Version 3, as published by the Free Software Foundation.  You should
- * have received a copy of the GNU General Public License, Version 3 along
- * with this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * Aptana provides a special exception to allow redistribution of this file
- * with certain other free and open source software ("FOSS") code and certain additional terms
- * pursuant to Section 7 of the GPL. You may view the exception and these
- * terms on the web at http://www.aptana.com/legal/gpl/.
- * 
- * 2. For the Aptana Public License (APL), this program and the
- * accompanying materials are made available under the terms of the APL
- * v1.0 which accompanies this distribution, and is available at
- * http://www.aptana.com/legal/apl/.
- * 
- * You may view the GPL, Aptana's exception and additional terms, and the
- * APL in the file titled license.html at the root of the corresponding
- * plugin containing this source file.
- * 
+ * Aptana Studio
+ * Copyright (c) 2005-2011 by Appcelerator, Inc. All Rights Reserved.
+ * Licensed under the terms of the GNU Public License (GPL) v3 (with exceptions).
+ * Please see the license.html included with this distribution for details.
  * Any modifications to this file must keep this entire header intact.
  */
 package com.aptana.portal.ui.browser;
@@ -66,6 +39,9 @@ import com.aptana.portal.ui.internal.WebBrowserEditorStub;
 public class PortalBrowserEditor extends WebBrowserEditorStub
 {
 	public static final String WEB_BROWSER_EDITOR_ID = "com.aptana.portal.ui.browser.portal"; //$NON-NLS-1$
+
+	private static final String TITLE_TTP = "Aptana Portal"; //$NON-NLS-1$
+
 	private List<BrowserFunctionWrapper> browserFunctions;
 
 	/**
@@ -127,7 +103,32 @@ public class PortalBrowserEditor extends WebBrowserEditorStub
 		});
 		// Register this browser to receive notifications from any Browser-Notifier that was
 		// added to do so through the browserInteractions extension point.
-		BrowserNotifier.getInstance().registerBrowser(WEB_BROWSER_EDITOR_ID, browser);
+		BrowserNotifier.getInstance().registerBrowser(getEditorId(), browser);
+	}
+
+	@Override
+	public String getTitleToolTip()
+	{
+		return TITLE_TTP;
+	}
+
+	/**
+	 * Returns the editor-id for this browser editor.
+	 * 
+	 * @return The editor-id
+	 */
+	protected String getEditorId()
+	{
+		return WEB_BROWSER_EDITOR_ID;
+	}
+
+	/**
+	 * Returns the base URL prefix that will be used to verify the location of the page and register the dispatcher in
+	 * case the page is under this path.
+	 */
+	protected String getBaseURLPrefix()
+	{
+		return Portal.BASE_URL_PREFIX;
 	}
 
 	/**
@@ -140,7 +141,8 @@ public class PortalBrowserEditor extends WebBrowserEditorStub
 		browserFunctions = new ArrayList<BrowserFunctionWrapper>();
 		// For now, we register a single browser function that dispatch all the
 		// JavaScript requests through the browser-action-controller extensions.
-		BrowserFunctionWrapper dispatcherFunction = browser.createBrowserFunction(IBrowserNotificationConstants.DISPATCH_FUNCTION_NAME, new DispatcherBrowserFunction());
+		BrowserFunctionWrapper dispatcherFunction = browser.createBrowserFunction(
+				IBrowserNotificationConstants.DISPATCH_FUNCTION_NAME, new DispatcherBrowserFunction());
 		browserFunctions.add(dispatcherFunction);
 
 		boolean executionResult = browser
@@ -173,7 +175,7 @@ public class PortalBrowserEditor extends WebBrowserEditorStub
 	{
 		unregisterBrowserFunctions();
 		String url = browser.getUrl();
-		if (url != null && (url.startsWith(Portal.BASE_URL_PREFIX) || url.startsWith("file:"))) //$NON-NLS-1$
+		if (url != null && (url.startsWith(getBaseURLPrefix()) || url.startsWith("file:"))) //$NON-NLS-1$
 		{
 			registerBrowserFunctions(browser);
 		}
