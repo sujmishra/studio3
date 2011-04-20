@@ -16,10 +16,10 @@ import org.eclipse.core.runtime.jobs.IJobChangeListener;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 
+import com.aptana.core.io.efs.EFSUtils;
 import com.aptana.core.util.StringUtil;
-import com.aptana.ide.core.io.efs.EFSUtils;
 import com.aptana.ide.syncing.core.ISiteConnection;
-import com.aptana.ide.syncing.ui.internal.SyncUtils;
+import com.aptana.ide.ui.io.Utils;
 import com.aptana.syncing.core.model.SyncOperation;
 import com.aptana.syncing.ui.internal.SyncUIManager;
 
@@ -36,7 +36,7 @@ public class DownloadAction extends BaseSyncAction {
 	protected void performAction(final IAdaptable[] files, ISiteConnection siteConnection) throws CoreException {
 		IPath[] paths = new IPath[files.length];
 		for (int i = 0; i < files.length; ++i) {
-			paths[i] = EFSUtils.getRelativePath(siteConnection.getSource(), SyncUtils.getFileStore(files[i]));
+			paths[i] = EFSUtils.getRelativePath(siteConnection.getSource(), Utils.getFileStore(files[i]));
 		}
 		Job job = SyncUIManager.getInstance().initiateOperation(siteConnection, paths, SyncOperation.DOWNLOAD);
 		job.addJobChangeListener(new JobChangeAdapter() {

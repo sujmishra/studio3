@@ -40,6 +40,8 @@ import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.PerformanceStats;
 import org.eclipse.core.runtime.Status;
 
+import com.aptana.core.io.vfs.ExtendedFileInfo;
+import com.aptana.core.io.vfs.IExtendedFileStore;
 import com.aptana.core.util.ExpiringMap;
 import com.aptana.filesystem.ftp.FTPPlugin;
 import com.aptana.filesystem.ftp.IFTPConnectionFileManager;
@@ -49,8 +51,6 @@ import com.aptana.ide.core.io.ConnectionContext;
 import com.aptana.ide.core.io.CoreIOPlugin;
 import com.aptana.ide.core.io.PermissionDeniedException;
 import com.aptana.ide.core.io.preferences.PreferenceUtils;
-import com.aptana.ide.core.io.vfs.ExtendedFileInfo;
-import com.aptana.ide.core.io.vfs.IExtendedFileStore;
 import com.enterprisedt.net.ftp.FTPClient;
 import com.enterprisedt.net.ftp.FTPClientInterface;
 import com.enterprisedt.net.ftp.FTPConnectMode;
@@ -94,8 +94,6 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 	private long serverTimeZoneShift = Integer.MIN_VALUE;
 	protected boolean hasServerInfo;
 	protected PrintWriter messageLogWriter;
-
-	private int connectionRetryCount;
 
 	protected FTPClientPool pool;
 
@@ -145,8 +143,7 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 	}
 
 	protected void initAndAuthFTPClient(FTPClientInterface clientInterface, IProgressMonitor monitor) throws IOException, FTPException {
-		if (clientInterface.connected())
-		{
+		if (clientInterface.connected()) {
 			return;
 		}
 		FTPClient newFtpClient = (FTPClient) clientInterface;
@@ -189,7 +186,7 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 	}
 
 	/* (non-Javadoc)
-	 * @see com.aptana.ide.core.io.vfs.IConnectionFileManager#connect(org.eclipse.core.runtime.IProgressMonitor)
+	 * @see com.aptana.core.io.vfs.IConnectionFileManager#connect(org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	public void connect(IProgressMonitor monitor) throws CoreException {
 		Assert.isTrue(ftpClient != null, Messages.FTPConnectionFileManager_not_initialized);
@@ -443,14 +440,14 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 	}
 
 	/* (non-Javadoc)
-	 * @see com.aptana.ide.core.io.vfs.IConnectionFileManager#isConnected()
+	 * @see com.aptana.core.io.vfs.IConnectionFileManager#isConnected()
 	 */
 	public boolean isConnected() {
 		return ftpClient != null && ftpClient.connected();
 	}
 
 	/* (non-Javadoc)
-	 * @see com.aptana.ide.core.io.vfs.IConnectionFileManager#disconnect(org.eclipse.core.runtime.IProgressMonitor)
+	 * @see com.aptana.core.io.vfs.IConnectionFileManager#disconnect(org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	public synchronized void disconnect(IProgressMonitor monitor) throws CoreException {
 		try {
@@ -478,7 +475,7 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 		}
 	}
 
-	private boolean serverSupportsFeature(String feature) {
+	protected boolean serverSupportsFeature(String feature) {
 		if (serverFeatures != null) {
 			return serverFeatures.contains(feature);
 		}
@@ -550,7 +547,7 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 	}
 
 	/* (non-Javadoc)
-	 * @see com.aptana.filesystem.ftp.internal.BaseFTPConnectionFileManager#canUseTemporaryFile(org.eclipse.core.runtime.IPath, com.aptana.ide.core.io.vfs.ExtendedFileInfo, org.eclipse.core.runtime.IProgressMonitor)
+	 * @see com.aptana.filesystem.ftp.internal.BaseFTPConnectionFileManager#canUseTemporaryFile(org.eclipse.core.runtime.IPath, com.aptana.core.io.vfs.ExtendedFileInfo, org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	@Override
 	protected boolean canUseTemporaryFile(IPath path, ExtendedFileInfo fileInfo, IProgressMonitor monitor) {
@@ -571,10 +568,10 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 		if (ftpClient.connected()) {
 			try {
 				ftpClient.noOperation();
+				ftpClient.setType(FTPTransferType.BINARY);
 				return;
 			} catch (FTPConnectionClosedException e) {
-			} catch (FTPException ignore) {
-				return;
+			} catch (FTPException e) {
 			} catch (IOException e) {
 			}
 			ftpClient.quitImmediately();
@@ -604,6 +601,19 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 			String name = path.lastSegment();
 			FTPFile result = ftpFileCache.get(path);
 			if (result == null) {
+				if ((options & IExtendedFileStore.EXISTENCE) != 0) {
+					ExtendedFileInfo fileInfo = new ExtendedFileInfo(path.lastSegment());
+					try {
+						changeCurrentDir(path);
+						fileInfo.setExists(true);
+						fileInfo.setDirectory(true);
+					} catch (FileNotFoundException ignore) {
+					}
+					if (!fileInfo.exists()) {
+						fileInfo.setExists(existsFile(path));
+					}
+					return fileInfo;
+				}
 				FTPFile[] ftpFiles = listFiles(dirPath, monitor);
 				for (FTPFile ftpFile : ftpFiles) {
 					Date lastModifiedServerInLocalTZ = ftpFile.lastModified();
@@ -650,15 +660,7 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 		} catch (OperationCanceledException e) {
 			throw e;
 		} catch (Exception e) {
-			// forces one connection retry
-			if (connectionRetryCount < 1) {
-				connectionRetryCount++;
-				testOrConnect(monitor);
-				return fetchFile(path, options, monitor);
-			} else {
-				connectionRetryCount = 0;
-				throw new CoreException(new Status(Status.ERROR, FTPPlugin.PLUGIN_ID, Messages.FTPConnectionFileManager_fetch_failed, e));
-			}
+			throw new CoreException(new Status(Status.ERROR, FTPPlugin.PLUGIN_ID, Messages.FTPConnectionFileManager_fetch_failed, e));
 		}
 		ExtendedFileInfo fileInfo = new ExtendedFileInfo(path.lastSegment());
 		fileInfo.setExists(false);
@@ -713,15 +715,7 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 		} catch (OperationCanceledException e) {
 			throw e;
 		} catch (Exception e) {
-			// forces one connection retry
-			if (connectionRetryCount < 1) {
-				connectionRetryCount++;
-				testOrConnect(monitor);
-				return fetchFiles(path, options, monitor);
-			} else {
-				connectionRetryCount = 0;
-				throw new CoreException(new Status(Status.ERROR, FTPPlugin.PLUGIN_ID, Messages.FTPConnectionFileManager_fetching_directory_failed, e));
-			}
+			throw new CoreException(new Status(Status.ERROR, FTPPlugin.PLUGIN_ID, Messages.FTPConnectionFileManager_fetching_directory_failed, e));
 		} finally {
 			monitor.done();
 		}
@@ -960,7 +954,7 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 	@Override
 	protected void renameFile(IPath sourcePath, IPath destinationPath, IProgressMonitor monitor) throws CoreException, FileNotFoundException {
 		try {
-			changeCurrentDir(Path.ROOT);
+			changeCurrentDir(sourcePath.removeLastSegments(1));
 			Policy.checkCanceled(monitor);
 			try {
 				ftpClient.rename(sourcePath.toPortableString(), destinationPath.toPortableString());
@@ -1068,6 +1062,10 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 			monitor.done();
 		}
 	}
+	
+	private boolean existsFile(IPath filePath) throws IOException, FTPException {
+		return ftpClient.existsFile(filePath.toPortableString());
+	}
 
 	private FTPFile[] ftpSTAT(String dirname) throws IOException, FTPException, ParseException {
 		setupFileFactory();
@@ -1081,7 +1079,14 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 		for (int i = 0; i < data.length; ++i) {
 			data[i] = data[i].trim();
 		}
-		return fileFactory.parse(data);
+		FTPFile[] ftpFiles = fileFactory.parse(data);
+		for (FTPFile ftpFile : ftpFiles) {
+			String name = ftpFile.getName();
+			if (name.indexOf('/') != -1) {
+				ftpFile.setName(Path.fromPortableString(name).lastSegment());
+			}
+		}
+		return ftpFiles;
 	}
 	
 	private FTPFile[] ftpLIST(IPath dirPath, IProgressMonitor monitor) throws IOException, ParseException, FTPException {
@@ -1200,8 +1205,7 @@ public class FTPConnectionFileManager extends BaseFTPConnectionFileManager imple
 		return sb.toString();
 	}
 
-	public FTPClient newClient()
-	{
+	public FTPClient newClient() {
 		return new ProFTPClient();
 	}
 }

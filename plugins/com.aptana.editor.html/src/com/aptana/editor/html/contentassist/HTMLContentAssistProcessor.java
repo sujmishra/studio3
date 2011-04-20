@@ -42,6 +42,7 @@ import com.aptana.core.IURIMapper;
 import com.aptana.editor.common.AbstractThemeableEditor;
 import com.aptana.editor.common.CommonContentAssistProcessor;
 import com.aptana.editor.common.contentassist.CommonCompletionProposal;
+import com.aptana.editor.common.contentassist.ICommonCompletionProposal;
 import com.aptana.editor.common.contentassist.LexemeProvider;
 import com.aptana.editor.common.contentassist.UserAgentManager;
 import com.aptana.editor.css.CSSSourceConfiguration;
@@ -751,8 +752,7 @@ public class HTMLContentAssistProcessor extends CommonContentAssistProcessor
 					HTMLIndexConstants.CORE, offset, src.length());
 			if (src.equalsIgnoreCase("HTML")) // Make HTML 5 the default //$NON-NLS-1$
 			{
-				proposal.setIsSuggestedSelection(true);
-				proposal.setIsDefaultSelection(true);
+				proposal.setRelevance(ICommonCompletionProposal.RELEVANCE_MEDIUM);
 			}
 			proposals.add(proposal);
 		}
@@ -1599,7 +1599,7 @@ public class HTMLContentAssistProcessor extends CommonContentAssistProcessor
 	 * @see com.aptana.editor.common.CommonContentAssistProcessor#triggerAdditionalAutoActivation(char, int,
 	 * org.eclipse.jface.text.IDocument, int)
 	 */
-	public boolean triggerAdditionalAutoActivation(char c, int keyCode, IDocument document, int offset)
+	public boolean isValidAutoActivationLocation(char c, int keyCode, IDocument document, int offset)
 	{
 		LexemeProvider<HTMLTokenType> lexemeProvider = this.createLexemeProvider(document, offset);
 

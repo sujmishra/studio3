@@ -41,8 +41,8 @@ import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileInfo;
 import org.eclipse.core.filesystem.IFileStore;
 
-import com.aptana.ide.core.io.vfs.IExtendedFileInfo;
-import com.aptana.ide.core.io.vfs.IExtendedFileStore;
+import com.aptana.core.io.vfs.IExtendedFileInfo;
+import com.aptana.core.io.vfs.IExtendedFileStore;
 import com.aptana.syncing.core.internal.model.ItemState.Type;
 
 /**

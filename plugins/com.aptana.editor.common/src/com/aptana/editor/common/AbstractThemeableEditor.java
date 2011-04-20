@@ -60,6 +60,7 @@ import org.eclipse.ui.views.contentoutline.ContentOutline;
 import org.eclipse.ui.views.contentoutline.IContentOutlinePage;
 
 import com.aptana.core.resources.IUniformResource;
+import com.aptana.core.util.StringUtil;
 import com.aptana.editor.common.actions.FilterThroughCommandAction;
 import com.aptana.editor.common.actions.FoldingActionsGroup;
 import com.aptana.editor.common.extensions.FindBarEditorExtension;
@@ -225,6 +226,8 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 		fPeerCharacterCloser.install();
 		fPeerCharacterCloser.setAutoInsertEnabled(getPreferenceStore().getBoolean(
 				IPreferenceConstants.EDITOR_PEER_CHARACTER_CLOSE));
+		fPeerCharacterCloser.setAutoInsertEnabled(getPreferenceStore().getBoolean(
+				IPreferenceConstants.EDITOR_WRAP_SELECTION));
 
 		fCursorChangeListened = true;
 
@@ -349,7 +352,7 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 		fOverviewRuler = createOverviewRuler(getSharedColors());
 
 		// Need to make it a projection viewer now that we have folding...
-		ISourceViewer viewer = new ProjectionViewer(parent, ruler, getOverviewRuler(), isOverviewRulerVisible(), styles)
+		ProjectionViewer viewer = new ProjectionViewer(parent, ruler, getOverviewRuler(), isOverviewRulerVisible(), styles)
 		{
 			protected Layout createLayout()
 			{
@@ -426,12 +429,9 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 			}
 		};
 
-		if (viewer instanceof ITextViewerExtension)
-		{
-			this.fKeyListener = new ExpandSnippetVerifyKeyListener(this, viewer);
-			// add listener to our viewer
-			((ITextViewerExtension) viewer).prependVerifyKeyListener(this.fKeyListener);
-		}
+		this.fKeyListener = new ExpandSnippetVerifyKeyListener(this, viewer);
+		// add listener to our viewer
+		((ITextViewerExtension) viewer).prependVerifyKeyListener(this.fKeyListener);
 
 		// ensure decoration support has been created and configured.
 		getSourceViewerDecorationSupport(viewer);
@@ -566,7 +566,13 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 		this.fThemeableEditorColorsExtension.handlePreferenceStoreChanged(event);
 		if (event.getProperty().equals(IPreferenceConstants.EDITOR_PEER_CHARACTER_CLOSE))
 		{
-			fPeerCharacterCloser.setAutoInsertEnabled((Boolean) event.getNewValue());
+			fPeerCharacterCloser.setAutoInsertEnabled(Boolean.parseBoolean(StringUtil.getStringValue(event
+					.getNewValue())));
+		}
+		else if (event.getProperty().equals(IPreferenceConstants.EDITOR_WRAP_SELECTION))
+		{
+			fPeerCharacterCloser
+					.setAutoWrapEnabled(Boolean.parseBoolean(StringUtil.getStringValue(event.getNewValue())));
 		}
 	}
 

@@ -10,8 +10,10 @@ package com.aptana.editor.js.contentassist.index;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -60,6 +62,7 @@ public class JSMetadataReader extends MetadataReader
 	private ExceptionElement _currentException;
 
 	private Map<String, TypeElement> _typesByName = new HashMap<String, TypeElement>();
+	private List<AliasElement> _aliases = new ArrayList<AliasElement>();
 
 	/**
 	 * Create a new instance of CoreLoader
@@ -79,11 +82,12 @@ public class JSMetadataReader extends MetadataReader
 	public void enterAlias(String ns, String name, String qname, Attributes attributes)
 	{
 		AliasElement alias = new AliasElement();
+		Map<String, String> attrs = this.attributesToMap(attributes, true);
 
-		alias.setName(attributes.getValue("name")); //$NON-NLS-1$
-		alias.setType(attributes.getValue("type")); //$NON-NLS-1$
+		alias.setName(attrs.get("name")); //$NON-NLS-1$
+		alias.setType(attrs.get("type")); //$NON-NLS-1$
 
-		// add somewhere?
+		this._aliases.add(alias);
 	}
 
 	/**
@@ -98,12 +102,13 @@ public class JSMetadataReader extends MetadataReader
 	{
 		// create a new item documentation object
 		UserAgentElement userAgent = new UserAgentElement();
+		Map<String, String> attrs = this.attributesToMap(attributes, true);
 
 		// set platform
-		userAgent.setPlatform(attributes.getValue("platform")); //$NON-NLS-1$
+		userAgent.setPlatform(attrs.get("platform")); //$NON-NLS-1$
 
 		// set version
-		String version = attributes.getValue("version"); //$NON-NLS-1$
+		String version = attrs.get("version"); //$NON-NLS-1$
 
 		if (version != null)
 		{
@@ -111,7 +116,7 @@ public class JSMetadataReader extends MetadataReader
 		}
 
 		// set OS
-		String os = attributes.getValue("os"); //$NON-NLS-1$
+		String os = attrs.get("os"); //$NON-NLS-1$
 
 		if (os != null)
 		{
@@ -119,7 +124,7 @@ public class JSMetadataReader extends MetadataReader
 		}
 
 		// set OS version
-		String osVersion = attributes.getValue("osVersion"); //$NON-NLS-1$
+		String osVersion = attrs.get("osVersion"); //$NON-NLS-1$
 
 		if (osVersion != null)
 		{
@@ -139,7 +144,8 @@ public class JSMetadataReader extends MetadataReader
 	 */
 	public void enterClass(String ns, String name, String qname, Attributes attributes)
 	{
-		String typeName = attributes.getValue("type"); //$NON-NLS-1$
+		Map<String, String> attrs = this.attributesToMap(attributes, true);
+		String typeName = attrs.get("type"); //$NON-NLS-1$
 
 		if (this.isValidTypeIdentifier(typeName))
 		{
@@ -182,7 +188,7 @@ public class JSMetadataReader extends MetadataReader
 			}
 
 			// set optional superclass
-			String superclass = attributes.getValue("superclass"); //$NON-NLS-1$
+			String superclass = attrs.get("superclass"); //$NON-NLS-1$
 
 			if (superclass != null && superclass.length() > 0)
 			{
@@ -239,7 +245,8 @@ public class JSMetadataReader extends MetadataReader
 	 */
 	public void enterException(String ns, String name, String qname, Attributes attributes)
 	{
-		String exceptionName = attributes.getValue("type"); //$NON-NLS-1$
+		Map<String, String> attrs = this.attributesToMap(attributes, true);
+		String exceptionName = attrs.get("type"); //$NON-NLS-1$
 
 		if (this.isValidIdentifier(exceptionName))
 		{
@@ -265,7 +272,8 @@ public class JSMetadataReader extends MetadataReader
 	 */
 	public void enterMethod(String ns, String name, String qname, Attributes attributes)
 	{
-		String mname = attributes.getValue("name"); //$NON-NLS-1$
+		Map<String, String> attrs = this.attributesToMap(attributes, true);
+		String mname = attrs.get("name"); //$NON-NLS-1$
 
 		if (mname == null && this._currentType != null)
 		{
@@ -285,7 +293,7 @@ public class JSMetadataReader extends MetadataReader
 			function.setName(mname);
 
 			// set scope
-			String scope = attributes.getValue("scope"); //$NON-NLS-1$
+			String scope = attrs.get("scope"); //$NON-NLS-1$
 
 			if (scope == null || scope.length() == 0 || scope.equals("instance")) //$NON-NLS-1$
 			{
@@ -297,7 +305,7 @@ public class JSMetadataReader extends MetadataReader
 			}
 
 			// set visibility
-			String visibility = attributes.getValue("visibility"); //$NON-NLS-1$
+			String visibility = attrs.get("visibility"); //$NON-NLS-1$
 
 			if (visibility != null && visibility.equals("internal")) //$NON-NLS-1$
 			{
@@ -342,7 +350,8 @@ public class JSMetadataReader extends MetadataReader
 	 */
 	public void enterParameter(String ns, String name, String qname, Attributes attributes)
 	{
-		String parameterName = attributes.getValue("name"); //$NON-NLS-1$
+		Map<String, String> attrs = this.attributesToMap(attributes, true);
+		String parameterName = attrs.get("name"); //$NON-NLS-1$
 
 		if (this.isValidIdentifier(parameterName))
 		{
@@ -352,7 +361,7 @@ public class JSMetadataReader extends MetadataReader
 			// grab and set properties
 			parameter.setName(parameterName);
 			
-			String types = attributes.getValue("type"); //$NON-NLS-1$
+			String types = attrs.get("type"); //$NON-NLS-1$
 
 			for (String type : PARAMETER_TYPE_DELIMITER_PATTERN.split(types))
 			{
@@ -368,7 +377,7 @@ public class JSMetadataReader extends MetadataReader
 				}
 			}
 
-			parameter.setUsage(attributes.getValue("usage")); //$NON-NLS-1$
+			parameter.setUsage(attrs.get("usage")); //$NON-NLS-1$
 
 			// store parameter
 			this._currentParameter = parameter;
@@ -385,7 +394,8 @@ public class JSMetadataReader extends MetadataReader
 	 */
 	public void enterProperty(String ns, String name, String qname, Attributes attributes)
 	{
-		String propertyName = attributes.getValue("name"); //$NON-NLS-1$
+		Map<String, String> attrs = this.attributesToMap(attributes, true);
+		String propertyName = attrs.get("name"); //$NON-NLS-1$
 
 		if (this.isValidIdentifier(propertyName))
 		{
@@ -396,7 +406,7 @@ public class JSMetadataReader extends MetadataReader
 			property.setName(propertyName);
 
 			// set scope
-			String scope = attributes.getValue("scope"); //$NON-NLS-1$
+			String scope = attrs.get("scope"); //$NON-NLS-1$
 
 			if (scope == null || scope.length() == 0 || scope.equals("instance")) //$NON-NLS-1$
 			{
@@ -412,7 +422,7 @@ public class JSMetadataReader extends MetadataReader
 			}
 
 			// set types
-			String types = attributes.getValue("type"); //$NON-NLS-1$
+			String types = attrs.get("type"); //$NON-NLS-1$
 
 			for (String propertyType : PROPERTY_TYPE_DELIMITER_PATTERN.split(types))
 			{
@@ -445,7 +455,9 @@ public class JSMetadataReader extends MetadataReader
 	{
 		if (this._currentFunction != null)
 		{
-			this._currentFunction.addReference(attributes.getValue("name")); //$NON-NLS-1$
+			Map<String, String> attrs = this.attributesToMap(attributes, true);
+
+			this._currentFunction.addReference(attrs.get("name")); //$NON-NLS-1$
 		}
 	}
 
@@ -459,7 +471,8 @@ public class JSMetadataReader extends MetadataReader
 	 */
 	public void enterReturnType(String ns, String name, String qname, Attributes attributes)
 	{
-		String type = attributes.getValue("type"); //$NON-NLS-1$
+		Map<String, String> attrs = this.attributesToMap(attributes, true);
+		String type = attrs.get("type"); //$NON-NLS-1$
 
 		if (this.isValidTypeIdentifier(type))
 		{
@@ -487,12 +500,13 @@ public class JSMetadataReader extends MetadataReader
 	public void enterSpecification(String ns, String name, String qname, Attributes attributes)
 	{
 		SinceElement since = new SinceElement();
+		Map<String, String> attrs = this.attributesToMap(attributes, true);
 
 		// set name
-		since.setName(attributes.getValue("name")); //$NON-NLS-1$
+		since.setName(attrs.get("name")); //$NON-NLS-1$
 
 		// set version
-		String version = attributes.getValue("version"); //$NON-NLS-1$
+		String version = attrs.get("version"); //$NON-NLS-1$
 
 		if (version != null)
 		{
@@ -861,6 +875,16 @@ public class JSMetadataReader extends MetadataReader
 	 */
 	public void exitValue(String ns, String name, String qname)
 	{
+	}
+
+	/**
+	 * getAliases
+	 * 
+	 * @return
+	 */
+	public AliasElement[] getAliases()
+	{
+		return this._aliases.toArray(new AliasElement[this._aliases.size()]);
 	}
 
 	/*

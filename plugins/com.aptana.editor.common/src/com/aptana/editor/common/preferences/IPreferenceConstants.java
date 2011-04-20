@@ -74,6 +74,11 @@ public interface IPreferenceConstants
 	public static final String EDITOR_PEER_CHARACTER_CLOSE = CommonEditorPlugin.PLUGIN_ID + ".editorPeerCharacterClose"; //$NON-NLS-1$
 
 	/**
+	 * Do we automatically wrap selections with matching chars?
+	 */
+	public static final String EDITOR_WRAP_SELECTION = CommonEditorPlugin.PLUGIN_ID + ".editorWrapSelection"; //$NON-NLS-1$
+
+	/**
 	 * The preference key for the comma-separated list of selected validators for a language
 	 */
 	public static final String SELECTED_VALIDATORS = CommonEditorPlugin.PLUGIN_ID + ".selectedValidators"; //$NON-NLS-1$
@@ -83,4 +88,14 @@ public interface IPreferenceConstants
 	 * if matched
 	 */
 	public static final String FILTER_EXPRESSIONS = CommonEditorPlugin.PLUGIN_ID + ".filterExpressions"; //$NON-NLS-1$
+
+	/**
+	 * Do we display code assist hovers
+	 */
+	public static final String CONTENT_ASSIST_HOVER = CommonEditorPlugin.PLUGIN_ID + ".contentAssistHover"; //$NON-NLS-1$
+
+	/**
+	 * The preference key used to enable and disable auto indent.
+	 */
+	public static final String EDITOR_AUTO_INDENT = CommonEditorPlugin.PLUGIN_ID + ".autoIndent"; //$NON-NLS-1$
 }

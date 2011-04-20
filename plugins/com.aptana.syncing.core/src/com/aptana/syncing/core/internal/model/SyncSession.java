@@ -54,13 +54,13 @@ import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.jobs.ISchedulingRule;
 
+import com.aptana.core.io.vfs.IExtendedFileStore;
 import com.aptana.ide.core.io.IConnectionPoint;
-import com.aptana.ide.core.io.vfs.IExtendedFileStore;
 import com.aptana.syncing.core.events.ISyncSessionListener;
 import com.aptana.syncing.core.events.SyncSessionEvent;
 import com.aptana.syncing.core.model.ISyncItem;
-import com.aptana.syncing.core.model.ISyncSession;
 import com.aptana.syncing.core.model.ISyncItem.Type;
+import com.aptana.syncing.core.model.ISyncSession;
 
 /**
  * @author Max Stepanov

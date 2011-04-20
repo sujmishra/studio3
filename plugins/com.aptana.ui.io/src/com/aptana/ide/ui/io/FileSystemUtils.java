@@ -22,7 +22,7 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jface.viewers.TreePath;
 
-import com.aptana.ide.core.io.vfs.IExtendedFileInfo;
+import com.aptana.core.io.vfs.IExtendedFileInfo;
 import com.aptana.ide.ui.io.internal.FetchFileInfoJob;
 import com.aptana.ide.ui.io.internal.FetchFileInfoStatus;
 
@@ -98,8 +98,8 @@ public final class FileSystemUtils {
 		return new TreePath(list.toArray());
 	}
 	
-	public static IFileInfo fetchFileInfo(IFileStore fileStore) throws OperationCanceledException {
-		Job job = new FetchFileInfoJob(fileStore);
+	public static IFileInfo fetchFileInfo(IFileStore fileStore, int options) throws OperationCanceledException {
+		Job job = new FetchFileInfoJob(fileStore, options);
 		job.setPriority(Job.SHORT);
 		job.setSystem(true);
 		job.schedule();

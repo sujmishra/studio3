@@ -26,9 +26,8 @@ function test123() /** */
 {
     var j;
 }
-
 ==FORMATTED==
-function test123() /** */ {
+function test123() /** */
+{
     var j;
 }
-

@@ -4,16 +4,17 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 
+import junit.framework.TestCase;
+
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.text.edits.MalformedTreeException;
 import org.eclipse.text.edits.TextEdit;
 
+import com.aptana.core.util.StringUtil;
 import com.aptana.formatter.IScriptFormatter;
 import com.aptana.formatter.IScriptFormatterFactory;
-
-import junit.framework.TestCase;
 
 /**
  * AbstractFormatterTestCase <br>
@@ -30,7 +31,7 @@ public abstract class AbstractFormatterTestCase extends TestCase
 	{
 		IScriptFormatter formatter = file.getFormatter();
 		String source = file.getContent();
-		TextEdit formattedTextEdit = formatter.format(source, 0, source.length(), 0, false, null);
+		TextEdit formattedTextEdit = formatter.format(source, 0, source.length(), 0, false, null, StringUtil.EMPTY);
 
 		String expectedResult = file.getFormattedContent();
 		IDocument document = new org.eclipse.jface.text.Document(source);
@@ -40,15 +41,15 @@ public abstract class AbstractFormatterTestCase extends TestCase
 			assertNotNull("Could not format " + filename, formattedTextEdit); //$NON-NLS-1$
 			formattedTextEdit.apply(document);
 			assertTrue("Formatted contents of " + filename + " do not match expected contents", //$NON-NLS-1$ //$NON-NLS-2$
-					compareWithWhiteSpace(document.get(), expectedResult));
+					compareWithWhiteSpace(document.get().replaceAll("\r\n", "\n"), expectedResult));//$NON-NLS-1$ //$NON-NLS-2$
 		}
 		catch (MalformedTreeException e)
 		{
-			assertNotNull("Could not format " + filename, formattedTextEdit); //$NON-NLS-1$
+			assertNotNull("MalformedTreeException: Could not format " + filename, formattedTextEdit); //$NON-NLS-1$
 		}
 		catch (BadLocationException e)
 		{
-			assertNotNull("Could not format " + filename, formattedTextEdit); //$NON-NLS-1$
+			assertNotNull("BadLocationException: Could not format " + filename, formattedTextEdit); //$NON-NLS-1$
 		}
 
 	}
@@ -75,6 +76,6 @@ public abstract class AbstractFormatterTestCase extends TestCase
 		return (String[]) filePaths.toArray(new String[filePaths.size()]);
 	}
 
-	protected abstract boolean compareWithWhiteSpace(String original, String formattedText);
+	protected abstract boolean compareWithWhiteSpace(String formattedText, String expectedResult);
 
 }

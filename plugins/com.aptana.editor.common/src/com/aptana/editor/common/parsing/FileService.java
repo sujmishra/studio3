@@ -13,6 +13,7 @@ import java.util.Set;
 import org.eclipse.jface.text.IDocument;
 
 import com.aptana.editor.common.outline.IParseListener;
+import com.aptana.editor.common.validator.IValidationManager;
 import com.aptana.editor.common.validator.ValidationManager;
 import com.aptana.parsing.IParseState;
 import com.aptana.parsing.ParseState;
@@ -25,20 +26,20 @@ public class FileService
 	private IParseState fParseState;
 	private int fLastSourceHash;
 	private Set<IParseListener> listeners = new HashSet<IParseListener>();
-	private String fLanguage;
+	private String contentType;
 	private ValidationManager fValidationManager;
 	private boolean fHasValidParseResult;
 
-	public FileService(String language)
+	public FileService(String contentType)
 	{
-		this(language, new ParseState());
+		this(contentType, new ParseState());
 	}
 
-	public FileService(String language, IParseState parseState)
+	public FileService(String contentType, IParseState parseState)
 	{
-		this.fLanguage = language;
+		this.contentType = contentType;
 		this.fParseState = parseState;
-		fValidationManager = new ValidationManager();
+		fValidationManager = new ValidationManager(this);
 	}
 
 	public void dispose()
@@ -79,6 +80,11 @@ public class FileService
 		return fParseState;
 	}
 
+	public IValidationManager getValidationManager()
+	{
+		return fValidationManager;
+	}
+
 	/**
 	 * Return a flag indicating if the last parse was successful. If it was, then the parse result represents the result
 	 * of that parse. If it was not, then the parse result is the result of the last successful parse
@@ -106,7 +112,7 @@ public class FileService
 	 */
 	public synchronized void parse(boolean force)
 	{
-		if (fLanguage != null && fDocument != null)
+		if (contentType != null && fDocument != null)
 		{
 			String source = fDocument.get();
 			int sourceHash = source.hashCode();
@@ -121,7 +127,7 @@ public class FileService
 
 				try
 				{
-					ParserPoolFactory.parse(fLanguage, fParseState);
+					ParserPoolFactory.parse(contentType, fParseState);
 
 					// indicate current parse result is now valid
 					this.fHasValidParseResult = true;
@@ -134,12 +140,11 @@ public class FileService
 				}
 				catch (Exception e)
 				{
-					e.printStackTrace();
 					// not logging the parsing error here since the source could be in an intermediate state of being
 					// edited by the user
 				}
 
-				fValidationManager.validate(source, fLanguage);
+				fValidationManager.validate(source, contentType);
 			}
 		}
 		else

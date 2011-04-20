@@ -101,7 +101,7 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener, IPref
 	public InvasiveThemeHijacker()
 	{
 		super("Installing invasive theme hijacker!"); //$NON-NLS-1$
-		setSystem(true);
+		setSystem(!EclipseUtil.showSystemJobs());
 	}
 
 	protected boolean invasiveThemesEnabled()
@@ -827,6 +827,7 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener, IPref
 			return;
 		if (revertToDefaults)
 		{
+			prefs.remove(AbstractTextEditor.PREFERENCE_COLOR_SELECTION_BACKGROUND);
 			prefs.remove(AbstractTextEditor.PREFERENCE_COLOR_SELECTION_FOREGROUND);
 			prefs.remove(AbstractTextEditor.PREFERENCE_COLOR_BACKGROUND);
 			prefs.remove(AbstractTextEditor.PREFERENCE_COLOR_FOREGROUND);
@@ -834,8 +835,10 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener, IPref
 		}
 		else
 		{
-			prefs.put(AbstractTextEditor.PREFERENCE_COLOR_SELECTION_FOREGROUND,
+			prefs.put(AbstractTextEditor.PREFERENCE_COLOR_SELECTION_BACKGROUND,
 					StringConverter.asString(theme.getSelectionAgainstBG()));
+			prefs.put(AbstractTextEditor.PREFERENCE_COLOR_SELECTION_FOREGROUND,
+					StringConverter.asString(theme.getForeground()));
 			prefs.put(AbstractTextEditor.PREFERENCE_COLOR_BACKGROUND, StringConverter.asString(theme.getBackground()));
 			prefs.put(AbstractTextEditor.PREFERENCE_COLOR_FOREGROUND, StringConverter.asString(theme.getForeground()));
 			prefs.put(AbstractDecoratedTextEditorPreferenceConstants.EDITOR_CURRENT_LINE_COLOR,
@@ -858,11 +861,11 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener, IPref
 
 	protected void setEditorValues(Theme theme, IEclipsePreferences prefs, boolean revertToDefaults)
 	{
+		// FIXME Check for overrides in theme
 		if (revertToDefaults)
 		{
 			prefs.remove("occurrenceIndicationColor"); //$NON-NLS-1$
 			prefs.remove("writeOccurrenceIndicationColor"); //$NON-NLS-1$
-			prefs.remove("pydevOccurrenceIndicationColor"); //$NON-NLS-1$
 			prefs.remove("currentIPColor"); //$NON-NLS-1$
 			prefs.remove("secondaryIPColor"); //$NON-NLS-1$
 
@@ -897,7 +900,6 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener, IPref
 
 			prefs.put("occurrenceIndicationColor", StringConverter.asString(theme.getSelectionAgainstBG())); //$NON-NLS-1$
 			prefs.put("writeOccurrenceIndicationColor", StringConverter.asString(theme.getSelectionAgainstBG())); //$NON-NLS-1$
-			prefs.put("pydevOccurrenceIndicationColor", StringConverter.asString(theme.getSelectionAgainstBG())); //$NON-NLS-1$
 			// Override the debug line highlight colors
 			prefs.put("currentIPColor", StringConverter.asString(theme.getBackgroundAsRGB("meta.diff.header"))); //$NON-NLS-1$ //$NON-NLS-2$
 			prefs.put("secondaryIPColor", StringConverter.asString(theme.getBackgroundAsRGB("meta.diff.header"))); //$NON-NLS-1$ //$NON-NLS-2$

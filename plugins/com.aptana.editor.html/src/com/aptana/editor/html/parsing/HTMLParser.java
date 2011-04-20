@@ -14,6 +14,7 @@ import java.util.Stack;
 
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.rules.IToken;
+import org.eclipse.jface.text.rules.ITokenScanner;
 
 import beaver.Scanner.Exception;
 import beaver.Symbol;
@@ -26,6 +27,7 @@ import com.aptana.editor.html.parsing.ast.HTMLCommentNode;
 import com.aptana.editor.html.parsing.ast.HTMLElementNode;
 import com.aptana.editor.html.parsing.ast.HTMLNode;
 import com.aptana.editor.html.parsing.ast.HTMLSpecialNode;
+import com.aptana.editor.html.parsing.ast.HTMLTextNode;
 import com.aptana.editor.html.parsing.lexer.HTMLTokens;
 import com.aptana.editor.js.parsing.IJSParserConstants;
 import com.aptana.parsing.IParseState;
@@ -134,17 +136,28 @@ public class HTMLParser implements IParser
 
 	protected void processLanguage(String language, short endToken) throws IOException, Exception
 	{
+		ITokenScanner tokenScanner = fScanner.getTokenScanner().getPrimaryTokenScanner();
+		if (tokenScanner instanceof HTMLTokenScanner)
+		{
+			((HTMLTokenScanner) tokenScanner).setInsideSpecialTag(true);
+		}
+
 		Symbol startTag = fCurrentSymbol;
 		advance();
 
 		int start = fCurrentSymbol.getStart();
-		int end = start;
+		int end = start - 1;
 		short id = fCurrentSymbol.getId();
 		while (id != endToken && id != HTMLTokens.EOF)
 		{
 			end = fCurrentSymbol.getEnd();
 			advance();
 			id = fCurrentSymbol.getId();
+		}
+
+		if (tokenScanner instanceof HTMLTokenScanner)
+		{
+			((HTMLTokenScanner) tokenScanner).setInsideSpecialTag(false);
 		}
 
 		IParseNode[] nested = getParseResult(language, start, end);
@@ -223,15 +236,25 @@ public class HTMLParser implements IParser
 
 	private IParseNode[] getParseResult(String language, int start, int end)
 	{
-		try
+		if (start <= end)
 		{
-			String text = fScanner.getSource().get(start, end - start + 1);
-			IParseNode node = ParserPoolFactory.parse(language, text);
-			addOffset(node, start);
-			return new IParseNode[] { node };
-		}
-		catch (java.lang.Exception e)
-		{
+			try
+			{
+				String text = fScanner.getSource().get(start, end - start + 1);
+				IParseNode node = ParserPoolFactory.parse(language, text);
+				if (node == null)
+				{
+					node = new HTMLTextNode(text, start, end);
+				}
+				else
+				{
+					addOffset(node, start);
+				}
+				return new IParseNode[] { node };
+			}
+			catch (java.lang.Exception e)
+			{
+			}
 		}
 		return new IParseNode[0];
 	}
@@ -471,7 +494,7 @@ public class HTMLParser implements IParser
 		}
 	}
 
-	private static boolean isJavaScript(HTMLElementNode node)
+	public static boolean isJavaScript(HTMLElementNode node)
 	{
 		String type = node.getAttributeValue(ATTR_TYPE);
 		if (isInArray(type, JS_VALID_TYPE_ATTR))

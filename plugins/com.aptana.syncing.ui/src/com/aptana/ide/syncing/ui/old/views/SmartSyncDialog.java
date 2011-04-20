@@ -77,13 +77,13 @@ import org.eclipse.ui.navigator.CommonNavigator;
 import org.eclipse.ui.navigator.CommonViewer;
 import org.eclipse.ui.progress.UIJob;
 
+import com.aptana.core.io.efs.EFSUtils;
 import com.aptana.core.util.FileUtil;
 import com.aptana.core.util.StringUtil;
 import com.aptana.ide.core.io.ConnectionPointType;
 import com.aptana.ide.core.io.CoreIOPlugin;
 import com.aptana.ide.core.io.IConnectionPoint;
 import com.aptana.ide.core.io.WorkspaceConnectionPoint;
-import com.aptana.ide.core.io.efs.EFSUtils;
 import com.aptana.ide.syncing.core.old.ConnectionPointSyncPair;
 import com.aptana.ide.syncing.core.old.ILogger;
 import com.aptana.ide.syncing.core.old.ISyncEventHandler;
@@ -1831,7 +1831,7 @@ public class SmartSyncDialog extends TitleAreaDialog implements SelectionListene
 						if (viewPart instanceof RemoteNavigatorView)
 						{
 							RemoteNavigatorView view = (RemoteNavigatorView) viewPart;
-							view.refresh(serverConnection);
+							view.getCommonViewer().refresh(serverConnection);
 						}
 					}
 					catch (PartInitException e)

@@ -53,12 +53,12 @@ import org.eclipse.ui.internal.ide.dialogs.FileFolderSelectionDialog;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
 
 import com.aptana.core.CoreStrings;
+import com.aptana.core.io.efs.EFSUtils;
 import com.aptana.core.util.StringUtil;
 import com.aptana.filesystem.ftp.FTPConnectionPoint;
 import com.aptana.ide.core.io.ConnectionPointUtils;
 import com.aptana.ide.core.io.CoreIOPlugin;
 import com.aptana.ide.core.io.IConnectionPoint;
-import com.aptana.ide.core.io.efs.EFSUtils;
 import com.aptana.ide.syncing.core.DefaultSiteConnection;
 import com.aptana.ide.syncing.core.ISiteConnection;
 import com.aptana.ide.syncing.core.SyncingPlugin;
@@ -619,17 +619,20 @@ public class SiteConnectionPropertiesWidget extends Composite implements ModifyL
             } else if (ConnectionPointUtils.isWorkspace(connectionPoint)) {
                 setType(PROJECT);
                 IResource resource = (IResource) connectionPoint.getAdapter(IResource.class);
-                projectViewer.setSelection(new StructuredSelection(resource.getProject()), true);
-                IPath path = resource.getProjectRelativePath();
-                if (path.isEmpty()) {
-                    path = Path.ROOT;
-                }
-                projectFolderText.setText(path.toPortableString());
+				if (resource != null) {
+					projectViewer.setSelection(new StructuredSelection(resource.getProject()), true);
+					IPath path = resource.getProjectRelativePath();
+					if (path.isEmpty()) {
+						path = Path.ROOT;
+					}
+					projectFolderText.setText(path.toPortableString());
+				}
             } else if (ConnectionPointUtils.isLocal(connectionPoint)) {
                 setType(FILESYSTEM);
                 File file = (File) connectionPoint.getAdapter(File.class);
-                filesystemFolderText.setText(Path.fromOSString(file.getAbsolutePath())
-                        .toPortableString());
+				if (file != null) {
+					filesystemFolderText.setText(Path.fromOSString(file.getAbsolutePath()).toPortableString());
+				}
             }
         }
 

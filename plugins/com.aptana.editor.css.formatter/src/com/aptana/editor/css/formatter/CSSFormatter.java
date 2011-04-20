@@ -111,10 +111,11 @@ public class CSSFormatter extends AbstractScriptFormatter implements IScriptForm
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.aptana.formatter.IScriptFormatter#format(java.lang.String, int, int, int, boolean)
+	 * @see com.aptana.formatter.IScriptFormatter#format(java.lang.String, int, int, int, boolean,
+	 * org.eclipse.jface.text.formatter.IFormattingContext, java.lang.String)
 	 */
 	public TextEdit format(String source, int offset, int length, int indentationLevel, boolean isSelection,
-			IFormattingContext context) throws FormatterException
+			IFormattingContext context, String indentSufix) throws FormatterException
 	{
 		String input = new String(source.substring(offset, offset + length));
 		IParser parser = checkoutParser();
@@ -126,7 +127,8 @@ public class CSSFormatter extends AbstractScriptFormatter implements IScriptForm
 			checkinParser(parser);
 			if (parseResult != null)
 			{
-				final String output = format(input, parseResult, indentationLevel, offset, isSelection);
+				final String output = format(input, parseResult, indentationLevel, offset, isSelection, indentSufix,
+						offset != 0, length != source.length());
 				if (output != null)
 				{
 					if (!input.equals(output))
@@ -149,10 +151,10 @@ public class CSSFormatter extends AbstractScriptFormatter implements IScriptForm
 		}
 		catch (beaver.Parser.Exception e)
 		{
-			StatusLineMessageTimerManager.setErrorMessage(NLS.bind(
-					FormatterMessages.Formatter_formatterParsingErrorStatus, e.getMessage()), ERROR_DISPLAY_TIMEOUT,
-					true);
-			if (FormatterPlugin.DEBUG)
+			StatusLineMessageTimerManager.setErrorMessage(
+					NLS.bind(FormatterMessages.Formatter_formatterParsingErrorStatus, e.getMessage()),
+					ERROR_DISPLAY_TIMEOUT, true);
+			if (FormatterPlugin.getDefault().isDebugging())
 			{
 				FormatterPlugin.logError(e);
 			}
@@ -220,11 +222,15 @@ public class CSSFormatter extends AbstractScriptFormatter implements IScriptForm
 	 *            An CSS parser result - {@link IParseRootNode}
 	 * @param indentationLevel
 	 *            The indentation level to start from
+	 * @param indentSufix
+	 * @param prefixWithNewLine
+	 * @param postfixWithNewLine
 	 * @return A formatted string
 	 * @throws Exception
 	 */
 	private String format(String input, IParseRootNode parseResult, int indentationLevel, int offset,
-			boolean isSelection) throws Exception
+			boolean isSelection, String indentSufix, boolean prefixWithNewLine, boolean postfixWithNewLine)
+			throws Exception
 	{
 		int spacesCount = -1;
 		if (isSelection)
@@ -244,9 +250,21 @@ public class CSSFormatter extends AbstractScriptFormatter implements IScriptForm
 		String output = writer.getOutput();
 		if (isSelection)
 		{
-			if (isSelection)
+			output = leftTrim(output, spacesCount);
+		}
+		else
+		{
+			if (output.length() > 0)
 			{
-				output = leftTrim(output, spacesCount);
+				if (prefixWithNewLine && !output.startsWith(lineSeparator))
+				{
+					output = lineSeparator + output;
+				}
+				if (postfixWithNewLine && !output.endsWith(lineSeparator))
+				{
+					output += lineSeparator;
+				}
+				output += indentSufix;
 			}
 		}
 		return output;

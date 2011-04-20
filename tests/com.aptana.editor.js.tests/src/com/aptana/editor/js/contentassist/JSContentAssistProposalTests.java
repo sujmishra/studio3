@@ -7,36 +7,108 @@
  */
 package com.aptana.editor.js.contentassist;
 
-import org.eclipse.jface.text.ITextViewer;
-import org.eclipse.jface.text.TextViewer;
-import org.eclipse.jface.text.contentassist.ICompletionProposal;
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Shell;
-
-import com.aptana.editor.js.tests.EditorBasedTests;
+import com.aptana.editor.js.tests.JSEditorBasedTests;
 
 /**
  * JSContentAssistProposalTests
  */
-public class JSContentAssistProposalTests extends EditorBasedTests
+public class JSContentAssistProposalTests extends JSEditorBasedTests
 {
+	/**
+	 * testStringCharCodeAt
+	 */
 	public void testStringCharCodeAt()
 	{
-		TestContext context = this.getTestContext("contentAssist/string-charCodeAt.js");
-		int offset = context.source.length();
-		ITextViewer viewer = new TextViewer(new Shell(), SWT.NONE);
-		viewer.setDocument(context.document);
-		ICompletionProposal[] proposals = context.processor.doComputeCompletionProposals(viewer, offset, '\0', false);
-		boolean foundCharCodeAt = false;
-		
-		for (ICompletionProposal proposal : proposals)
-		{
-			if ("charCodeAt".equals(proposal.getDisplayString()))
-			{
-				foundCharCodeAt = true;
-				break;
-			}
-		}
-		assertTrue(foundCharCodeAt);
+		this.checkProposals("contentAssist/string-charCodeAt.js", "charCodeAt");
+	}
+
+	/**
+	 * testBug_Math
+	 */
+	public void testBug_Math()
+	{
+		// @formatter:off
+		this.checkProposals(
+			"contentAssist/math.js",
+			"E",
+			"LN10",
+			"LN2",
+			"LOG10E",
+			"LOG2E",
+			"PI",
+			"SQRT1_2",
+			"SQRT2",
+			"abs",
+			"acos",
+			"asin",
+			"atan",
+			"atan2",
+			"ceil",
+			"cos",
+			"exp",
+			"floor",
+			"log",
+			"max",
+			"min",
+			"pow",
+			"random",
+			"round",
+			"sin",
+			"sqrt",
+			"tan"
+		);
+		// @formatter:on
+	}
+
+	/**
+	 * testBug_VarAssignWithEndingDot
+	 */
+	public void testBug_VarAssignWithEndingDot()
+	{
+		// @formatter:off
+		this.checkProposals(
+			"contentAssist/var-assign-with-ending-dot.js",
+			"E",
+			"LN10",
+			"LN2",
+			"LOG10E",
+			"LOG2E",
+			"PI",
+			"SQRT1_2",
+			"SQRT2",
+			"abs",
+			"acos",
+			"asin",
+			"atan",
+			"atan2",
+			"ceil",
+			"cos",
+			"exp",
+			"floor",
+			"log",
+			"max",
+			"min",
+			"pow",
+			"random",
+			"round",
+			"sin",
+			"sqrt",
+			"tan"
+		);
+		// @formatter:on
+	}
+
+	/**
+	 * testObjectLiteral
+	 */
+	public void testObjectLiteral()
+	{
+		// @formatter:off
+		this.checkProposals(
+			"contentAssist/object-literal.js",
+			"flag",
+			"number"
+		);
+		// @formatter:on
 	}
 }

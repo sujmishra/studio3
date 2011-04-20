@@ -26,8 +26,10 @@ import com.aptana.editor.js.contentassist.model.ParameterElement;
 import com.aptana.editor.js.contentassist.model.PropertyElement;
 import com.aptana.editor.js.contentassist.model.ReturnTypeElement;
 import com.aptana.editor.js.contentassist.model.UserAgentElement;
+import com.aptana.editor.js.parsing.ast.JSAssignmentNode;
 import com.aptana.editor.js.parsing.ast.JSDeclarationNode;
 import com.aptana.editor.js.parsing.ast.JSFunctionNode;
+import com.aptana.editor.js.parsing.ast.JSIdentifierNode;
 import com.aptana.editor.js.parsing.ast.JSNameValuePairNode;
 import com.aptana.editor.js.parsing.ast.JSNode;
 import com.aptana.editor.js.parsing.ast.JSNodeTypes;
@@ -329,6 +331,30 @@ public class JSTypeUtil
 	}
 
 	/**
+	 * getFunctionType
+	 * 
+	 * @param typeName
+	 * @return
+	 */
+	public static String getFunctionType(String typeName)
+	{
+		String result = typeName;
+
+		if (typeName != null && typeName.startsWith(JSTypeConstants.GENERIC_FUNCTION_OPEN))
+		{
+			int startingIndex = JSTypeConstants.GENERIC_FUNCTION_OPEN.length();
+			int endingIndex = typeName.indexOf(JSTypeConstants.GENERIC_CLOSE, startingIndex);
+
+			if (endingIndex != -1)
+			{
+				result = typeName.substring(startingIndex, endingIndex);
+			}
+		}
+
+		return result;
+	}
+
+	/**
 	 * getName
 	 * 
 	 * @param node
@@ -379,6 +405,16 @@ public class JSTypeUtil
 						IParseNode declarationName = declaration.getIdentifier();
 
 						parts.add(declarationName.getText());
+						break;
+
+					case JSNodeTypes.ASSIGN:
+						JSAssignmentNode assignment = (JSAssignmentNode) current;
+						IParseNode lhs = assignment.getLeftHandSide();
+
+						if (lhs instanceof JSIdentifierNode)
+						{
+							parts.add(lhs.getText());
+						}
 						break;
 
 					default:
@@ -435,6 +471,24 @@ public class JSTypeUtil
 			Matcher m = JSTypeConstants.FUNCTION_PREFIX.matcher(type);
 
 			result = m.find();
+		}
+
+		return result;
+	}
+
+	/**
+	 * toFunctionType
+	 * 
+	 * @param type
+	 * @return
+	 */
+	public static String toFunctionType(String type)
+	{
+		String result = type;
+
+		if (isFunctionPrefix(type) == false)
+		{
+			result = JSTypeConstants.GENERIC_FUNCTION_OPEN + type + JSTypeConstants.GENERIC_CLOSE;
 		}
 
 		return result;

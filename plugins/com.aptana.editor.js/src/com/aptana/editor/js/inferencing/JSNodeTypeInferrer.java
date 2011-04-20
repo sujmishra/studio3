@@ -606,9 +606,15 @@ public class JSNodeTypeInferrer extends JSTreeWalker
 			}
 			else
 			{
-				JSSymbolTypeInferrer symbolInferrer = new JSSymbolTypeInferrer(this._scope, this._index, this._location);
+				property = this._queryHelper.getGlobal(this._index, name);
 
-				property = symbolInferrer.getSymbolPropertyElement(name);
+				if (property == null)
+				{
+					JSSymbolTypeInferrer symbolInferrer = new JSSymbolTypeInferrer(this._scope, this._index,
+							this._location);
+
+					property = symbolInferrer.getSymbolPropertyElement(name);
+				}
 			}
 		}
 		else
@@ -686,6 +692,7 @@ public class JSNodeTypeInferrer extends JSTreeWalker
 			JSPropertyCollector collector = new JSPropertyCollector(symbol);
 
 			collector.visit(node);
+			symbol.addValue(node);
 
 			// infer type
 			JSSymbolTypeInferrer inferrer = new JSSymbolTypeInferrer(this._scope, this._index, this._location);
