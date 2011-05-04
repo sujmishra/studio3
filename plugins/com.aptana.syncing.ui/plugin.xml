@@ -555,6 +555,9 @@
          <adapter
                type="org.eclipse.ui.progress.IDeferredWorkbenchAdapter">
          </adapter>
+         <adapter
+               type="org.eclipse.core.filesystem.IFileStore">
+         </adapter>
       </factory>
    </extension>
    <extension

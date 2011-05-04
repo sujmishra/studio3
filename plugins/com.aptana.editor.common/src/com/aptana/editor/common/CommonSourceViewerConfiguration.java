@@ -34,11 +34,12 @@ import org.eclipse.jface.text.ITextViewer;
 import org.eclipse.jface.text.contentassist.IContentAssistProcessor;
 import org.eclipse.jface.text.contentassist.IContentAssistant;
 import org.eclipse.jface.text.formatter.IContentFormatter;
-import org.eclipse.jface.text.hyperlink.DefaultHyperlinkPresenter;
 import org.eclipse.jface.text.hyperlink.IHyperlinkPresenter;
+import org.eclipse.jface.text.hyperlink.MultipleHyperlinkPresenter;
 import org.eclipse.jface.text.information.IInformationPresenter;
 import org.eclipse.jface.text.information.InformationPresenter;
 import org.eclipse.jface.text.reconciler.IReconciler;
+import org.eclipse.jface.text.reconciler.IReconcilingStrategy;
 import org.eclipse.jface.text.source.Annotation;
 import org.eclipse.jface.text.source.IAnnotationHover;
 import org.eclipse.jface.text.source.ISourceViewer;
@@ -74,6 +75,7 @@ public abstract class CommonSourceViewerConfiguration extends TextSourceViewerCo
 	private CommonDoubleClickStrategy fDoubleClickStrategy;
 	private IPreferenceChangeListener fThemeChangeListener;
 	private IPreferenceChangeListener fAutoActivationListener;
+	private IReconcilingStrategy fReconcilingStrategy;
 	protected static final String CONTENTTYPE_HTML_PREFIX = "com.aptana.contenttype.html"; //$NON-NLS-1$
 	public static final int DEFAULT_CONTENT_ASSIST_DELAY = 200;
 	public static final int LONG_CONTENT_ASSIST_DELAY = 1000;
@@ -467,9 +469,9 @@ public abstract class CommonSourceViewerConfiguration extends TextSourceViewerCo
 	{
 		if (fTextEditor != null && fTextEditor.isEditable())
 		{
-			CommonCompositeReconcilingStrategy strategy = new CommonCompositeReconcilingStrategy(fTextEditor,
+			fReconcilingStrategy = new CommonCompositeReconcilingStrategy(fTextEditor,
 					getConfiguredDocumentPartitioning(sourceViewer));
-			CommonReconciler reconciler = new CommonReconciler(fTextEditor, strategy, false);
+			CommonReconciler reconciler = new CommonReconciler(fTextEditor, fReconcilingStrategy, false);
 
 			reconciler.setIsIncrementalReconciler(false);
 			reconciler.setIsAllowedToModifyDocument(false);
@@ -487,6 +489,17 @@ public abstract class CommonSourceViewerConfiguration extends TextSourceViewerCo
 		return fTextEditor;
 	}
 
+	/**
+	 * Force the current reconciler to reconcile immediately, rather than on delay
+	 */
+	public void forceReconcile()
+	{
+		if (fReconcilingStrategy != null)
+		{
+			fReconcilingStrategy.reconcile(null);
+		}
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see
@@ -496,7 +509,7 @@ public abstract class CommonSourceViewerConfiguration extends TextSourceViewerCo
 	public IHyperlinkPresenter getHyperlinkPresenter(ISourceViewer sourceViewer)
 	{
 		RGB rgb = getCurrentTheme().getForegroundAsRGB("hyperlink"); //$NON-NLS-1$
-		return new DefaultHyperlinkPresenter(rgb);
+		return new MultipleHyperlinkPresenter(rgb);
 	}
 
 	protected Theme getCurrentTheme()

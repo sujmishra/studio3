@@ -9,6 +9,7 @@ package com.aptana.editor.common;
 
 import java.lang.reflect.Field;
 import java.text.MessageFormat;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
 
@@ -17,6 +18,7 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.core.runtime.content.IContentType;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.MenuManager;
@@ -25,6 +27,7 @@ import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextViewerExtension;
 import org.eclipse.jface.text.ITextViewerExtension5;
+import org.eclipse.jface.text.Position;
 import org.eclipse.jface.text.TextViewer;
 import org.eclipse.jface.text.formatter.FormattingContextProperties;
 import org.eclipse.jface.text.formatter.IFormattingContext;
@@ -32,6 +35,7 @@ import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.jface.text.source.IVerticalRuler;
 import org.eclipse.jface.text.source.LineNumberRulerColumn;
 import org.eclipse.jface.text.source.SourceViewerConfiguration;
+import org.eclipse.jface.text.source.projection.ProjectionAnnotation;
 import org.eclipse.jface.text.source.projection.ProjectionViewer;
 import org.eclipse.jface.util.IPropertyChangeListener;
 import org.eclipse.jface.util.PropertyChangeEvent;
@@ -51,7 +55,9 @@ import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.contexts.IContextService;
+import org.eclipse.ui.editors.text.TextFileDocumentProvider;
 import org.eclipse.ui.internal.editors.text.EditorsPlugin;
+import org.eclipse.ui.texteditor.AbstractDecoratedTextEditorPreferenceConstants;
 import org.eclipse.ui.texteditor.ChainedPreferenceStore;
 import org.eclipse.ui.texteditor.ITextEditorActionConstants;
 import org.eclipse.ui.texteditor.SourceViewerDecorationSupport;
@@ -352,7 +358,8 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 		fOverviewRuler = createOverviewRuler(getSharedColors());
 
 		// Need to make it a projection viewer now that we have folding...
-		ProjectionViewer viewer = new ProjectionViewer(parent, ruler, getOverviewRuler(), isOverviewRulerVisible(), styles)
+		ProjectionViewer viewer = new ProjectionViewer(parent, ruler, getOverviewRuler(), isOverviewRulerVisible(),
+				styles)
 		{
 			protected Layout createLayout()
 			{
@@ -413,9 +420,7 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 							AbstractThemeableEditor abstractThemeableEditor = AbstractThemeableEditor.this;
 							IResource file = (IResource) abstractThemeableEditor.getEditorInput().getAdapter(
 									IResource.class);
-							context
-									.setProperty(ScriptFormattingContextProperties.CONTEXT_FORMATTER_ID, factory
-											.getId());
+							context.setProperty(ScriptFormattingContextProperties.CONTEXT_FORMATTER_ID, factory.getId());
 							IProject project = (file != null) ? file.getProject() : null;
 							Map preferences = factory.retrievePreferences(new PreferencesLookupDelegate(project));
 							context.setProperty(FormattingContextProperties.CONTEXT_PREFERENCES, preferences);
@@ -548,6 +553,15 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 
 	protected FileService createFileService()
 	{
+		try
+		{
+			IContentType contentType = ((TextFileDocumentProvider) getDocumentProvider())
+					.getContentType(getEditorInput());
+			return new FileService(contentType.getId());
+		}
+		catch (Exception e)
+		{
+		}
 		return new FileService(null);
 	}
 
@@ -562,17 +576,54 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 	@Override
 	protected void handlePreferenceStoreChanged(PropertyChangeEvent event)
 	{
+		// Add case when the global editor settings have changed
+		String property = event.getProperty();
+
 		super.handlePreferenceStoreChanged(event);
 		this.fThemeableEditorColorsExtension.handlePreferenceStoreChanged(event);
-		if (event.getProperty().equals(IPreferenceConstants.EDITOR_PEER_CHARACTER_CLOSE))
+		if (property.equals(IPreferenceConstants.EDITOR_PEER_CHARACTER_CLOSE))
 		{
 			fPeerCharacterCloser.setAutoInsertEnabled(Boolean.parseBoolean(StringUtil.getStringValue(event
 					.getNewValue())));
 		}
-		else if (event.getProperty().equals(IPreferenceConstants.EDITOR_WRAP_SELECTION))
+		else if (property.equals(IPreferenceConstants.EDITOR_WRAP_SELECTION))
 		{
 			fPeerCharacterCloser
 					.setAutoWrapEnabled(Boolean.parseBoolean(StringUtil.getStringValue(event.getNewValue())));
+		}
+		else if (property.equals(IPreferenceConstants.EDITOR_ENABLE_FOLDING))
+		{
+			if (isFoldingEnabled())
+			{
+				SourceViewerConfiguration config = getSourceViewerConfiguration();
+				if (config instanceof CommonSourceViewerConfiguration)
+				{
+					((CommonSourceViewerConfiguration) config).forceReconcile();
+				}
+			}
+			else
+			{
+				updateFoldingStructure(new HashMap<ProjectionAnnotation, Position>());
+			}
+		}
+		else if (IPreferenceConstants.USE_GLOBAL_DEFAULTS.equals(property))
+		{
+			// Update the tab settings when we modify the use global defaults preference
+			IPreferenceStore store = getPreferenceStore();
+			if (store != null)
+			{
+				getSourceViewer().getTextWidget().setTabs(
+						store.getInt(AbstractDecoratedTextEditorPreferenceConstants.EDITOR_TAB_WIDTH));
+			}
+			if (isTabsToSpacesConversionEnabled())
+			{
+				installTabsToSpacesConverter();
+			}
+			else
+			{
+				uninstallTabsToSpacesConverter();
+			}
+			return;
 		}
 	}
 
@@ -855,6 +906,17 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 	public boolean hasOutlinePageCreated()
 	{
 		return fOutlinePage != null;
+	}
+
+	/**
+	 * Returns true if the editor's preferences are set to fold.
+	 * 
+	 * @return True, if folding is on; False, in case it's off.
+	 */
+	public boolean isFoldingEnabled()
+	{
+		IPreferenceStore store = getPreferenceStore();
+		return store != null && store.getBoolean(IPreferenceConstants.EDITOR_ENABLE_FOLDING);
 	}
 
 	/**

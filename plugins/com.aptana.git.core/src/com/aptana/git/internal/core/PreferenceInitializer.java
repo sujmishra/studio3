@@ -7,11 +7,9 @@
  */
 package com.aptana.git.internal.core;
 
-import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
 import org.eclipse.core.runtime.preferences.DefaultScope;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
-import org.osgi.service.prefs.BackingStoreException;
 
 import com.aptana.git.core.GitPlugin;
 import com.aptana.git.core.IPreferenceConstants;
@@ -24,17 +22,10 @@ public class PreferenceInitializer extends AbstractPreferenceInitializer
 	{
 		IEclipsePreferences prefs = new DefaultScope().getNode(GitPlugin.getPluginId());
 		// turn on git pull indicator calculation on all non-win OSes
-		prefs.putBoolean(IPreferenceConstants.GIT_CALCULATE_PULL_INDICATOR, !Platform.getOS().equals(Platform.OS_WIN32));
+		prefs.putBoolean(IPreferenceConstants.GIT_CALCULATE_PULL_INDICATOR, false);
 		// By default, auto-attach projects to our git support if they have a repo
 		prefs.putBoolean(IPreferenceConstants.AUTO_ATTACH_REPOS, true);
-		try
-		{
-			prefs.flush();
-		}
-		catch (BackingStoreException e)
-		{
-			GitPlugin.logError(e.getMessage(), e);
-		}
+		prefs.putBoolean(IPreferenceConstants.IGNORE_NO_GIT, false);
 	}
 
 }

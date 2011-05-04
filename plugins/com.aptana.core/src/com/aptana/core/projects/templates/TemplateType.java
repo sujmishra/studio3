@@ -5,9 +5,12 @@
  * Please see the license.html included with this distribution for details.
  * Any modifications to this file must keep this entire header intact.
  */
-package com.aptana.editor.html.parsing;
+package com.aptana.core.projects.templates;
 
-public interface IHTMLParserConstants
+/**
+ * Project template type.
+ */
+public enum TemplateType
 {
-	public static final String LANGUAGE = "text/html"; //$NON-NLS-1$
+	UNDEFINED, ALL, RUBY, PHP, WEB, PYTHON, TITANIUM_MOBILE, TITANIUM_DESKTOP
 }
