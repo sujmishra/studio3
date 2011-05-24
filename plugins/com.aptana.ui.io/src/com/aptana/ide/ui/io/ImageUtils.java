@@ -10,7 +10,8 @@ package com.aptana.ide.ui.io;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.WeakHashMap;
 
 import javax.swing.Icon;
@@ -21,6 +22,7 @@ import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.jface.resource.JFaceResources;
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.PaletteData;
@@ -31,6 +33,7 @@ import org.eclipse.ui.internal.misc.ExternalProgramImageDescriptor;
 
 import com.aptana.core.util.PlatformUtil;
 import com.aptana.theme.ThemePlugin;
+import com.aptana.ui.util.UIUtils;
 
 /**
  * @author Max Stepanov
@@ -46,7 +49,9 @@ public final class ImageUtils {
 	private static javax.swing.JFileChooser jFileChooser;
 	private static final WeakHashMap<Object, String> iconToKeyMap = new WeakHashMap<Object, String>();
 
-	private static boolean shouldReset;
+	// Maintain a map of image keys that indicate if a specific icon needs a reset (usually after a theme change).
+	// We cannot just reset all images at once, as it yields image-disposed errors.
+	private static Map<String, Boolean> resetMap = new HashMap<String, Boolean>();
 
 	/**
 	 * 
@@ -93,13 +98,9 @@ public final class ImageUtils {
 			String imageKey = "os.fileType_" + fileType; //$NON-NLS-1$
 
 			ImageRegistry imageRegistry = JFaceResources.getImageRegistry();
-			if (shouldReset) {
-				Collection<String> imageKeys = iconToKeyMap.values();
-				for (String key : imageKeys) {
-					imageRegistry.remove(key);
-				}
-				iconToKeyMap.clear();
-				shouldReset = false;
+			if (resetMap.get(imageKey) != null && resetMap.get(imageKey)) {
+				imageRegistry.remove(imageKey);
+				resetMap.remove(imageKey);
 			}
 			ImageDescriptor imageDescriptor = imageRegistry.getDescriptor(imageKey);
 			if (imageDescriptor != null) {
@@ -125,6 +126,7 @@ public final class ImageUtils {
 					imageDescriptor = ImageDescriptor.createFromImageData(imageData);
 					imageRegistry.put(imageKey, imageDescriptor);
 					iconToKeyMap.put(icon, imageKey);
+					resetMap.put(imageKey, false);
 					return imageRegistry.getDescriptor(imageKey);
 				}
 			}
@@ -142,7 +144,11 @@ public final class ImageUtils {
 
 	public static void themeChanged()
 	{
-		shouldReset = true;
+		String[] keySet = resetMap.keySet().toArray(new String[resetMap.size()]);
+		for (String key : keySet)
+		{
+			resetMap.put(key, true);
+		}
 	}
 
 	private static ImageDescriptor getExtensionImageDescriptor(String extension) {
@@ -163,9 +169,19 @@ public final class ImageUtils {
 	}
 	
 	private static ImageData awtImageIconToSWTImageData(javax.swing.Icon icon, Color backgroundColor) {
-		java.awt.Color bgColor = swtColorToAWTColor(backgroundColor != null ? backgroundColor : ThemePlugin
-				.getDefault().getColorManager()
-				.getColor(ThemePlugin.getDefault().getThemeManager().getCurrentTheme().getBackground()));
+		if (backgroundColor == null)
+		{
+			if (ThemePlugin.invasiveThemesEnabled())
+			{
+				backgroundColor = ThemePlugin.getDefault().getColorManager()
+						.getColor(ThemePlugin.getDefault().getThemeManager().getCurrentTheme().getBackground());
+			}
+			else
+			{
+				backgroundColor = UIUtils.getDisplay().getSystemColor(SWT.COLOR_LIST_BACKGROUND);
+			}
+		}
+		java.awt.Color bgColor = swtColorToAWTColor(backgroundColor);
 
 		java.awt.image.BufferedImage bi = new java.awt.image.BufferedImage(icon.getIconWidth(), icon.getIconHeight(), java.awt.image.BufferedImage.TYPE_INT_RGB);
 		java.awt.Graphics2D imageGraphics = bi.createGraphics();

@@ -733,7 +733,14 @@ public class Theme
 	public void updateRule(int index, ThemeRule newRule)
 	{
 		coloringRules.remove(index);
-		coloringRules.add(index, newRule);
+		if (index >= coloringRules.size())
+		{
+			coloringRules.add(newRule);
+		}
+		else
+		{
+			coloringRules.add(index, newRule);
+		}
 		wipeCache();
 		save();
 	}
@@ -961,6 +968,26 @@ public class Theme
 		coloringRules.remove(entry);
 		wipeCache();
 		save();
+	}
+
+	/**
+	 * Does the user have invasive themes turned on?
+	 * 
+	 * @return
+	 */
+	public boolean isInvasive()
+	{
+		return ThemePlugin.invasiveThemesEnabled();
+	}
+
+	public Color getForegroundColor()
+	{
+		return getColorManager().getColor(getForeground());
+	}
+
+	protected ColorManager getColorManager()
+	{
+		return ThemePlugin.getDefault().getColorManager();
 	}
 
 }

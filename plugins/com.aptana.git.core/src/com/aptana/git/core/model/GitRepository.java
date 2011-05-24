@@ -16,6 +16,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URI;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -54,7 +55,6 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.jobs.Job;
 
-import com.aptana.core.ShellExecutable;
 import com.aptana.core.epl.ReadWriteMonitor;
 import com.aptana.core.util.EclipseUtil;
 import com.aptana.core.util.IOUtil;
@@ -87,6 +87,8 @@ public class GitRepository
 			return o1.compareTo(o2);
 		}
 	}
+
+	private static final String GITHUB_COM = "github.com"; //$NON-NLS-1$
 
 	/**
 	 * Filename to store ignores of files.
@@ -125,7 +127,8 @@ public class GitRepository
 	/**
 	 * Regexp used to grab list of remote URLs out of .git/config.
 	 */
-	private final static Pattern fgRemoteURLPattern = Pattern.compile("\\[remote \"(.+?)\"\\]\\s+url = (.+?)\\s+"); //$NON-NLS-1$
+	private final static Pattern fgRemoteURLPattern = Pattern
+			.compile("\\[remote \"(.+?)\"\\](\\s+[^\\[]+)?\\s+url = (.+?)\\s+"); //$NON-NLS-1$
 
 	/**
 	 * Monitor to allow simultaneous read processes, but only one "write" process which alters the repo/index.
@@ -1080,7 +1083,7 @@ public class GitRepository
 			Matcher m = fgRemoteURLPattern.matcher(contents);
 			while (m.find())
 			{
-				remoteURLs.add(m.group(2));
+				remoteURLs.add(m.group(3));
 			}
 		}
 		catch (FileNotFoundException e)
@@ -1213,25 +1216,7 @@ public class GitRepository
 	 */
 	IStatus executeWithPromptHandling(ReadWrite readOrWrite, String... args)
 	{
-		return execute(readOrWrite, gitShellEnv(), args);
-	}
-
-	private Map<String, String> gitShellEnv()
-	{
-		// Set up GIT_SSH!
-		Map<String, String> env = new HashMap<String, String>();
-		env.putAll(ShellExecutable.getEnvironment());
-		IPath git_ssh = GitPlugin.getDefault().getGIT_SSH();
-		if (git_ssh != null)
-		{
-			env.put("GIT_SSH", git_ssh.toOSString()); //$NON-NLS-1$
-		}
-		IPath git_askpass = GitPlugin.getDefault().getGIT_ASKPASS();
-		if (git_askpass != null)
-		{
-			env.put("GIT_ASKPASS", git_askpass.toOSString()); //$NON-NLS-1$
-		}
-		return env;
+		return execute(readOrWrite, GitExecutable.getShellEnvironment(), args);
 	}
 
 	private IStatus execute(ReadWrite readOrWrite, Map<String, String> env, String... args)
@@ -1772,5 +1757,32 @@ public class GitRepository
 	void exitRead()
 	{
 		monitor.exitRead();
+	}
+
+	public Set<String> getGithubURLs()
+	{
+		Set<String> githubURLs = new HashSet<String>();
+		// Check the remote urls for github and use that to determine URL we need!
+		for (String remoteURL : remoteURLs())
+		{
+			if (!remoteURL.contains(GITHUB_COM))
+			{
+				continue;
+			}
+			String remaining = remoteURL.substring(remoteURL.indexOf(GITHUB_COM) + 10);
+			if (remaining.startsWith("/") || remaining.startsWith(":")) //$NON-NLS-1$ //$NON-NLS-2$
+			{
+				remaining = remaining.substring(1);
+			}
+			if (remaining.endsWith(GitRepository.GIT_DIR))
+			{
+				remaining = remaining.substring(0, remaining.length() - 4);
+			}
+			int split = remaining.indexOf("/"); //$NON-NLS-1$
+			String userName = remaining.substring(0, split);
+			String repoName = remaining.substring(split + 1);
+			githubURLs.add(MessageFormat.format("https://github.com/{0}/{1}", userName, repoName)); //$NON-NLS-1$
+		}
+		return githubURLs;
 	}
 }

@@ -27,6 +27,7 @@ import com.aptana.theme.IControlThemer;
 import com.aptana.theme.IThemeManager;
 import com.aptana.theme.Theme;
 import com.aptana.theme.ThemePlugin;
+import com.aptana.theme.preferences.IPreferenceConstants;
 
 /**
  * Base class for applying our theme to a Control. More specific subclasses exist for Tables/Trees.
@@ -59,17 +60,41 @@ class ControlThemer implements IControlThemer
 
 	protected void applyTheme()
 	{
-		if (getControl() != null && !getControl().isDisposed())
+		if (invasiveThemesEnabled() && getControl() != null && !getControl().isDisposed())
 		{
 			getControl().setRedraw(false);
 			getControl().setBackground(getBackground());
 			getControl().setForeground(getForeground());
-			getControl().setFont(getFont());
+			if (useEditorFont())
+			{
+				getControl().setFont(getFont());
+			}
+			else
+			{
+				getControl().setFont(null);
+			}
 			getControl().setRedraw(true);
 		}
 	}
 
+	protected boolean invasiveThemesEnabled()
+	{
+		return getCurrentTheme().isInvasive();
+	}
+
+	protected boolean useEditorFont()
+	{
+		return Platform.getPreferencesService().getBoolean(ThemePlugin.PLUGIN_ID, IPreferenceConstants.INVASIVE_FONT,
+				false, null);
+	}
+
 	public void dispose()
+	{
+		unapplyTheme();
+		removeThemeListener();
+	}
+
+	protected void unapplyTheme()
 	{
 		if (control != null && !control.isDisposed())
 		{
@@ -81,8 +106,6 @@ class ControlThemer implements IControlThemer
 
 			control.setRedraw(true);
 		}
-
-		removeThemeListener();
 	}
 
 	protected Font getFont()
@@ -142,26 +165,38 @@ class ControlThemer implements IControlThemer
 		{
 			public void handleEvent(Event event)
 			{
+				if (!invasiveThemesEnabled())
+				{
+					return;
+				}
+				GC gc = event.gc;
+				Color oldBackground = gc.getBackground();
 				if ((event.detail & SWT.SELECTED) != 0)
 				{
 					Scrollable scrollable = (Scrollable) event.widget;
 					Rectangle clientArea = scrollable.getClientArea();
-					int clientWidth = clientArea.width;
-
-					GC gc = event.gc;
-					Color oldBackground = gc.getBackground();
 
 					gc.setBackground(getSelection());
-					gc.fillRectangle(clientArea.x, event.y, clientWidth, event.height);
-					gc.setBackground(oldBackground);
+					// The +2 on width is for Linux, since clientArea begins at [-2,-2] and
+					// without it we don't properly color full width (see broken coloring when scrolling horizontally)
+					gc.fillRectangle(clientArea.x, event.y, clientArea.width + 2, event.height);
 
 					event.detail &= ~SWT.SELECTED;
-					event.detail &= ~SWT.BACKGROUND;
-
-					// force foreground color. Otherwise on dark themes we get black FG (all the time on Win, on
-					// non-focus for Mac)
-					gc.setForeground(getForeground());
 				}
+				else
+				{
+					// Draw normal background color. This seems to only be necessary for some variants of Linux,
+					// and is the correct way to force custom painting of background when setBackground() doesn't work
+					// properly.
+					gc.setBackground(getBackground());
+					gc.fillRectangle(event.x, event.y, event.width, event.height);
+				}
+				event.detail &= ~SWT.BACKGROUND;
+
+				gc.setBackground(oldBackground);
+				// force foreground color. Otherwise on dark themes we get black FG (all the time on Win, on
+				// non-focus for Mac)
+				gc.setForeground(getForeground());
 			}
 		};
 		control.addListener(SWT.EraseItem, selectionOverride);
@@ -178,6 +213,7 @@ class ControlThemer implements IControlThemer
 
 	private void addThemeChangeListener()
 	{
+		// TODO Just use one global listener that updates all instances?
 		fThemeChangeListener = new IPreferenceChangeListener()
 		{
 			public void preferenceChange(PreferenceChangeEvent event)
@@ -185,6 +221,22 @@ class ControlThemer implements IControlThemer
 				if (event.getKey().equals(IThemeManager.THEME_CHANGED))
 				{
 					applyTheme();
+				}
+				else if (event.getKey().equals(IPreferenceConstants.INVASIVE_FONT))
+				{
+					// Handle the invasive font setting change
+					applyTheme();
+				}
+				else if (event.getKey().equals(IPreferenceConstants.INVASIVE_THEMES))
+				{
+					if (Boolean.parseBoolean((String) event.getNewValue()))
+					{
+						applyTheme();
+					}
+					else
+					{
+						unapplyTheme();
+					}
 				}
 			}
 		};
