@@ -35,7 +35,6 @@
 
 package com.aptana.syncing.ui.dialogs;
 
-import java.io.File;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,8 +44,6 @@ import java.util.Set;
 
 import org.eclipse.compare.CompareConfiguration;
 import org.eclipse.compare.CompareUI;
-import org.eclipse.core.filesystem.EFS;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.ProgressMonitorWrapper;
 import org.eclipse.jface.action.Action;
@@ -106,18 +103,17 @@ import org.eclipse.ui.plugin.AbstractUIPlugin;
 import com.aptana.core.util.StringUtil;
 import com.aptana.ide.syncing.core.SyncingPlugin;
 import com.aptana.ide.syncing.ui.SyncingUIPlugin;
-import com.aptana.ide.syncing.ui.old.editors.FileCompareEditorInput;
 import com.aptana.ide.ui.io.navigator.FileTreeContentProvider;
 import com.aptana.syncing.core.events.ISyncSessionListener;
 import com.aptana.syncing.core.events.SyncSessionEvent;
 import com.aptana.syncing.core.model.ISyncItem;
-import com.aptana.syncing.core.model.SyncOperation;
 import com.aptana.syncing.core.model.ISyncItem.Changes;
 import com.aptana.syncing.core.model.ISyncItem.Operation;
 import com.aptana.syncing.core.model.ISyncItem.Type;
 import com.aptana.syncing.core.model.ISyncSession;
 import com.aptana.syncing.core.model.ISyncSession.Stage;
 import com.aptana.syncing.core.model.SyncModelUtil;
+import com.aptana.syncing.core.model.SyncOperation;
 import com.aptana.syncing.ui.internal.FlatTreeContentProvider;
 import com.aptana.syncing.ui.internal.SearchViewerFilter;
 import com.aptana.syncing.ui.internal.SyncStatusViewerFilter;
@@ -128,6 +124,7 @@ import com.aptana.syncing.ui.internal.SyncViewerSorter;
 import com.aptana.syncing.ui.internal.widgets.SyncStatsComposite;
 import com.aptana.ui.UIPlugin;
 import com.aptana.ui.actions.SearchToolbarControl;
+import com.aptana.ui.io.compare.FileStoreCompareEditorInput;
 import com.aptana.ui.io.epl.AccumulatingProgressMonitor;
 
 /**
@@ -978,15 +975,10 @@ public class SyncDialog extends TitleAreaDialog implements ISyncSessionListener 
 	}
 
 	private void showDiff(final ISyncItem syncItem) {
-		FileCompareEditorInput compareInput = new FileCompareEditorInput(new CompareConfiguration()) {
-			@Override
-			protected void prepareFiles(IProgressMonitor monitor) throws CoreException {
-				File leftFile = syncItem.getLeftFileStore().toLocalFile(EFS.NONE, monitor);
-				setLeftResource(leftFile != null ? leftFile : syncItem.getLeftFileStore().toLocalFile(EFS.CACHE, monitor));
-				File rightFile = syncItem.getRightFileStore().toLocalFile(EFS.NONE, monitor);
-				setRightResource(rightFile != null ? rightFile : syncItem.getRightFileStore().toLocalFile(EFS.CACHE, monitor));
-			}
-		};
+		FileStoreCompareEditorInput compareInput = new FileStoreCompareEditorInput(new CompareConfiguration());
+		compareInput.setLeftFileStore(syncItem.getLeftFileStore());
+		compareInput.setRightFileStore(syncItem.getRightFileStore());
+		compareInput.initializeCompareConfiguration();
 		CompareUI.openCompareDialog(compareInput);
 	}
 	
