@@ -17,15 +17,20 @@ import java.util.Map;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
 import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.ui.PlatformUI;
 
+import com.aptana.core.util.EclipseUtil;
+import com.aptana.core.util.StringUtil;
 import com.aptana.editor.common.outline.CommonOutlineItem;
 import com.aptana.editor.common.outline.CompositeOutlineContentProvider;
 import com.aptana.editor.css.ICSSConstants;
@@ -35,11 +40,14 @@ import com.aptana.editor.html.parsing.HTMLParser;
 import com.aptana.editor.html.parsing.ast.HTMLCommentNode;
 import com.aptana.editor.html.parsing.ast.HTMLElementNode;
 import com.aptana.editor.html.parsing.ast.HTMLSpecialNode;
+import com.aptana.editor.html.parsing.ast.HTMLTextNode;
+import com.aptana.editor.html.preferences.IPreferenceConstants;
 import com.aptana.editor.js.IJSConstants;
 import com.aptana.editor.js.outline.JSOutlineContentProvider;
 import com.aptana.parsing.ParserPoolFactory;
 import com.aptana.parsing.ast.IParseNode;
 import com.aptana.parsing.ast.ParseRootNode;
+import com.aptana.parsing.lexer.Range;
 
 public class HTMLOutlineContentProvider extends CompositeOutlineContentProvider
 {
@@ -47,10 +55,43 @@ public class HTMLOutlineContentProvider extends CompositeOutlineContentProvider
 	private Map<String, Object[]> cache = new HashMap<String, Object[]>();
 	private TreeViewer treeViewer;
 
+	private boolean showTextNode;
+
+	private IPreferenceChangeListener preferenceListener = new IPreferenceChangeListener()
+	{
+
+		public void preferenceChange(PreferenceChangeEvent event)
+		{
+			if (IPreferenceConstants.HTML_OUTLINE_SHOW_TEXT_NODES.equals(event.getKey()))
+			{
+				showTextNode = Platform.getPreferencesService().getBoolean(HTMLPlugin.PLUGIN_ID,
+						IPreferenceConstants.HTML_OUTLINE_SHOW_TEXT_NODES, false, null);
+			}
+		}
+	};
+
 	public HTMLOutlineContentProvider()
 	{
 		addSubLanguage(ICSSConstants.CONTENT_TYPE_CSS, new CSSOutlineContentProvider());
 		addSubLanguage(IJSConstants.CONTENT_TYPE_JS, new JSOutlineContentProvider());
+
+		showTextNode = Platform.getPreferencesService().getBoolean(HTMLPlugin.PLUGIN_ID,
+				IPreferenceConstants.HTML_OUTLINE_SHOW_TEXT_NODES, false, null);
+		EclipseUtil.instanceScope().getNode(HTMLPlugin.PLUGIN_ID).addPreferenceChangeListener(preferenceListener);
+	}
+
+	@Override
+	public void dispose()
+	{
+		try
+		{
+			EclipseUtil.instanceScope().getNode(HTMLPlugin.PLUGIN_ID)
+					.removePreferenceChangeListener(preferenceListener);
+		}
+		finally
+		{
+			super.dispose();
+		}
 	}
 
 	@Override
@@ -71,7 +112,7 @@ public class HTMLOutlineContentProvider extends CompositeOutlineContentProvider
 				String attribute = getExternalCSSReference(item);
 				if (attribute != null && attribute.length() > 0)
 				{
-					return getExternalChildren(parentElement, attribute, ICSSConstants.CONTENT_TYPE_CSS);
+					return getExternalChildren(item, attribute, ICSSConstants.CONTENT_TYPE_CSS);
 				}
 			}
 			else
@@ -99,7 +140,7 @@ public class HTMLOutlineContentProvider extends CompositeOutlineContentProvider
 			String attribute = getExternalJSReference(item);
 			if (attribute != null && attribute.length() > 0)
 			{
-				return getExternalChildren(parentElement, attribute, IJSConstants.CONTENT_TYPE_JS);
+				return getExternalChildren(item, attribute, IJSConstants.CONTENT_TYPE_JS);
 			}
 			return getChildren(item.getChild(0));
 		}
@@ -196,7 +237,7 @@ public class HTMLOutlineContentProvider extends CompositeOutlineContentProvider
 		return super.hasChildren(element);
 	}
 
-	private Object[] getExternalChildren(final Object parent, final String srcPathOrURL, final String language)
+	private Object[] getExternalChildren(final IParseNode parent, final String srcPathOrURL, final String language)
 	{
 		Object[] cached;
 		synchronized (cache)
@@ -235,6 +276,15 @@ public class HTMLOutlineContentProvider extends CompositeOutlineContentProvider
 					IParseNode node = ParserPoolFactory.parse(language, source);
 					sub.worked(90);
 					elements = getChildren(node);
+					// adjusts the offsets to match the parent node since the children belong to an external file
+					for (Object element : elements)
+					{
+						if (element instanceof CommonOutlineItem)
+						{
+							((CommonOutlineItem) element).setRange(new Range(parent.getStartingOffset(), parent
+									.getEndingOffset()));
+						}
+					}
 
 					// caching result
 					synchronized (cache)
@@ -321,6 +371,13 @@ public class HTMLOutlineContentProvider extends CompositeOutlineContentProvider
 			{
 				// ignores comment nodes in outline
 				continue;
+			}
+			if (node instanceof HTMLTextNode)
+			{
+				if (!showTextNode || StringUtil.isEmpty(((HTMLTextNode) node).getText()))
+				{
+					continue;
+				}
 			}
 			if (node instanceof HTMLElementNode)
 			{

@@ -8,7 +8,6 @@
 package com.aptana.js.debug.ui.internal;
 
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
-import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.MessageDialogWithToggle;
 import org.eclipse.swt.SWT;
@@ -19,6 +18,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
 import org.osgi.service.prefs.BackingStoreException;
 
+import com.aptana.core.util.EclipseUtil;
 import com.aptana.debug.core.DebugOptionsManager;
 import com.aptana.js.debug.core.model.JSDebugModel;
 import com.aptana.js.debug.ui.JSDebugUIPlugin;
@@ -40,14 +40,14 @@ public final class WorkbenchCloseListener implements Listener {
 				&& PlatformUI.getWorkbench().getWorkbenchWindows()[0].getShell() == event.widget) {
 			// last workbench window is about to close
 			if (DebugOptionsManager.isDebuggerActive(JSDebugModel.getModelIdentifier())) {
-				IEclipsePreferences preferences = new InstanceScope().getNode(JSDebugUIPlugin.PLUGIN_ID);
+				IEclipsePreferences preferences = EclipseUtil.instanceScope().getNode(JSDebugUIPlugin.PLUGIN_ID);
 				if (preferences.getBoolean(IJSDebugUIConstants.PREF_CONFIRM_EXIT_DEBUGGER, true) == false) {
 					return;
 				}
 				event.doit = false;
 				MessageDialogWithToggle dlg = MessageDialogWithToggle.openOkCancelConfirm((Shell) event.widget,
 						Messages.WorkbenchCloseListener_ConfirmDebuggerExit,
-						Messages.WorkbenchCloseListener_AptanaDebuggerIsActive_DoYouWantToExit,
+						Messages.WorkbenchCloseListener_DebuggerIsActive_DoYouWantToExit,
 						Messages.WorkbenchCloseListener_AlwaysExitDebuggerWithoutPrompt, false, null, null);
 				int returnValue = dlg.getReturnCode();
 				if (returnValue != IDialogConstants.OK_ID) {

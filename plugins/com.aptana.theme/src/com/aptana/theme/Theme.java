@@ -10,6 +10,8 @@ package com.aptana.theme;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -23,10 +25,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.eclipse.core.runtime.preferences.DefaultScope;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IScopeContext;
-import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.text.TextAttribute;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
@@ -34,6 +34,7 @@ import org.eclipse.swt.graphics.RGB;
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
+import com.aptana.core.util.EclipseUtil;
 import com.aptana.scope.IScopeSelector;
 import com.aptana.scope.ScopeSelector;
 import com.aptana.theme.internal.OrderedProperties;
@@ -103,9 +104,22 @@ public class Theme
 		name = (String) props.remove(THEME_NAME_PROP_KEY);
 		if (name == null)
 		{
-			throw new IllegalStateException("Invalid theme properties!"); //$NON-NLS-1$
+			// Log the properties
+			StringWriter sw = new StringWriter();
+			try
+			{
+				PrintWriter pw = new PrintWriter(sw);
+				props.list(pw);
+			}
+			catch (Exception e)
+			{
+				// ignore
+			}
+			throw new IllegalStateException(
+					"Invalid theme properties. No theme 'name' provided. Properties may be corrupted: " + sw.toString()); //$NON-NLS-1$
 		}
 		// The general editor colors
+		// FIXME Add fallback rgb colors to use! black on white, etc.
 		defaultFG = parseHexRGB((String) props.remove(FOREGROUND_PROP_KEY));
 		defaultBG = parseHexRGB((String) props.remove(BACKGROUND_PROP_KEY));
 		lineHighlight = parseHexRGBa((String) props.remove(LINE_HIGHLIGHT_PROP_KEY));
@@ -115,12 +129,12 @@ public class Theme
 		Set<Object> propertyNames = props.keySet();
 		for (Object key : propertyNames)
 		{
-			String name = (String) key;
+			String displayName = (String) key;
 			int style = SWT.NORMAL;
 			RGBa foreground = null;
 			RGBa background = null;
-			String value = props.getProperty(name);
-			String scopeSelector = name;
+			String value = props.getProperty(displayName);
+			String scopeSelector = displayName;
 			int selectorIndex = value.indexOf(SELECTOR_DELIMITER);
 			if (selectorIndex != -1)
 			{
@@ -173,8 +187,8 @@ public class Theme
 				num++;
 			}
 			DelayedTextAttribute attribute = new DelayedTextAttribute(foreground, background, style);
-			coloringRules.add(new ThemeRule(name, scopeSelector == null ? null : new ScopeSelector(scopeSelector),
-					attribute));
+			coloringRules.add(new ThemeRule(displayName, scopeSelector == null ? null
+					: new ScopeSelector(scopeSelector), attribute));
 		}
 	}
 
@@ -261,6 +275,16 @@ public class Theme
 		return ta;
 	}
 
+	ThemeRule winningRule(String scope)
+	{
+		IScopeSelector match = findMatch(scope);
+		if (match == null)
+		{
+			return null;
+		}
+		return getRuleForSelector(match);
+	}
+
 	private DelayedTextAttribute getDelayedTextAttribute(String scope)
 	{
 		IScopeSelector match = findMatch(scope);
@@ -332,7 +356,11 @@ public class Theme
 
 	public ThemeRule getRuleForSelector(IScopeSelector match)
 	{
-		for (ThemeRule rule : coloringRules)
+		// See APSTUD-2790. In Textmate the last matching rule wins, so to get that behavior we reverse the rule list
+		// before matching.
+		List<ThemeRule> reversed = new ArrayList<ThemeRule>(coloringRules);
+		Collections.reverse(reversed);
+		for (ThemeRule rule : reversed)
 		{
 			if (rule.isSeparator())
 			{
@@ -598,7 +626,7 @@ public class Theme
 	{
 		// Only save to defaults if it has never been saved there. Basically take a snapshot of first version and
 		// use that as the "default"
-		IEclipsePreferences prefs = new DefaultScope().getNode(ThemePlugin.PLUGIN_ID);
+		IEclipsePreferences prefs = EclipseUtil.defaultScope().getNode(ThemePlugin.PLUGIN_ID);
 		if (prefs == null)
 		{
 			return; // TODO Log something?
@@ -611,13 +639,13 @@ public class Theme
 		String value = preferences.get(getName(), null);
 		if (value == null)
 		{
-			save(new DefaultScope());
+			save(EclipseUtil.defaultScope());
 		}
 	}
 
 	public void save()
 	{
-		save(new InstanceScope());
+		save(EclipseUtil.instanceScope());
 		if (getThemeManager().getCurrentTheme().equals(this))
 		{
 			getThemeManager().setCurrentTheme(this);
@@ -649,7 +677,7 @@ public class Theme
 	public void loadFromDefaults() throws InvalidPropertiesFormatException, UnsupportedEncodingException, IOException
 	{
 		Properties props = null;
-		IEclipsePreferences prefs = new DefaultScope().getNode(ThemePlugin.PLUGIN_ID);
+		IEclipsePreferences prefs = EclipseUtil.defaultScope().getNode(ThemePlugin.PLUGIN_ID);
 		Preferences preferences = prefs.node(ThemeManager.THEMES_NODE);
 		try
 		{
@@ -671,7 +699,7 @@ public class Theme
 			}
 			props = new OrderedProperties();
 			props.loadFromXML(new ByteArrayInputStream(xml.getBytes("UTF-8"))); //$NON-NLS-1$
-			save(new DefaultScope());
+			save(EclipseUtil.defaultScope());
 		}
 		coloringRules.clear();
 		wipeCache();
@@ -684,12 +712,12 @@ public class Theme
 	 */
 	private void deleteCustomVersion()
 	{
-		delete(new InstanceScope());
+		delete(EclipseUtil.instanceScope());
 	}
 
 	private void deleteDefaultVersion()
 	{
-		delete(new DefaultScope());
+		delete(EclipseUtil.defaultScope());
 	}
 
 	private void delete(IScopeContext context)
@@ -809,11 +837,19 @@ public class Theme
 		{
 			return null;
 		}
-		Properties props = toProps();
-		props.setProperty(THEME_NAME_PROP_KEY, value);
-		Theme newTheme = new Theme(colorManager, props);
-		addTheme(newTheme);
-		return newTheme;
+		try
+		{
+			Properties props = toProps();
+			props.setProperty(THEME_NAME_PROP_KEY, value);
+			Theme newTheme = new Theme(colorManager, props);
+			addTheme(newTheme);
+			return newTheme;
+		}
+		catch (Exception e)
+		{
+			ThemePlugin.logError(e);
+			return null;
+		}
 	}
 
 	protected void addTheme(Theme newTheme)
@@ -983,6 +1019,11 @@ public class Theme
 	public Color getForegroundColor()
 	{
 		return getColorManager().getColor(getForeground());
+	}
+
+	public Color getBackgroundColor()
+	{
+		return getColorManager().getColor(getBackground());
 	}
 
 	protected ColorManager getColorManager()

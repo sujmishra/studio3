@@ -7,9 +7,66 @@
  */
 package com.aptana.editor.js.formatter;
 
+import static com.aptana.editor.js.formatter.JSFormatterConstants.BRACE_POSITION_BLOCK;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.BRACE_POSITION_BLOCK_IN_CASE;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.BRACE_POSITION_BLOCK_IN_SWITCH;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.BRACE_POSITION_FUNCTION_DECLARATION;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.FORMATTER_INDENTATION_SIZE;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.FORMATTER_OFF;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.FORMATTER_OFF_ON_ENABLED;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.FORMATTER_ON;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.FORMATTER_TAB_CHAR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.FORMATTER_TAB_SIZE;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.INDENT_BLOCKS;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.INDENT_CASE_BODY;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.INDENT_FUNCTION_BODY;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.INDENT_GROUP_BODY;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.INDENT_SWITCH_BODY;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.LINES_AFTER_FUNCTION_DECLARATION;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.LINES_AFTER_FUNCTION_DECLARATION_IN_EXPRESSION;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.NEW_LINES_BEFORE_CATCH_STATEMENT;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.NEW_LINES_BEFORE_DO_WHILE_STATEMENT;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.NEW_LINES_BEFORE_ELSE_STATEMENT;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.NEW_LINES_BEFORE_FINALLY_STATEMENT;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.NEW_LINES_BEFORE_IF_IN_ELSEIF_STATEMENT;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.NEW_LINES_BEFORE_NAME_VALUE_PAIRS;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.PRESERVED_LINES;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_AFTER_ARITHMETIC_OPERATOR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_AFTER_ASSIGNMENT_OPERATOR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_AFTER_CASE_COLON_OPERATOR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_AFTER_COMMAS;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_AFTER_CONCATENATION_OPERATOR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_AFTER_CONDITIONAL_OPERATOR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_AFTER_FOR_SEMICOLON;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_AFTER_KEY_VALUE_OPERATOR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_AFTER_PARENTHESES;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_AFTER_POSTFIX_OPERATOR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_AFTER_PREFIX_OPERATOR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_AFTER_RELATIONAL_OPERATORS;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_AFTER_SEMICOLON;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_AFTER_UNARY_OPERATOR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_BEFORE_ARITHMETIC_OPERATOR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_BEFORE_ASSIGNMENT_OPERATOR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_BEFORE_CASE_COLON_OPERATOR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_BEFORE_COMMAS;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_BEFORE_CONCATENATION_OPERATOR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_BEFORE_CONDITIONAL_OPERATOR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_BEFORE_FOR_SEMICOLON;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_BEFORE_KEY_VALUE_OPERATOR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_BEFORE_PARENTHESES;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_BEFORE_POSTFIX_OPERATOR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_BEFORE_PREFIX_OPERATOR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_BEFORE_RELATIONAL_OPERATORS;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_BEFORE_SEMICOLON;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.SPACES_BEFORE_UNARY_OPERATOR;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.WRAP_COMMENTS;
+import static com.aptana.editor.js.formatter.JSFormatterConstants.WRAP_COMMENTS_LENGTH;
+
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.jface.text.IDocument;
+import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.ITypedRegion;
 import org.eclipse.jface.text.formatter.IFormattingContext;
 import org.eclipse.osgi.util.NLS;
@@ -33,6 +90,7 @@ import com.aptana.formatter.ui.ScriptFormattingContextProperties;
 import com.aptana.parsing.IParseState;
 import com.aptana.parsing.IParser;
 import com.aptana.parsing.ParseState;
+import com.aptana.parsing.ParserPoolFactory;
 import com.aptana.parsing.ast.IParseRootNode;
 import com.aptana.ui.util.StatusLineMessageTimerManager;
 
@@ -47,27 +105,39 @@ public class JSFormatter extends AbstractScriptFormatter implements IScriptForma
 	/**
 	 * Brace positions constants
 	 */
-	protected static final String[] BRACE_POSITIONS = { JSFormatterConstants.BRACE_POSITION_BLOCK,
-			JSFormatterConstants.BRACE_POSITION_BLOCK_IN_CASE, JSFormatterConstants.BRACE_POSITION_BLOCK_IN_SWITCH,
-			JSFormatterConstants.BRACE_POSITION_FUNCTION_DECLARATION };
+	protected static final String[] BRACE_POSITIONS = { BRACE_POSITION_BLOCK, BRACE_POSITION_BLOCK_IN_CASE,
+			BRACE_POSITION_BLOCK_IN_SWITCH, BRACE_POSITION_FUNCTION_DECLARATION };
 
 	/**
 	 * New-lines constants
 	 */
-	protected static final String[] NEW_LINES_POSITIONS = { JSFormatterConstants.NEW_LINES_BEFORE_CATCH_STATEMENT,
-			JSFormatterConstants.NEW_LINES_BEFORE_DO_WHILE_STATEMENT,
-			JSFormatterConstants.NEW_LINES_BEFORE_ELSE_STATEMENT,
-			JSFormatterConstants.NEW_LINES_BEFORE_IF_IN_ELSEIF_STATEMENT,
-			JSFormatterConstants.NEW_LINES_BEFORE_FINALLY_STATEMENT };
+	protected static final String[] NEW_LINES_POSITIONS = { NEW_LINES_BEFORE_CATCH_STATEMENT,
+			NEW_LINES_BEFORE_DO_WHILE_STATEMENT, NEW_LINES_BEFORE_ELSE_STATEMENT,
+			NEW_LINES_BEFORE_IF_IN_ELSEIF_STATEMENT, NEW_LINES_BEFORE_FINALLY_STATEMENT,
+			NEW_LINES_BEFORE_NAME_VALUE_PAIRS };
 
 	/**
 	 * Indentation constants
 	 */
-	protected static final String[] INDENTATIONS = { JSFormatterConstants.INDENT_BLOCKS,
-			JSFormatterConstants.INDENT_CASE_BODY, JSFormatterConstants.INDENT_SWITCH_BODY,
-			JSFormatterConstants.INDENT_FUNCTION_BODY, JSFormatterConstants.INDENT_GROUP_BODY };
+	protected static final String[] INDENTATIONS = { INDENT_BLOCKS, INDENT_CASE_BODY, INDENT_SWITCH_BODY,
+			INDENT_FUNCTION_BODY, INDENT_GROUP_BODY };
 
-	private String lineSeparator;
+	/**
+	 * Spaces constants
+	 */
+	/**
+	 * Spaces constants
+	 */
+	protected static final String[] SPACES = { SPACES_BEFORE_COMMAS, SPACES_AFTER_COMMAS, SPACES_BEFORE_PARENTHESES,
+			SPACES_AFTER_PARENTHESES, SPACES_BEFORE_UNARY_OPERATOR, SPACES_AFTER_UNARY_OPERATOR,
+			SPACES_BEFORE_KEY_VALUE_OPERATOR, SPACES_AFTER_KEY_VALUE_OPERATOR, SPACES_BEFORE_ASSIGNMENT_OPERATOR,
+			SPACES_AFTER_ASSIGNMENT_OPERATOR, SPACES_BEFORE_RELATIONAL_OPERATORS, SPACES_AFTER_RELATIONAL_OPERATORS,
+			SPACES_BEFORE_CONCATENATION_OPERATOR, SPACES_AFTER_CONCATENATION_OPERATOR,
+			SPACES_BEFORE_CONDITIONAL_OPERATOR, SPACES_AFTER_CONDITIONAL_OPERATOR, SPACES_BEFORE_POSTFIX_OPERATOR,
+			SPACES_AFTER_POSTFIX_OPERATOR, SPACES_BEFORE_PREFIX_OPERATOR, SPACES_AFTER_PREFIX_OPERATOR,
+			SPACES_BEFORE_ARITHMETIC_OPERATOR, SPACES_AFTER_ARITHMETIC_OPERATOR, SPACES_BEFORE_FOR_SEMICOLON,
+			SPACES_AFTER_FOR_SEMICOLON, SPACES_BEFORE_SEMICOLON, SPACES_AFTER_SEMICOLON,
+			SPACES_BEFORE_CASE_COLON_OPERATOR, SPACES_AFTER_CASE_COLON_OPERATOR };
 
 	/**
 	 * Constructor.
@@ -76,8 +146,7 @@ public class JSFormatter extends AbstractScriptFormatter implements IScriptForma
 	 */
 	protected JSFormatter(String lineSeparator, Map<String, String> preferences, String mainContentType)
 	{
-		super(preferences, mainContentType);
-		this.lineSeparator = lineSeparator;
+		super(preferences, mainContentType, lineSeparator);
 	}
 
 	/**
@@ -96,13 +165,8 @@ public class JSFormatter extends AbstractScriptFormatter implements IScriptForma
 			{
 				return super.detectIndentationLevel(document, offset);
 			}
-			IParser parser = checkoutParser();
-			IParseState parseState = new ParseState();
 			String source = document.get();
-			parseState.setEditState(source, null, 0, 0);
-
-			IParseRootNode parseResult = parser.parse(parseState);
-			checkinParser(parser);
+			IParseRootNode parseResult = ParserPoolFactory.parse(getMainContentType(), source);
 			if (parseResult != null)
 			{
 				final JSFormatterNodeBuilder builder = new JSFormatterNodeBuilder();
@@ -140,13 +204,23 @@ public class JSFormatter extends AbstractScriptFormatter implements IScriptForma
 		String originalText = source.substring(offset, offset + length);
 		String input = originalText.trim();
 		int inputOffset = offset + countLeftWhitespaceChars(originalText);
-		IParser parser = checkoutParser();
-		IParseState parseState = new ParseState();
-		parseState.setEditState(input, null, 0, 0);
+		IParseRootNode parseResult = null;
 		try
 		{
-			IParseRootNode parseResult = parser.parse(parseState);
-			checkinParser(parser);
+			parseResult = ParserPoolFactory.parse(getMainContentType(), input);
+		}
+		catch (Exception e)
+		{
+			StatusLineMessageTimerManager.setErrorMessage(e.getMessage()
+					+ " - " + FormatterMessages.Formatter_formatterErrorStatus, //$NON-NLS-1$
+					ERROR_DISPLAY_TIMEOUT, true);
+			FormatterPlugin.logError(e);
+			// In this case, we probably have a parse error. To avoid any code shifting, we try to maintain the
+			// indentation level as much as we can.
+			return indent(source, input, inputOffset, length - (inputOffset - offset), indentationLevel);
+		}
+		try
+		{
 			if (parseResult != null)
 			{
 				final String output = format(input, parseResult, indentationLevel, inputOffset, isSelection,
@@ -227,7 +301,7 @@ public class JSFormatter extends AbstractScriptFormatter implements IScriptForma
 	 */
 	public int getIndentSize()
 	{
-		return getInt(JSFormatterConstants.FORMATTER_INDENTATION_SIZE);
+		return getInt(FORMATTER_INDENTATION_SIZE);
 	}
 
 	/*
@@ -236,7 +310,7 @@ public class JSFormatter extends AbstractScriptFormatter implements IScriptForma
 	 */
 	public String getIndentType()
 	{
-		return getString(JSFormatterConstants.FORMATTER_TAB_CHAR);
+		return getString(FORMATTER_TAB_CHAR);
 	}
 
 	/*
@@ -245,7 +319,7 @@ public class JSFormatter extends AbstractScriptFormatter implements IScriptForma
 	 */
 	public int getTabSize()
 	{
-		return getInt(JSFormatterConstants.FORMATTER_TAB_SIZE);
+		return getInt(FORMATTER_TAB_SIZE);
 	}
 
 	/*
@@ -287,19 +361,14 @@ public class JSFormatter extends AbstractScriptFormatter implements IScriptForma
 			boolean isSelection, String indentSufix, boolean prefixWithNewLine, boolean postfixWithNewLine)
 			throws Exception
 	{
-		int spacesCount = -1;
-		if (isSelection)
-		{
-			spacesCount = countLeftWhitespaceChars(input);
-		}
 		final JSFormatterNodeBuilder builder = new JSFormatterNodeBuilder();
 		final FormatterDocument document = createFormatterDocument(input, inputOffset);
 		IFormatterContainerNode root = builder.build(parseResult, document);
 		new JSFormatterNodeRewriter(parseResult, document).rewrite(root);
 		IFormatterContext context = new JSFormatterContext(indentationLevel);
 		FormatterWriter writer = new FormatterWriter(document, lineSeparator, createIndentGenerator());
-		writer.setWrapLength(getInt(JSFormatterConstants.WRAP_COMMENTS_LENGTH));
-		writer.setLinesPreserve(getInt(JSFormatterConstants.PRESERVED_LINES));
+		writer.setWrapLength(getInt(WRAP_COMMENTS_LENGTH));
+		writer.setLinesPreserve(getInt(PRESERVED_LINES));
 		root.accept(context, writer);
 		writer.flush(context);
 		// Unlike other formatters, we allow errors in the JS AST for now.
@@ -310,27 +379,33 @@ public class JSFormatter extends AbstractScriptFormatter implements IScriptForma
 					FormatterMessages.Formatter_formatterErrorCompletedWithErrors, ERROR_DISPLAY_TIMEOUT, true);
 		}
 		String output = writer.getOutput();
-		if (isSelection)
+		List<IRegion> offOnRegions = builder.getOffOnRegions();
+		if (offOnRegions != null && !offOnRegions.isEmpty())
 		{
-			output = leftTrim(output, spacesCount);
+			// We re-parse the output to extract its On-Off regions, so we will be able to compute the offsets and
+			// adjust it.
+			List<IRegion> outputOnOffRegions = getOutputOnOffRegions(output,
+					getString(JSFormatterConstants.FORMATTER_OFF), getString(JSFormatterConstants.FORMATTER_ON));
+			output = FormatterUtils.applyOffOnRegions(input, output, offOnRegions, outputOnOffRegions);
 		}
-		else
-		{
-			output = processNestedOutput(output, lineSeparator, indentSufix, prefixWithNewLine, postfixWithNewLine);
-		}
+		output = processNestedOutput(output, lineSeparator, indentSufix, prefixWithNewLine, postfixWithNewLine);
 		return output;
 	}
 
 	private FormatterDocument createFormatterDocument(String input, int offset)
 	{
 		FormatterDocument document = new FormatterDocument(input);
-		document.setInt(JSFormatterConstants.FORMATTER_TAB_SIZE, getInt(JSFormatterConstants.FORMATTER_TAB_SIZE));
-		document.setBoolean(JSFormatterConstants.WRAP_COMMENTS, getBoolean(JSFormatterConstants.WRAP_COMMENTS));
-		document.setInt(JSFormatterConstants.LINES_AFTER_FUNCTION_DECLARATION,
-				getInt(JSFormatterConstants.LINES_AFTER_FUNCTION_DECLARATION));
-		document.setInt(JSFormatterConstants.LINES_AFTER_FUNCTION_DECLARATION_IN_EXPRESSION,
-				getInt(JSFormatterConstants.LINES_AFTER_FUNCTION_DECLARATION_IN_EXPRESSION));
+		document.setInt(FORMATTER_TAB_SIZE, getInt(FORMATTER_TAB_SIZE));
+		document.setBoolean(WRAP_COMMENTS, getBoolean(WRAP_COMMENTS));
+		document.setInt(LINES_AFTER_FUNCTION_DECLARATION, getInt(LINES_AFTER_FUNCTION_DECLARATION));
+		document.setInt(LINES_AFTER_FUNCTION_DECLARATION_IN_EXPRESSION,
+				getInt(LINES_AFTER_FUNCTION_DECLARATION_IN_EXPRESSION));
 		document.setInt(ScriptFormattingContextProperties.CONTEXT_ORIGINAL_OFFSET, offset);
+
+		// Formatter OFF/ON
+		document.setBoolean(FORMATTER_OFF_ON_ENABLED, getBoolean(FORMATTER_OFF_ON_ENABLED));
+		document.setString(FORMATTER_ON, getString(FORMATTER_ON));
+		document.setString(FORMATTER_OFF, getString(FORMATTER_OFF));
 
 		// Set the indentation values
 		for (String key : INDENTATIONS)
@@ -346,6 +421,11 @@ public class JSFormatter extends AbstractScriptFormatter implements IScriptForma
 		for (String key : BRACE_POSITIONS)
 		{
 			document.setString(key, getString(key));
+		}
+		// Set the spaces values
+		for (String key : SPACES)
+		{
+			document.setInt(key, getInt(key));
 		}
 		return document;
 	}

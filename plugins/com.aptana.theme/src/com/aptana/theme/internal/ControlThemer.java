@@ -10,7 +10,6 @@ package com.aptana.theme.internal;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
-import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
@@ -22,6 +21,7 @@ import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Scrollable;
 
+import com.aptana.core.util.EclipseUtil;
 import com.aptana.theme.ColorManager;
 import com.aptana.theme.IControlThemer;
 import com.aptana.theme.IThemeManager;
@@ -39,8 +39,7 @@ class ControlThemer implements IControlThemer
 
 	protected static final boolean isWindows = Platform.getOS().equals(Platform.OS_WIN32);
 	protected static final boolean isMacOSX = Platform.getOS().equals(Platform.OS_MACOSX);
-	// use the hard-coded value for cocoa since the constant is not defined until Eclipse 3.5
-	protected static final boolean isCocoa = Platform.getWS().equals("cocoa"); //$NON-NLS-1$
+	protected static final boolean isCocoa = Platform.getWS().equals(Platform.WS_COCOA);
 
 	private Control control;
 
@@ -68,10 +67,6 @@ class ControlThemer implements IControlThemer
 			if (useEditorFont())
 			{
 				getControl().setFont(getFont());
-			}
-			else
-			{
-				getControl().setFont(null);
 			}
 			getControl().setRedraw(true);
 		}
@@ -102,8 +97,10 @@ class ControlThemer implements IControlThemer
 
 			control.setBackground(null);
 			control.setForeground(null);
-			control.setFont(null);
-
+			if (useEditorFont())
+			{
+				control.setFont(null);
+			}
 			control.setRedraw(true);
 		}
 	}
@@ -182,18 +179,28 @@ class ControlThemer implements IControlThemer
 					gc.fillRectangle(clientArea.x, event.y, clientArea.width + 2, event.height);
 
 					event.detail &= ~SWT.SELECTED;
+					event.detail &= ~SWT.BACKGROUND;
+
+					gc.setBackground(oldBackground);
 				}
 				else
 				{
 					// Draw normal background color. This seems to only be necessary for some variants of Linux,
 					// and is the correct way to force custom painting of background when setBackground() doesn't work
 					// properly.
-					gc.setBackground(getBackground());
-					gc.fillRectangle(event.x, event.y, event.width, event.height);
+					if (!isWindows && !isMacOSX)
+					{
+						Color controlBG = control.getBackground();
+						if (controlBG.getRGB().equals(oldBackground.getRGB()))
+						{
+							gc.setBackground(getBackground());
+							gc.fillRectangle(event.x, event.y, event.width, event.height);
+							event.detail &= ~SWT.BACKGROUND;
+							gc.setBackground(oldBackground);
+						}
+					}
 				}
-				event.detail &= ~SWT.BACKGROUND;
 
-				gc.setBackground(oldBackground);
 				// force foreground color. Otherwise on dark themes we get black FG (all the time on Win, on
 				// non-focus for Mac)
 				gc.setForeground(getForeground());
@@ -225,7 +232,14 @@ class ControlThemer implements IControlThemer
 				else if (event.getKey().equals(IPreferenceConstants.INVASIVE_FONT))
 				{
 					// Handle the invasive font setting change
-					applyTheme();
+					if (Boolean.parseBoolean((String) event.getNewValue()))
+					{
+						getControl().setFont(getFont());
+					}
+					else
+					{
+						getControl().setFont(null);
+					}
 				}
 				else if (event.getKey().equals(IPreferenceConstants.INVASIVE_THEMES))
 				{
@@ -240,14 +254,15 @@ class ControlThemer implements IControlThemer
 				}
 			}
 		};
-		new InstanceScope().getNode(ThemePlugin.PLUGIN_ID).addPreferenceChangeListener(fThemeChangeListener);
+		EclipseUtil.instanceScope().getNode(ThemePlugin.PLUGIN_ID).addPreferenceChangeListener(fThemeChangeListener);
 	}
 
 	private void removeThemeListener()
 	{
 		if (fThemeChangeListener != null)
 		{
-			new InstanceScope().getNode(ThemePlugin.PLUGIN_ID).removePreferenceChangeListener(fThemeChangeListener);
+			EclipseUtil.instanceScope().getNode(ThemePlugin.PLUGIN_ID)
+					.removePreferenceChangeListener(fThemeChangeListener);
 			fThemeChangeListener = null;
 		}
 	}

@@ -8,8 +8,6 @@
 
 package com.aptana.editor.common.text.rules;
 
-import java.util.Collection;
-
 import org.eclipse.jface.text.rules.ICharacterScanner;
 import org.eclipse.jface.text.rules.IPredicateRule;
 import org.eclipse.jface.text.rules.IToken;
@@ -29,6 +27,8 @@ public abstract class CompositeSubPartitionScanner implements ISubPartitionScann
 	protected SequenceCharacterScanner[] sequenceCharacterScanners;
 	protected SequenceCharacterScanner parentSequenceCharacterScanner;
 	protected int current = 0;
+	private IToken lastToken;
+	protected IToken resumeToken;
 	
 	/**
 	 * 
@@ -53,7 +53,7 @@ public abstract class CompositeSubPartitionScanner implements ISubPartitionScann
 	/* (non-Javadoc)
 	 * @see com.aptana.editor.common.ISubPartitionScanner#getRules()
 	 */
-	public Collection<IPredicateRule> getRules() {
+	public IPredicateRule[] getRules() {
 		return subPartitionScanners[current].getRules();
 	}
 
@@ -76,6 +76,10 @@ public abstract class CompositeSubPartitionScanner implements ISubPartitionScann
 	 */
 	public boolean foundSequence() {
 		return parentSequenceCharacterScanner.foundSequence();
+	}
+
+	protected boolean foundSequence(boolean reset) {
+		return parentSequenceCharacterScanner.foundSequence(reset);
 	}
 
 	/* (non-Javadoc)
@@ -105,6 +109,25 @@ public abstract class CompositeSubPartitionScanner implements ISubPartitionScann
 	 * @see com.aptana.editor.common.ISubPartitionScanner#setLastToken(org.eclipse.jface.text.rules.IToken)
 	 */
 	public void setLastToken(IToken token) {
+		lastToken = foundSequence(false) ? token : null;
+	}
+
+	/* (non-Javadoc)
+	 * @see com.aptana.editor.common.text.rules.ISubPartitionScanner#getLastToken()
+	 */
+	public final IToken getLastToken() {
+		return lastToken;
+	}
+
+	/* (non-Javadoc)
+	 * @see com.aptana.editor.common.text.rules.ISubPartitionScanner#getResumeToken()
+	 */
+	public IToken getResumeToken() {
+		try {
+			return resumeToken;
+		} finally {
+			resumeToken = null;
+		}
 	}
 
 }

@@ -60,6 +60,7 @@ import com.aptana.core.resources.IUniformResourceMarker;
 import com.aptana.core.util.StringUtil;
 import com.aptana.debug.core.DebugCorePlugin;
 import com.aptana.debug.core.DetailFormatter;
+import com.aptana.debug.core.IDebugCoreConstants;
 import com.aptana.debug.core.IDetailFormattersChangeListener;
 import com.aptana.debug.core.sourcelookup.IFileContentRetriever;
 import com.aptana.js.debug.core.IJSDebugConstants;
@@ -130,6 +131,7 @@ public class JSDebugTarget extends JSDebugElement implements IJSDebugTarget, IBr
 	private static final String LOAD = "load"; //$NON-NLS-1$
 	private static final String EXCEPTION = "exception"; //$NON-NLS-1$
 	private static final String ERR = "err"; //$NON-NLS-1$
+	private static final String WARN = "warn"; //$NON-NLS-1$
 	private static final String TRACE = "trace"; //$NON-NLS-1$
 	private static final String SRC = "src"; //$NON-NLS-1$
 	private static final String BREAKPOINT = "breakpoint"; //$NON-NLS-1$
@@ -184,8 +186,6 @@ public class JSDebugTarget extends JSDebugElement implements IJSDebugTarget, IBr
 	private ILaunch launch;
 	private String label;
 	private IProcess process;
-	private OutputStream out;
-	private OutputStream err;
 	private IURIMapper uriMapper;
 	private Map<String, JSDebugThread> threads = new HashMap<String, JSDebugThread>();
 	private IFileContentRetriever fileContentRetriever;
@@ -366,11 +366,18 @@ public class JSDebugTarget extends JSDebugElement implements IJSDebugTarget, IBr
 		}
 		try {
 			if (ERR.equals(log) || EXCEPTION.equals(log)) {
+				OutputStream err = ((JSDebugProcess) process).getStream(IDebugCoreConstants.ID_STANDARD_ERROR_STREAM);
 				if (err != null) {
 					err.write(text.getBytes());
 				}
-			} else
-			/* out */{
+			} else {
+				if (WARN.equals(log)) {
+					log = IJSDebugConstants.ID_WARNING_STREAM;
+				}
+				OutputStream out = ((JSDebugProcess) process).getStream(log);
+				if (out == null) {
+					out = ((JSDebugProcess) process).getStream(IDebugCoreConstants.ID_STANDARD_OUTPUT_STREAM);
+				}
 				if (out != null) {
 					out.write(text.getBytes());
 				}
@@ -1014,11 +1021,6 @@ public class JSDebugTarget extends JSDebugElement implements IJSDebugTarget, IBr
 			DebugPlugin.getDefault().getBreakpointManager().addBreakpointListener(this);
 
 			connection.sendCommandAndWait(ENABLE);
-		}
-
-		if (process instanceof JSDebugProcess) {
-			out = ((JSDebugProcess) process).getOutputStream();
-			err = ((JSDebugProcess) process).getErrorStream();
 		}
 	}
 

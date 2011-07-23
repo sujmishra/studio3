@@ -1,12 +1,11 @@
 package com.aptana.editor.svg;
 
-import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
+import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.osgi.framework.BundleContext;
 
 /**
@@ -15,7 +14,11 @@ import org.osgi.framework.BundleContext;
 public class SVGPlugin extends AbstractUIPlugin
 {
 	public static final String PLUGIN_ID = "com.aptana.editor.svg"; //$NON-NLS-1$
+
 	private static SVGPlugin plugin;
+	
+	private IDocumentProvider svgDocumentProvider;
+
 
 	/**
 	 * Returns the shared instance
@@ -64,50 +67,6 @@ public class SVGPlugin extends AbstractUIPlugin
 	}
 
 	/**
-	 * logError
-	 * 
-	 * @param msg
-	 * @param e
-	 */
-	public static void logError(String msg, Throwable e)
-	{
-		getDefault().getLog().log(new Status(IStatus.ERROR, PLUGIN_ID, msg, e));
-	}
-
-	/**
-	 * logInfo
-	 * 
-	 * @param string
-	 */
-	public static void logInfo(String string)
-	{
-		getDefault().getLog().log(new Status(IStatus.INFO, PLUGIN_ID, string));
-	}
-
-	/**
-	 * logWarning
-	 * 
-	 * @param msg
-	 */
-	public static void logWarning(String msg)
-	{
-		getDefault().getLog().log(new Status(IStatus.WARNING, PLUGIN_ID, msg));
-	}
-
-	/**
-	 * trace
-	 * 
-	 * @param string
-	 */
-	public static void trace(String string)
-	{
-		if (getDefault() != null && getDefault().isDebugging())
-		{
-			getDefault().getLog().log(new Status(IStatus.OK, PLUGIN_ID, string));
-		}
-	}
-
-	/**
 	 * The constructor
 	 */
 	public SVGPlugin()
@@ -135,5 +94,16 @@ public class SVGPlugin extends AbstractUIPlugin
 	{
 		plugin = null;
 		super.stop(context);
+	}
+	
+	/**
+	 * Returns SVG document provider
+	 * @return
+	 */
+	public synchronized IDocumentProvider getSVGDocumentProvider() {
+		if (svgDocumentProvider == null) {
+			svgDocumentProvider = new SVGDocumentProvider();
+		}
+		return svgDocumentProvider;
 	}
 }

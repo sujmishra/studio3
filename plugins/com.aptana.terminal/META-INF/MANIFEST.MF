@@ -3,10 +3,11 @@ Bundle-ManifestVersion: 2
 Bundle-Name: %Bundle-Name
 Bundle-SymbolicName: com.aptana.terminal;singleton:=true
 Bundle-Version: 3.0.0.qualifier
-Bundle-Activator: com.aptana.terminal.Activator
+Bundle-Activator: com.aptana.terminal.TerminalPlugin
 Bundle-Vendor: %Bundle-Vendor
 Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.core.expressions,
+ org.eclipse.core.filesystem,
  com.aptana.core,
  org.eclipse.debug.core,
  org.eclipse.jface.text,

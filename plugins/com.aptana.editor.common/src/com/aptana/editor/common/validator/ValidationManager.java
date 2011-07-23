@@ -10,6 +10,7 @@ package com.aptana.editor.common.validator;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +31,7 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.util.IPropertyChangeListener;
 import org.eclipse.jface.util.PropertyChangeEvent;
 
+import com.aptana.core.logging.IdeLog;
 import com.aptana.core.resources.IMarkerConstants;
 import com.aptana.core.resources.IUniformResource;
 import com.aptana.core.resources.MarkerUtils;
@@ -121,6 +123,11 @@ public class ValidationManager implements IValidationManager
 		}
 
 		List<ValidatorReference> validatorRefs = getValidatorRefs(contentType);
+		if (validatorRefs.isEmpty())
+		{
+			// Skip doing any real work if there are no validators for this file type!
+			return;
+		}
 		for (ValidatorReference validatorRef : validatorRefs)
 		{
 			if (fResourceUri == null)
@@ -132,7 +139,7 @@ public class ValidationManager implements IValidationManager
 			List<IValidationItem> items = fItemsByType.get(type);
 			if (items == null)
 			{
-				items = new ArrayList<IValidationItem>();
+				items = Collections.synchronizedList(new ArrayList<IValidationItem>());
 				fItemsByType.put(type, items);
 			}
 			items.addAll(newItems);
@@ -166,7 +173,7 @@ public class ValidationManager implements IValidationManager
 			List<IValidationItem> items = itemsByType.get(type);
 			if (items == null)
 			{
-				items = new ArrayList<IValidationItem>();
+				items = Collections.synchronizedList(new ArrayList<IValidationItem>());
 				itemsByType.put(type, items);
 			}
 			items.addAll(newItems);
@@ -282,7 +289,8 @@ public class ValidationManager implements IValidationManager
 		}
 		catch (CoreException e)
 		{
-			CommonEditorPlugin.logError(Messages.ProjectFileValidationListener_ERR_UpdateMarkers, e);
+			IdeLog.logError(CommonEditorPlugin.getDefault(), Messages.ProjectFileValidationListener_ERR_UpdateMarkers,
+					e);
 		}
 	}
 
@@ -299,6 +307,11 @@ public class ValidationManager implements IValidationManager
 		if (fResource instanceof IResource)
 		{
 			workspaceResource = (IResource) fResource;
+			if (!workspaceResource.exists())
+			{
+				// no need to update the marker when the resource no longer exists
+				return;
+			}
 		}
 		else if (fResource instanceof IUniformResource)
 		{
@@ -324,7 +337,7 @@ public class ValidationManager implements IValidationManager
 					// this is to remove "Aptana Problem" markers
 					if (!markerType.equals(IMarkerConstants.PROBLEM_MARKER))
 					{
-						MarkerUtils.deleteMarkers(externalResource, IMarkerConstants.PROBLEM_MARKER, true);
+						MarkerUtils.deleteMarkers(externalResource, IMarkerConstants.PROBLEM_MARKER, false);
 					}
 				}
 				else
@@ -333,32 +346,35 @@ public class ValidationManager implements IValidationManager
 					// this is to remove "Aptana Problem" markers
 					if (!markerType.equals(IMarkerConstants.PROBLEM_MARKER))
 					{
-						workspaceResource
-								.deleteMarkers(IMarkerConstants.PROBLEM_MARKER, true, IResource.DEPTH_INFINITE);
+						workspaceResource.deleteMarkers(IMarkerConstants.PROBLEM_MARKER, false,
+								IResource.DEPTH_INFINITE);
 					}
 				}
 
 				// adds the new ones
 				items = itemsByType.get(markerType);
 				IMarker marker;
-				for (IValidationItem item : items)
+				synchronized (items)
 				{
-					if (isExternal)
+					for (IValidationItem item : items)
 					{
-						marker = MarkerUtils.createMarker(externalResource, null, markerType);
-						// don't persist on external file
-						marker.setAttribute(IMarker.TRANSIENT, true);
+						if (isExternal)
+						{
+							marker = MarkerUtils.createMarker(externalResource, null, markerType);
+							// don't persist on external file
+							marker.setAttribute(IMarker.TRANSIENT, true);
+						}
+						else
+						{
+							marker = workspaceResource.createMarker(markerType);
+						}
+						marker.setAttributes(item.createMarkerAttributes());
 					}
-					else
-					{
-						marker = workspaceResource.createMarker(markerType);
-					}
-					marker.setAttributes(item.createMarkerAttributes());
 				}
 			}
 			catch (CoreException e)
 			{
-				CommonEditorPlugin.logError(e);
+				IdeLog.logError(CommonEditorPlugin.getDefault(), e.getMessage(), e);
 			}
 		}
 	}
@@ -413,5 +429,10 @@ public class ValidationManager implements IValidationManager
 	private static String getFilterExpressionsPrefKey(String language)
 	{
 		return language + ":" + IPreferenceConstants.FILTER_EXPRESSIONS; //$NON-NLS-1$
+	}
+
+	public IParseNode getAST()
+	{
+		return fFileService.getParseResult();
 	}
 }

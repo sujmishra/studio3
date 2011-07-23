@@ -34,7 +34,6 @@ import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
-import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.preference.PreferenceConverter;
 import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.jface.resource.StringConverter;
@@ -59,6 +58,7 @@ import com.aptana.theme.ThemePlugin;
 import com.aptana.theme.ThemeRule;
 import com.aptana.theme.internal.preferences.ThemerPreferenceInitializer;
 import com.aptana.theme.preferences.IPreferenceConstants;
+import com.aptana.ui.util.UIUtils;
 
 public class ThemeManager implements IThemeManager
 {
@@ -97,7 +97,7 @@ public class ThemeManager implements IThemeManager
 
 	private ThemeManager()
 	{
-		new InstanceScope().getNode("org.eclipse.ui.editors").addPreferenceChangeListener( //$NON-NLS-1$
+		EclipseUtil.instanceScope().getNode("org.eclipse.ui.editors").addPreferenceChangeListener( //$NON-NLS-1$
 				new IPreferenceChangeListener()
 				{
 
@@ -139,7 +139,7 @@ public class ThemeManager implements IThemeManager
 									{
 										// Store that the user has overridden this annotation in this theme
 										int index = getCurrentTheme().getTokens().size();
-										getCurrentTheme().addNewRule(index, "Annotation Override - " + prefix,
+										getCurrentTheme().addNewRule(index, "Annotation Override - " + prefix, //$NON-NLS-1$
 												new ScopeSelector(scopeSelector), null);
 									}
 
@@ -198,7 +198,7 @@ public class ThemeManager implements IThemeManager
 		fCurrentTheme = theme;
 
 		// Set the find in file search color
-		IEclipsePreferences prefs = new InstanceScope().getNode("org.eclipse.search"); //$NON-NLS-1$
+		IEclipsePreferences prefs = EclipseUtil.instanceScope().getNode("org.eclipse.search"); //$NON-NLS-1$
 		prefs.put("org.eclipse.search.potentialMatch.fgColor", toString(theme.getSearchResultColor())); //$NON-NLS-1$
 		try
 		{
@@ -210,11 +210,13 @@ public class ThemeManager implements IThemeManager
 		}
 
 		// Set the color for the search result annotation, the pref key is "searchResultIndicationColor"
-		prefs = new InstanceScope().getNode("org.eclipse.ui.editors"); //$NON-NLS-1$
+		prefs = EclipseUtil.instanceScope().getNode("org.eclipse.ui.editors"); //$NON-NLS-1$
 		if (!theme.hasEntry("override.searchResultIndication")) //$NON-NLS-1$
 		{
 			prefs.put("searchResultIndicationColor", toString(theme.getSearchResultColor())); //$NON-NLS-1$
 		}
+		// TODO Use markup.changed bg color for "decoration color" in Prefs>General>Appearance>Colors and Fonts
+
 		// TODO Move this stuff over to theme change listeners in the XML/HTML/Ruby editor plugins?
 		if (!theme.hasEntry("override.xmlTagPairOccurrenceIndication")) //$NON-NLS-1$
 		{
@@ -286,7 +288,7 @@ public class ThemeManager implements IThemeManager
 		}
 
 		// Set the bg/fg/selection colors for compare editors
-		prefs = new InstanceScope().getNode("org.eclipse.compare"); //$NON-NLS-1$
+		prefs = EclipseUtil.instanceScope().getNode("org.eclipse.compare"); //$NON-NLS-1$
 		prefs.putBoolean(AbstractTextEditor.PREFERENCE_COLOR_BACKGROUND_SYSTEM_DEFAULT, false);
 		prefs.put(AbstractTextEditor.PREFERENCE_COLOR_BACKGROUND, StringConverter.asString(theme.getBackground()));
 		prefs.putBoolean(AbstractTextEditor.PREFERENCE_COLOR_FOREGROUND_SYSTEM_DEFAULT, false);
@@ -310,7 +312,7 @@ public class ThemeManager implements IThemeManager
 		}
 
 		// Also set the standard eclipse editor props, like fg, bg, selection fg, bg
-		prefs = new InstanceScope().getNode("com.aptana.editor.common"); //$NON-NLS-1$
+		prefs = EclipseUtil.instanceScope().getNode("com.aptana.editor.common"); //$NON-NLS-1$
 		prefs.putBoolean(AbstractTextEditor.PREFERENCE_COLOR_SELECTION_FOREGROUND_SYSTEM_DEFAULT, false);
 		prefs.put(AbstractTextEditor.PREFERENCE_COLOR_SELECTION_FOREGROUND, toString(theme.getSelectionAgainstBG()));
 
@@ -331,7 +333,7 @@ public class ThemeManager implements IThemeManager
 			ThemePlugin.logError(e);
 		}
 
-		prefs = new InstanceScope().getNode(ThemePlugin.PLUGIN_ID);
+		prefs = EclipseUtil.instanceScope().getNode(ThemePlugin.PLUGIN_ID);
 		prefs.put(IPreferenceConstants.ACTIVE_THEME, theme.getName());
 		prefs.putLong(THEME_CHANGED, System.currentTimeMillis());
 		try
@@ -344,26 +346,32 @@ public class ThemeManager implements IThemeManager
 		}
 
 		// Force font
-		// FIXME We need to run this in the UI thread(?)
 		final String[] fontIds = new String[] { IThemeManager.VIEW_FONT_NAME, JFaceResources.TEXT_FONT,
 				"org.eclipse.ui.workbench.texteditor.blockSelectionModeFont" }; //$NON-NLS-1$
-		for (String fontId : fontIds)
+		UIUtils.getDisplay().asyncExec(new Runnable()
 		{
-			Font fFont = JFaceResources.getFontRegistry().get(fontId);
-			// Only set new values if they're different from existing!
-			Font existing = JFaceResources.getFont(fontId);
-			String existingString = ""; //$NON-NLS-1$
-			if (!existing.isDisposed())
+
+			public void run()
 			{
-				existingString = PreferenceConverter.getStoredRepresentation(existing.getFontData());
+				for (String fontId : fontIds)
+				{
+					Font fFont = JFaceResources.getFontRegistry().get(fontId);
+					// Only set new values if they're different from existing!
+					Font existing = JFaceResources.getFont(fontId);
+					String existingString = ""; //$NON-NLS-1$
+					if (!existing.isDisposed())
+					{
+						existingString = PreferenceConverter.getStoredRepresentation(existing.getFontData());
+					}
+					String fdString = PreferenceConverter.getStoredRepresentation(fFont.getFontData());
+					if (!existingString.equals(fdString))
+					{
+						// put in registry...
+						JFaceResources.getFontRegistry().put(fontId, fFont.getFontData());
+					}
+				}
 			}
-			String fdString = PreferenceConverter.getStoredRepresentation(fFont.getFontData());
-			if (!existingString.equals(fdString))
-			{
-				// put in registry...
-				JFaceResources.getFontRegistry().put(fontId, fFont.getFontData());
-			}
-		}
+		});
 	}
 
 	private static String toString(RGB selection)
@@ -410,7 +418,7 @@ public class ThemeManager implements IThemeManager
 			builder.append(themeName).append(THEME_NAMES_DELIMETER);
 		}
 		builder.deleteCharAt(builder.length() - 1);
-		IEclipsePreferences prefs = new InstanceScope().getNode(ThemePlugin.PLUGIN_ID);
+		IEclipsePreferences prefs = EclipseUtil.instanceScope().getNode(ThemePlugin.PLUGIN_ID);
 		prefs.put(THEME_LIST_PREF_KEY, builder.toString());
 		try
 		{
@@ -453,8 +461,7 @@ public class ThemeManager implements IThemeManager
 			}
 			Properties props = new OrderedProperties();
 			props.load(new ByteArrayInputStream(array));
-			Theme theme = new Theme(ThemePlugin.getDefault().getColorManager(), props);
-			return theme;
+			return new Theme(ThemePlugin.getDefault().getColorManager(), props);
 		}
 		catch (IllegalArgumentException iae)
 		{
@@ -472,7 +479,7 @@ public class ThemeManager implements IThemeManager
 					theme.save();
 					return theme;
 				}
-				catch (IOException e)
+				catch (Exception e)
 				{
 					ThemePlugin.logError(e);
 				}
@@ -618,9 +625,16 @@ public class ThemeManager implements IThemeManager
 
 	private void loadTheme(Properties props)
 	{
-		Theme theme = new Theme(ThemePlugin.getDefault().getColorManager(), props);
-		fThemeMap.put(theme.getName(), theme);
-		fBuiltins.add(theme.getName());
+		try
+		{
+			Theme theme = new Theme(ThemePlugin.getDefault().getColorManager(), props);
+			fThemeMap.put(theme.getName(), theme);
+			fBuiltins.add(theme.getName());
+		}
+		catch (Exception e)
+		{
+			ThemePlugin.logError(e);
+		}
 	}
 
 	public IToken getToken(String scope)

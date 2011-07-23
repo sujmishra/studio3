@@ -7,8 +7,6 @@
  */
 package com.aptana.deploy.heroku;
 
-import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
@@ -45,19 +43,9 @@ public class HerokuPlugin extends AbstractUIPlugin
 		return PLUGIN_ID;
 	}
 
-	public static void logError(Throwable t)
-	{
-		logError(t.getMessage(), t);
-	}
-
-	private static HerokuPlugin getDefault()
+	public static HerokuPlugin getDefault()
 	{
 		return instance;
-	}
-
-	public static void logError(String msg, Throwable t)
-	{
-		getDefault().getLog().log(new Status(IStatus.ERROR, getPluginIdentifier(), msg, t));
 	}
 
 	public static ImageDescriptor getImageDescriptor(String path)
@@ -71,5 +59,4 @@ public class HerokuPlugin extends AbstractUIPlugin
 		getDefault().getImageRegistry().put(path, desc);
 		return desc;
 	}
-
 }

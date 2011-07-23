@@ -10,7 +10,8 @@ Require-Bundle: org.eclipse.core.runtime,
  com.aptana.core,
  com.aptana.core.epl,
  com.aptana.core.io,
- org.tmatesoft.sqljet
+ org.tmatesoft.sqljet,
+ com.aptana.filewatcher
 Bundle-RequiredExecutionEnvironment: J2SE-1.5
 Bundle-ActivationPolicy: lazy
 Export-Package: com.aptana.ide.syncing.core,

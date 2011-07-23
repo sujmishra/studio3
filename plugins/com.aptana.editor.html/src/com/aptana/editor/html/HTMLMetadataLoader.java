@@ -12,6 +12,7 @@ import java.net.URI;
 
 import org.osgi.framework.Bundle;
 
+import com.aptana.core.logging.IdeLog;
 import com.aptana.editor.common.contentassist.MetadataLoader;
 import com.aptana.editor.html.contentassist.HTMLIndexQueryHelper;
 import com.aptana.editor.html.contentassist.index.HTMLIndexConstants;
@@ -21,7 +22,7 @@ import com.aptana.editor.html.contentassist.model.AttributeElement;
 import com.aptana.editor.html.contentassist.model.ElementElement;
 import com.aptana.editor.html.contentassist.model.EntityElement;
 import com.aptana.editor.html.contentassist.model.EventElement;
-import com.aptana.editor.html.preferences.IPreferenceContants;
+import com.aptana.editor.html.preferences.IPreferenceConstants;
 import com.aptana.index.core.Index;
 import com.aptana.index.core.IndexManager;
 
@@ -75,7 +76,7 @@ public class HTMLMetadataLoader extends MetadataLoader<HTMLMetadataReader>
 	@Override
 	protected String getIndexVersionKey()
 	{
-		return IPreferenceContants.HTML_INDEX_VERSION;
+		return IPreferenceConstants.HTML_INDEX_VERSION;
 	}
 
 	/*
@@ -141,7 +142,7 @@ public class HTMLMetadataLoader extends MetadataLoader<HTMLMetadataReader>
 		}
 		catch (IOException e)
 		{
-			HTMLPlugin.logError(e.getMessage(), e);
+			IdeLog.logError(HTMLPlugin.getDefault(), e.getMessage(), e);
 		}
 	}
 

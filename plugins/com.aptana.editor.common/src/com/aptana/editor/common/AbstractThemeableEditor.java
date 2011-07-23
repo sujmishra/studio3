@@ -7,60 +7,55 @@
  */
 package com.aptana.editor.common;
 
-import java.lang.reflect.Field;
+import java.io.File;
 import java.text.MessageFormat;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.StringTokenizer;
 
-import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IResource;
+import org.eclipse.core.filesystem.EFS;
+import org.eclipse.core.filesystem.IFileStore;
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IAdaptable;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.content.IContentType;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.MenuManager;
+import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.dialogs.MessageDialogWithToggle;
 import org.eclipse.jface.preference.IPreferenceStore;
-import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextViewer;
-import org.eclipse.jface.text.ITextViewerExtension;
 import org.eclipse.jface.text.ITextViewerExtension5;
-import org.eclipse.jface.text.Position;
-import org.eclipse.jface.text.TextViewer;
-import org.eclipse.jface.text.formatter.FormattingContextProperties;
-import org.eclipse.jface.text.formatter.IFormattingContext;
-import org.eclipse.jface.text.source.AnnotationRulerColumn;
 import org.eclipse.jface.text.source.CommonLineNumberChangeRulerColumn;
-import org.eclipse.jface.text.source.CommonOverviewRuler;
-import org.eclipse.jface.text.source.CompositeRuler;
 import org.eclipse.jface.text.source.IOverviewRuler;
-import org.eclipse.jface.text.source.ISharedTextColors;
 import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.jface.text.source.IVerticalRuler;
 import org.eclipse.jface.text.source.IVerticalRulerColumn;
 import org.eclipse.jface.text.source.LineNumberRulerColumn;
 import org.eclipse.jface.text.source.SourceViewerConfiguration;
-import org.eclipse.jface.text.source.projection.ProjectionAnnotation;
-import org.eclipse.jface.text.source.projection.ProjectionViewer;
 import org.eclipse.jface.util.IPropertyChangeListener;
 import org.eclipse.jface.util.PropertyChangeEvent;
+import org.eclipse.jface.viewers.ILabelProvider;
 import org.eclipse.jface.viewers.IPostSelectionProvider;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.ISelectionProvider;
+import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.ControlAdapter;
 import org.eclipse.swt.events.ControlEvent;
-import org.eclipse.swt.events.ShellAdapter;
-import org.eclipse.swt.events.ShellEvent;
+import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Layout;
+import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorSite;
@@ -70,17 +65,24 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.contexts.IContextService;
 import org.eclipse.ui.editors.text.TextFileDocumentProvider;
+import org.eclipse.ui.ide.FileStoreEditorInput;
 import org.eclipse.ui.internal.editors.text.EditorsPlugin;
+import org.eclipse.ui.part.FileEditorInput;
 import org.eclipse.ui.texteditor.AbstractDecoratedTextEditorPreferenceConstants;
-import org.eclipse.ui.texteditor.AnnotationPreference;
 import org.eclipse.ui.texteditor.ChainedPreferenceStore;
+import org.eclipse.ui.texteditor.IDocumentProvider;
+import org.eclipse.ui.texteditor.ITextEditor;
 import org.eclipse.ui.texteditor.ITextEditorActionConstants;
 import org.eclipse.ui.texteditor.SourceViewerDecorationSupport;
 import org.eclipse.ui.texteditor.TextOperationAction;
 import org.eclipse.ui.views.contentoutline.ContentOutline;
 import org.eclipse.ui.views.contentoutline.IContentOutlinePage;
+import org.eclipse.ui.views.properties.IPropertySheetPage;
+import org.osgi.service.prefs.BackingStoreException;
 
+import com.aptana.core.logging.IdeLog;
 import com.aptana.core.resources.IUniformResource;
+import com.aptana.core.util.EclipseUtil;
 import com.aptana.core.util.StringUtil;
 import com.aptana.editor.common.actions.FilterThroughCommandAction;
 import com.aptana.editor.common.actions.FoldingActionsGroup;
@@ -94,19 +96,16 @@ import com.aptana.editor.common.internal.scripting.CommandElementsProvider;
 import com.aptana.editor.common.outline.CommonOutlinePage;
 import com.aptana.editor.common.parsing.FileService;
 import com.aptana.editor.common.preferences.IPreferenceConstants;
-import com.aptana.editor.common.scripting.QualifiedContentType;
-import com.aptana.editor.common.scripting.snippets.ExpandSnippetVerifyKeyListener;
+import com.aptana.editor.common.properties.CommonEditorPropertySheetPage;
 import com.aptana.editor.common.text.reconciler.IFoldingComputer;
 import com.aptana.editor.common.text.reconciler.RubyRegexpFolder;
-import com.aptana.formatter.IScriptFormatterFactory;
-import com.aptana.formatter.ScriptFormatterManager;
-import com.aptana.formatter.preferences.PreferencesLookupDelegate;
-import com.aptana.formatter.ui.ScriptFormattingContextProperties;
+import com.aptana.editor.common.viewer.CommonProjectionViewer;
 import com.aptana.parsing.ast.IParseNode;
 import com.aptana.parsing.lexer.IRange;
 import com.aptana.scripting.ScriptingActivator;
 import com.aptana.scripting.keybindings.ICommandElementsProvider;
 import com.aptana.theme.ThemePlugin;
+import com.aptana.ui.util.UIUtils;
 
 /**
  * Provides a way to override the editor fg, bg caret, highlight and selection from what is set in global text editor
@@ -169,107 +168,6 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 		}
 	}
 
-	private class CommonProjectionViewer extends ProjectionViewer implements IAdaptable
-	{
-		public CommonProjectionViewer(Composite parent, IVerticalRuler ruler, IOverviewRuler overviewRuler,
-				boolean showsAnnotationOverview, int styles)
-		{
-			super(parent, ruler, overviewRuler, showsAnnotationOverview, styles);
-		}
-
-		protected Layout createLayout()
-		{
-			return new RulerLayout(RULER_EDITOR_GAP);
-		}
-
-		@Override
-		protected void handleDispose()
-		{
-			// HACK We force the widget command to be nulled out so it can be garbage collected. Might want to
-			// report a bug with eclipse to clean this up.
-			try
-			{
-				Field f = TextViewer.class.getDeclaredField("fWidgetCommand"); //$NON-NLS-1$
-				if (f != null)
-				{
-					f.setAccessible(true);
-					f.set(this, null);
-				}
-			}
-			catch (Throwable t)
-			{
-				// ignore
-			}
-			finally
-			{
-				super.handleDispose();
-			}
-		}
-
-		@SuppressWarnings("rawtypes")
-		@Override
-		public IFormattingContext createFormattingContext()
-		{
-			final IFormattingContext context = super.createFormattingContext();
-			try
-			{
-				QualifiedContentType contentType = CommonEditorPlugin.getDefault().getDocumentScopeManager()
-						.getContentType(getDocument(), 0);
-				if (contentType != null && contentType.getPartCount() > 0)
-				{
-					String mainContentType = contentType.getParts()[0];
-					// We need to make sure that in case the given content type is actually a nested language in
-					// HTML, we look for the HTML formatter factory because it should be the 'Master' formatter.
-					if (mainContentType.startsWith(CommonSourceViewerConfiguration.CONTENTTYPE_HTML_PREFIX))
-					{
-						mainContentType = CommonSourceViewerConfiguration.CONTENTTYPE_HTML_PREFIX;
-					}
-					final IScriptFormatterFactory factory = ScriptFormatterManager.getSelected(mainContentType);
-					if (factory != null)
-					{
-						// The code above might change the content type that is used to
-						// get the formatter, but we still need to save the original content-type so that the
-						// IScriptFormatter instance will handle the any required parsing by calling the right
-						// IParser.
-						factory.setMainContentType(contentType.getParts()[0]);
-
-						AbstractThemeableEditor abstractThemeableEditor = AbstractThemeableEditor.this;
-						IResource file = (IResource) abstractThemeableEditor.getEditorInput().getAdapter(
-								IResource.class);
-						context.setProperty(ScriptFormattingContextProperties.CONTEXT_FORMATTER_ID, factory.getId());
-						IProject project = (file != null) ? file.getProject() : null;
-						Map preferences = factory.retrievePreferences(new PreferencesLookupDelegate(project));
-						context.setProperty(FormattingContextProperties.CONTEXT_PREFERENCES, preferences);
-					}
-				}
-			}
-			catch (BadLocationException e)
-			{
-			}
-			return context;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * @see org.eclipse.core.runtime.IAdaptable#getAdapter(java.lang.Class)
-		 */
-		@SuppressWarnings("rawtypes")
-		public Object getAdapter(Class adapter)
-		{
-			Object result = null;
-
-			if (adapter == AbstractThemeableEditor.class)
-			{
-				result = AbstractThemeableEditor.this;
-			}
-
-			return result;
-		}
-
-	}
-
-	private static final int RULER_EDITOR_GAP = 5;
-
 	private static final char[] DEFAULT_PAIR_MATCHING_CHARS = new char[] { '(', ')', '{', '}', '[', ']', '`', '`',
 			'\'', '\'', '"', '"' };
 
@@ -277,7 +175,6 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 
 	private CommonOutlinePage fOutlinePage;
 	private FileService fFileService;
-	private ExpandSnippetVerifyKeyListener fKeyListener;
 
 	private boolean fCursorChangeListened;
 	private SelectionChangedListener fSelectionChangedListener;
@@ -297,6 +194,10 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 	private PeerCharacterCloser fPeerCharacterCloser;
 
 	private FoldingActionsGroup foldingActionsGroup;
+
+	private ControlListener fWordWrapControlListener;
+
+	private CommonOccurrencesUpdater occurrencesUpdater;
 
 	/**
 	 * AbstractThemeableEditor
@@ -346,7 +247,7 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 		fPeerCharacterCloser.install();
 		fPeerCharacterCloser.setAutoInsertEnabled(getPreferenceStore().getBoolean(
 				IPreferenceConstants.EDITOR_PEER_CHARACTER_CLOSE));
-		fPeerCharacterCloser.setAutoInsertEnabled(getPreferenceStore().getBoolean(
+		fPeerCharacterCloser.setAutoWrapEnabled(getPreferenceStore().getBoolean(
 				IPreferenceConstants.EDITOR_WRAP_SELECTION));
 
 		fCursorChangeListened = true;
@@ -362,93 +263,17 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 
 		if (isWordWrapEnabled())
 		{
-			StyledText textWidget = getSourceViewer().getTextWidget();
-			textWidget.setWordWrap(true);
-			textWidget.addControlListener(new ControlAdapter()
-			{
-
-				@SuppressWarnings("rawtypes")
-				public void controlResized(ControlEvent e)
-				{
-					IVerticalRuler ruler = getVerticalRuler();
-					if (ruler instanceof CompositeRuler)
-					{
-						Iterator columnIter = ((CompositeRuler) ruler).getDecoratorIterator();
-						while (columnIter.hasNext())
-						{
-							Object column = columnIter.next();
-							if (column instanceof AnnotationRulerColumn)
-							{
-								((AnnotationRulerColumn) column).redraw();
-							}
-						}
-					}
-					if (fLineNumberRulerColumn != null)
-					{
-						fLineNumberRulerColumn.redraw();
-					}
-					IOverviewRuler overviewRuler = getOverviewRuler();
-					if (overviewRuler != null)
-					{
-						overviewRuler.update();
-					}
-				}
-			});
+			setWordWrapEnabled(true);
 		}
+
+		installOccurrencesUpdater();
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see org.eclipse.ui.texteditor.AbstractTextEditor#setFocus() This is to workaround the Eclipse SWT bug
-	 * https://bugs.eclipse.org/bugs/show_bug.cgi?id=303677f
-	 */
-	@Override
-	public void setFocus()
+	protected void installOccurrencesUpdater()
 	{
-		super.setFocus();
-
-		// The above Eclipse SWT bug only occurs on Mac OS Cocoa builds
-		// "cocoa" is hardcoded because Platform.WS_COCOA was added
-		// in Eclipse 3.5
-		if (Platform.OS_MACOSX.equals(Platform.getOS()) && Platform.getWS().equals("cocoa")) //$NON-NLS-1$
-		{
-			final Shell shell = getSite().getShell();
-			if (shell == null)
-			{
-				return;
-			}
-			Display display = shell.getDisplay();
-			if (display == null)
-			{
-				return;
-			}
-			ISourceViewer sv = getSourceViewer();
-			if (sv == null)
-			{
-				return;
-			}
-			if (display.getFocusControl() != sv.getTextWidget())
-			{
-				// Focus did not stick due to the bug above. This is most likely
-				// because of the containing shell is not the active shell.
-				if (shell != display.getActiveShell())
-				{
-					// Queue up a setFocus() when the containing shell activates.
-					shell.addShellListener(new ShellAdapter()
-					{
-						@Override
-						public void shellActivated(ShellEvent e)
-						{
-							// Cleanup
-							shell.removeShellListener(this);
-
-							// Set the focus
-							AbstractThemeableEditor.this.setFocus();
-						}
-					});
-				}
-			}
-		}
+		// Initialize the occurrences annotations marker
+		occurrencesUpdater = new CommonOccurrencesUpdater(this);
+		occurrencesUpdater.initialize(getPreferenceStore());
 	}
 
 	/*
@@ -462,14 +287,19 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 		if (SourceViewerConfiguration.class == adapter)
 		{
 			return getSourceViewerConfiguration();
-		} else if (IContentOutlinePage.class == adapter)
+		}
+		else if (IContentOutlinePage.class == adapter)
 		{
 			// returns our custom adapter for the content outline page
 			return getOutlinePage();
-		} else if (ISourceViewer.class == adapter
-				|| ITextViewer.class == adapter)
+		}
+		else if (ISourceViewer.class == adapter || ITextViewer.class == adapter)
 		{
 			return getSourceViewer();
+		}
+		else if (IPreferenceStore.class == adapter)
+		{
+			return getPluginPreferenceStore();
 		}
 
 		if (this.fThemeableEditorFindBarExtension != null)
@@ -480,6 +310,12 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 				return adaptable;
 			}
 		}
+
+		if (adapter == IPropertySheetPage.class)
+		{
+			return new CommonEditorPropertySheetPage(getSourceViewer());
+		}
+
 		return super.getAdapter(adapter);
 	}
 
@@ -492,10 +328,29 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 		return fOutlinePage;
 	}
 
+	public ITreeContentProvider getOutlineContentProvider()
+	{
+		return null;
+	}
+
+	public ILabelProvider getOutlineLabelProvider()
+	{
+		return null;
+	}
+
 	protected CommonOutlinePage createOutlinePage()
 	{
-		return new CommonOutlinePage(this, getOutlinePreferenceStore());
+		if (getOutlineContentProvider() == null || getOutlineLabelProvider() == null)
+		{
+			return null;
+		}
+		CommonOutlinePage outline = new CommonOutlinePage(this, getOutlinePreferenceStore());
+		outline.setContentProvider(getOutlineContentProvider());
+		outline.setLabelProvider(getOutlineLabelProvider());
+		return outline;
 	}
+
+	protected abstract IPreferenceStore getPluginPreferenceStore();
 
 	@Override
 	protected void initializeLineNumberRulerColumn(LineNumberRulerColumn rulerColumn)
@@ -512,11 +367,20 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 
 		// Need to make it a projection viewer now that we have folding...
 		CommonProjectionViewer viewer = new CommonProjectionViewer(parent, ruler, getOverviewRuler(),
-				isOverviewRulerVisible(), styles);
+				isOverviewRulerVisible(), styles)
+		{
+			@SuppressWarnings("rawtypes")
+			@Override
+			public Object getAdapter(Class adapter)
+			{
+				if (AbstractThemeableEditor.class == adapter || ITextEditor.class == adapter)
+				{
+					return AbstractThemeableEditor.this;
+				}
+				return super.getAdapter(adapter);
+			}
 
-		this.fKeyListener = new ExpandSnippetVerifyKeyListener(this, viewer);
-		// add listener to our viewer
-		((ITextViewerExtension) viewer).prependVerifyKeyListener(this.fKeyListener);
+		};
 
 		// ensure decoration support has been created and configured.
 		getSourceViewerDecorationSupport(viewer);
@@ -552,26 +416,37 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 	{
 		try
 		{
-			if (getSourceViewer() instanceof CommonSourceViewerConfiguration)
+			SourceViewerConfiguration svc = getSourceViewerConfiguration();
+			if (svc instanceof CommonSourceViewerConfiguration)
 			{
-				((CommonSourceViewerConfiguration) getSourceViewer()).dispose();
+				((CommonSourceViewerConfiguration) svc).dispose();
 			}
-			if (fKeyListener != null)
+			if (fWordWrapControlListener != null)
 			{
-				ISourceViewer viewer = this.getSourceViewer();
-
-				if (viewer instanceof ITextViewerExtension)
+				ISourceViewer sourceViewer = getSourceViewer();
+				if (sourceViewer != null)
 				{
-					((ITextViewerExtension) viewer).removeVerifyKeyListener(this.fKeyListener);
+					StyledText textWidget = sourceViewer.getTextWidget();
+					if (textWidget != null && !textWidget.isDisposed())
+					{
+						textWidget.removeControlListener(fWordWrapControlListener);
+					}
 				}
-
-				fKeyListener = null;
+				fWordWrapControlListener = null;
 			}
+
+			if (occurrencesUpdater != null)
+			{
+				occurrencesUpdater.dispose();
+				occurrencesUpdater = null;
+			}
+
 			if (fSelectionChangedListener != null)
 			{
 				fSelectionChangedListener.uninstall(getSelectionProvider());
 				fSelectionChangedListener = null;
 			}
+
 			if (fThemeListener != null)
 			{
 				ThemePlugin.getDefault().getPreferenceStore().removePropertyChangeListener(fThemeListener);
@@ -583,16 +458,24 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 				fThemeableEditorColorsExtension.dispose();
 				fThemeableEditorColorsExtension = null;
 			}
+
 			if (fThemeableEditorFindBarExtension != null)
 			{
 				fThemeableEditorFindBarExtension.dispose();
 				fThemeableEditorFindBarExtension = null;
 			}
+			if (foldingActionsGroup != null)
+			{
+				foldingActionsGroup.dispose();
+				foldingActionsGroup = null;
+			}
+
 			if (fOutlinePage != null)
 			{
 				fOutlinePage.dispose();
 				fOutlinePage = null;
 			}
+
 			fCommandElementsProvider = null;
 			if (fFileService != null)
 			{
@@ -624,11 +507,13 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 		getFileService().setResource(resource);
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
 	 * @see org.eclipse.ui.texteditor.AbstractTextEditor#init(org.eclipse.ui.IEditorSite, org.eclipse.ui.IEditorInput)
 	 */
 	@Override
-	public void init(IEditorSite site, IEditorInput input) throws PartInitException {
+	public void init(IEditorSite site, IEditorInput input) throws PartInitException
+	{
 		super.init(site, input);
 		setEditorContextMenuId(getSite().getId());
 	}
@@ -640,18 +525,189 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 				CommonEditorPlugin.getDefault().getPreferenceStore(), EditorsPlugin.getDefault().getPreferenceStore() }));
 	}
 
+	@Override
+	public void doSave(IProgressMonitor progressMonitor)
+	{
+		if (getEditorInput() instanceof UntitledFileStorageEditorInput)
+		{
+			// forces to show save as dialog on untitled file
+			performSaveAs(progressMonitor);
+		}
+		else
+		{
+			super.doSave(progressMonitor);
+		}
+	}
+
+	@Override
+	protected void performSaveAs(IProgressMonitor progressMonitor)
+	{
+		progressMonitor = (progressMonitor == null) ? new NullProgressMonitor() : progressMonitor;
+		IEditorInput input = getEditorInput();
+
+		if (input instanceof UntitledFileStorageEditorInput)
+		{
+			Shell shell = getSite().getShell();
+
+			// checks if user wants to save on the file system or in a workspace project
+			boolean saveToProject = false;
+			boolean byPassDialog = Platform.getPreferencesService().getBoolean(CommonEditorPlugin.PLUGIN_ID,
+					IPreferenceConstants.REMEMBER_UNTITLED_FILE_SAVE_TYPE, false, null);
+			if (byPassDialog)
+			{
+				// grabs from preferences
+				saveToProject = Platform.getPreferencesService().getBoolean(CommonEditorPlugin.PLUGIN_ID,
+						IPreferenceConstants.SAVE_UNTITLED_FILE_TO_PROJECT, false, null);
+			}
+			else
+			{
+				// asks the user
+				MessageDialogWithToggle dialog = new MessageDialogWithToggle(shell,
+						Messages.AbstractThemeableEditor_SaveToggleDialog_Title, null,
+						Messages.AbstractThemeableEditor_SaveToggleDialog_Message, MessageDialog.NONE, new String[] {
+								Messages.AbstractThemeableEditor_SaveToggleDialog_LocalFilesystem,
+								Messages.AbstractThemeableEditor_SaveToggleDialog_Project }, 0, null, false);
+				int code = dialog.open();
+				if (code == SWT.DEFAULT)
+				{
+					return;
+				}
+				saveToProject = (code != IDialogConstants.INTERNAL_ID);
+				if (dialog.getToggleState())
+				{
+					// the decision is remembered, so saves it
+					IEclipsePreferences prefs = (EclipseUtil.instanceScope()).getNode(CommonEditorPlugin.PLUGIN_ID);
+					prefs.putBoolean(IPreferenceConstants.REMEMBER_UNTITLED_FILE_SAVE_TYPE, true);
+					prefs.putBoolean(IPreferenceConstants.SAVE_UNTITLED_FILE_TO_PROJECT, saveToProject);
+					try
+					{
+						prefs.flush();
+					}
+					catch (BackingStoreException e)
+					{
+						IdeLog.logError(CommonEditorPlugin.getDefault(), e.getMessage(), e);
+					}
+				}
+			}
+
+			if (!saveToProject)
+			{
+				// saves to local filesystem
+				FileDialog fileDialog = new FileDialog(shell, SWT.SAVE);
+				String path = fileDialog.open();
+				if (path == null)
+				{
+					progressMonitor.setCanceled(true);
+					return;
+				}
+
+				// Check whether file exists and if so, confirm overwrite
+				File localFile = new File(path);
+				if (localFile.exists())
+				{
+					if (!MessageDialog.openConfirm(shell, Messages.AbstractThemeableEditor_ConfirmOverwrite_Title,
+							MessageFormat.format(Messages.AbstractThemeableEditor_ConfirmOverwrite_Message, path)))
+					{
+						progressMonitor.setCanceled(true);
+					}
+				}
+
+				IFileStore fileStore;
+				try
+				{
+					fileStore = EFS.getStore(localFile.toURI());
+				}
+				catch (CoreException e)
+				{
+					IdeLog.logError(CommonEditorPlugin.getDefault(), e.getMessage(), e);
+					MessageDialog.openError(shell, Messages.AbstractThemeableEditor_Error_Title,
+							MessageFormat.format(Messages.AbstractThemeableEditor_Error_Message, path));
+					return;
+				}
+
+				IDocumentProvider provider = getDocumentProvider();
+				if (provider == null)
+				{
+					return;
+				}
+
+				IEditorInput newInput;
+				IFile file = getWorkspaceFile(fileStore);
+				if (file != null)
+				{
+					newInput = new FileEditorInput(file);
+				}
+				else
+				{
+					newInput = new FileStoreEditorInput(fileStore);
+				}
+
+				boolean success = false;
+				try
+				{
+					provider.aboutToChange(newInput);
+					provider.saveDocument(progressMonitor, newInput, provider.getDocument(input), true);
+					success = true;
+				}
+				catch (CoreException e)
+				{
+					IStatus status = e.getStatus();
+					if (status == null || status.getSeverity() != IStatus.CANCEL)
+					{
+						MessageDialog.openError(shell, Messages.AbstractThemeableEditor_Error_Title,
+								MessageFormat.format(Messages.AbstractThemeableEditor_Error_Message, path));
+					}
+				}
+				finally
+				{
+					provider.changed(newInput);
+					if (success)
+					{
+						setInput(newInput);
+					}
+				}
+
+				progressMonitor.setCanceled(!success);
+			}
+			else
+			{
+				super.performSaveAs(progressMonitor);
+			}
+		}
+		else
+		{
+			super.performSaveAs(progressMonitor);
+		}
+	}
+
+	private IFile getWorkspaceFile(IFileStore fileStore)
+	{
+		IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+		IFile[] files = workspaceRoot.findFilesForLocationURI(fileStore.toURI());
+		if (files != null && files.length > 0)
+		{
+			return files[0];
+		}
+		return null;
+	}
+
 	protected FileService createFileService()
+	{
+		return new FileService(getFileServiceContentTypeId());
+	}
+
+	protected String getFileServiceContentTypeId()
 	{
 		try
 		{
 			IContentType contentType = ((TextFileDocumentProvider) getDocumentProvider())
 					.getContentType(getEditorInput());
-			return new FileService(contentType.getId());
+			return contentType.getId();
 		}
 		catch (Exception e)
 		{
 		}
-		return new FileService(null);
+		return null;
 	}
 
 	@Override
@@ -682,17 +738,10 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 		}
 		else if (property.equals(IPreferenceConstants.EDITOR_ENABLE_FOLDING))
 		{
-			if (isFoldingEnabled())
+			SourceViewerConfiguration config = getSourceViewerConfiguration();
+			if (config instanceof CommonSourceViewerConfiguration)
 			{
-				SourceViewerConfiguration config = getSourceViewerConfiguration();
-				if (config instanceof CommonSourceViewerConfiguration)
-				{
-					((CommonSourceViewerConfiguration) config).forceReconcile();
-				}
-			}
-			else
-			{
-				updateFoldingStructure(new HashMap<ProjectionAnnotation, Position>());
+				((CommonSourceViewerConfiguration) config).forceReconcile();
 			}
 		}
 		else if (IPreferenceConstants.USE_GLOBAL_DEFAULTS.equals(property))
@@ -725,32 +774,31 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 		return fFileService;
 	}
 
-	public Object computeHighlightedOutlineNode()
+	public Object computeHighlightedOutlineNode(int caretOffset)
+	{
+		return getOutlineElementAt(caretOffset);
+	}
+
+	public int getCaretOffset()
 	{
 		ISourceViewer sourceViewer = getSourceViewer();
 		if (sourceViewer == null)
 		{
-			return null;
+			return -1;
 		}
 		StyledText styledText = sourceViewer.getTextWidget();
 		if (styledText == null)
 		{
-			return null;
+			return -1;
 		}
 
-		int caret = 0;
 		if (sourceViewer instanceof ITextViewerExtension5)
 		{
 			ITextViewerExtension5 extension = (ITextViewerExtension5) sourceViewer;
-			caret = extension.widgetOffset2ModelOffset(styledText.getCaretOffset());
+			return extension.widgetOffset2ModelOffset(styledText.getCaretOffset());
 		}
-		else
-		{
-			int offset = sourceViewer.getVisibleRegion().getOffset();
-			caret = offset + styledText.getCaretOffset();
-		}
-
-		return getOutlineElementAt(caret);
+		int offset = sourceViewer.getVisibleRegion().getOffset();
+		return offset + styledText.getCaretOffset();
 	}
 
 	public void select(IRange element, boolean checkIfOutlineActive)
@@ -760,15 +808,14 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 			if (element != null && (!checkIfOutlineActive || isOutlinePageActive()))
 			{
 				// disables listening to cursor change so we don't get into the loop of setting selections between
-				// editor
-				// and outline
+				// editor and outline
 				fCursorChangeListened = false;
 				setSelectedElement(element);
 			}
 		}
 		catch (Exception e)
 		{
-			CommonEditorPlugin.logError(e);
+			IdeLog.logError(CommonEditorPlugin.getDefault(), e.getMessage(), e);
 		}
 	}
 
@@ -787,7 +834,7 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 		}
 		catch (Exception e)
 		{
-			CommonEditorPlugin.logError(e);
+			IdeLog.logError(CommonEditorPlugin.getDefault(), e.getMessage(), e);
 		}
 	}
 
@@ -799,7 +846,28 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 			{
 				if (hasOutlinePageCreated() && isLinkedWithEditor())
 				{
-					getOutlinePage().select(computeHighlightedOutlineNode());
+					final int caretOffset = getCaretOffset();
+					// runs the computation of which node in the outline corresponds to the caret offset in a non-UI
+					// thread
+					Thread thread = new Thread()
+					{
+
+						@Override
+						public void run()
+						{
+							final Object outlineNode = computeHighlightedOutlineNode(caretOffset);
+							UIUtils.getDisplay().asyncExec(new Runnable()
+							{
+
+								public void run()
+								{
+									getOutlinePage().select(outlineNode);
+								}
+
+							});
+						}
+					};
+					thread.start();
 				}
 			}
 			else
@@ -810,7 +878,7 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 		}
 		catch (Exception e)
 		{
-			CommonEditorPlugin.logError(e);
+			IdeLog.logError(CommonEditorPlugin.getDefault(), e.getMessage(), e);
 		}
 	}
 
@@ -874,7 +942,7 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 		}
 		catch (Exception e)
 		{
-			CommonEditorPlugin.logError(e);
+			IdeLog.logError(CommonEditorPlugin.getDefault(), e.getMessage(), e);
 		}
 		return raw;
 	}
@@ -903,7 +971,7 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 		}
 		catch (Exception e)
 		{
-			CommonEditorPlugin.logError(e);
+			IdeLog.logError(CommonEditorPlugin.getDefault(), e.getMessage(), e);
 		}
 		return null;
 	}
@@ -929,7 +997,7 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 		}
 		catch (Exception e)
 		{
-			CommonEditorPlugin.logError(e);
+			IdeLog.logError(CommonEditorPlugin.getDefault(), e.getMessage(), e);
 		}
 		return null;
 	}
@@ -1031,6 +1099,44 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 		return new RubyRegexpFolder(this, document);
 	}
 
+	public boolean getWordWrapEnabled()
+	{
+		return getSourceViewer().getTextWidget().getWordWrap();
+	}
+
+	public void setWordWrapEnabled(boolean enabled)
+	{
+		StyledText textWidget = getSourceViewer().getTextWidget();
+		textWidget.setWordWrap(enabled);
+		if (enabled)
+		{
+			if (fWordWrapControlListener == null)
+			{
+				fWordWrapControlListener = new ControlAdapter()
+				{
+
+					public void controlResized(ControlEvent e)
+					{
+						if (fLineNumberRulerColumn != null)
+						{
+							fLineNumberRulerColumn.redraw();
+						}
+						IOverviewRuler overviewRuler = getOverviewRuler();
+						if (overviewRuler != null)
+						{
+							overviewRuler.update();
+						}
+					}
+				};
+			}
+			textWidget.addControlListener(fWordWrapControlListener);
+		}
+		else
+		{
+			textWidget.removeControlListener(fWordWrapControlListener);
+		}
+	}
+
 	@Override
 	protected IVerticalRulerColumn createLineNumberRulerColumn()
 	{
@@ -1051,28 +1157,6 @@ public abstract class AbstractThemeableEditor extends AbstractFoldingEditor impl
 			return fLineNumberRulerColumn;
 		}
 		return super.createLineNumberRulerColumn();
-	}
-
-	@SuppressWarnings("unchecked")
-	@Override
-	protected IOverviewRuler createOverviewRuler(ISharedTextColors sharedColors)
-	{
-		if (isWordWrapEnabled())
-		{
-			IOverviewRuler ruler = new CommonOverviewRuler(getAnnotationAccess(), VERTICAL_RULER_WIDTH, sharedColors);
-			Iterator<AnnotationPreference> e = EditorsPlugin.getDefault().getMarkerAnnotationPreferences()
-					.getAnnotationPreferences().iterator();
-			while (e.hasNext())
-			{
-				AnnotationPreference preference = e.next();
-				if (preference.contributesToHeader())
-				{
-					ruler.addHeaderAnnotationType(preference.getAnnotationType());
-				}
-			}
-			return ruler;
-		}
-		return super.createOverviewRuler(sharedColors);
 	}
 
 	private boolean isWordWrapEnabled()

@@ -7,9 +7,6 @@
  */
 package com.aptana.deploy;
 
-import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
@@ -61,28 +58,6 @@ public class DeployPlugin extends AbstractUIPlugin
 	public static DeployPlugin getDefault()
 	{
 		return instance;
-	}
-
-	public static void logError(String message, Exception e)
-	{
-		getDefault().getLog().log(new Status(IStatus.ERROR, PLUGIN_ID, message, e));
-	}
-
-	public static void logError(Exception e)
-	{
-		if (e instanceof CoreException)
-		{
-			logError((CoreException) e);
-		}
-		else
-		{
-			logError(e.getMessage(), e);
-		}
-	}
-
-	public static void logError(CoreException e)
-	{
-		getDefault().getLog().log(e.getStatus());
 	}
 
 	public static Image getImage(String string)

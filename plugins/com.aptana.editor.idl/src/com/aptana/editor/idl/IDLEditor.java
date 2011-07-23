@@ -7,31 +7,25 @@
  */
 package com.aptana.editor.idl;
 
+import org.eclipse.jface.preference.IPreferenceStore;
+
 import com.aptana.editor.common.AbstractThemeableEditor;
-import com.aptana.editor.common.outline.CommonOutlinePage;
 
 public class IDLEditor extends AbstractThemeableEditor
 {
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.aptana.editor.common.AbstractThemeableEditor#createOutlinePage()
-	 */
 	@Override
-	protected CommonOutlinePage createOutlinePage()
-	{
-		return null;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.aptana.editor.common.AbstractThemeableEditor#initializeEditor()
-	 */
 	protected void initializeEditor()
 	{
 		super.initializeEditor();
 
 		this.setSourceViewerConfiguration(new IDLSourceViewerConfiguration(this.getPreferenceStore(), this));
-		this.setDocumentProvider(new IDLDocumentProvider());
+		this.setDocumentProvider(IDLPlugin.getDefault().getIDLDocumentProvider());
+	}
+
+	@Override
+	protected IPreferenceStore getPluginPreferenceStore()
+	{
+		return IDLPlugin.getDefault().getPreferenceStore();
 	}
 }

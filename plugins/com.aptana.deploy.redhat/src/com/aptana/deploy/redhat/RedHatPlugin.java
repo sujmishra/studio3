@@ -7,9 +7,6 @@
  */
 package com.aptana.deploy.redhat;
 
-import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
@@ -48,12 +45,7 @@ public class RedHatPlugin extends AbstractUIPlugin
 		return PLUGIN_ID;
 	}
 
-	public static void logError(Throwable t)
-	{
-		getDefault().getLog().log(new Status(IStatus.ERROR, getPluginIdentifier(), t.getMessage(), t));
-	}
-
-	private static RedHatPlugin getDefault()
+	public static RedHatPlugin getDefault()
 	{
 		return instance;
 	}
@@ -69,10 +61,4 @@ public class RedHatPlugin extends AbstractUIPlugin
 		getDefault().getImageRegistry().put(path, desc);
 		return desc;
 	}
-
-	public static void logError(String string, CoreException e)
-	{
-		getDefault().getLog().log(new Status(IStatus.ERROR, getPluginIdentifier(), string, e));
-	}
-
 }

@@ -12,13 +12,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.core.runtime.IConfigurationElement;
-import org.eclipse.core.runtime.IExtension;
-import org.eclipse.core.runtime.IExtensionPoint;
-import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.content.IContentType;
 import org.eclipse.core.runtime.content.IContentTypeManager;
 
+import com.aptana.core.util.EclipseUtil;
+import com.aptana.core.util.IConfigurationElementProcessor;
+import com.aptana.core.logging.IdeLog;
 import com.aptana.internal.parsing.ParserPool;
 import com.aptana.parsing.ast.IParseRootNode;
 
@@ -51,29 +51,24 @@ public class ParserPoolFactory
 	 */
 	private static Map<String, IConfigurationElement> getParsers()
 	{
-		IExtensionRegistry registry = Platform.getExtensionRegistry();
-		Map<String, IConfigurationElement> parsers = new HashMap<String, IConfigurationElement>();
+		final Map<String, IConfigurationElement> parsers = new HashMap<String, IConfigurationElement>();
 
-		if (registry != null)
-		{
-			IExtensionPoint extensionPoint = registry.getExtensionPoint(ParsingPlugin.PLUGIN_ID, "parser"); //$NON-NLS-1$
-
-			if (extensionPoint != null)
+		// @formatter:off
+		EclipseUtil.processConfigurationElements(
+			ParsingPlugin.PLUGIN_ID,
+			"parser", //$NON-NLS-1$
+			new IConfigurationElementProcessor()
 			{
-				IExtension[] extensions = extensionPoint.getExtensions();
-
-				for (IExtension extension : extensions)
+				public void processElement(IConfigurationElement element)
 				{
-					IConfigurationElement[] elements = extension.getConfigurationElements();
+					String contentType = element.getAttribute("content-type"); //$NON-NLS-1$
 
-					for (IConfigurationElement element : elements)
-					{
-						String contentType = element.getAttribute("content-type"); //$NON-NLS-1$
-						parsers.put(contentType, element);
-					}
+					parsers.put(contentType, element);
 				}
-			}
-		}
+			},
+			"parser" //$NON-NLS-1$
+		);
+		// @formatter:on
 
 		return parsers;
 	}
@@ -153,6 +148,11 @@ public class ParserPoolFactory
 				else
 				{
 					contentType = contentType.getBaseType();
+
+					if (contentType == null)
+					{
+						break;
+					}
 				}
 			}
 		}
@@ -167,7 +167,7 @@ public class ParserPoolFactory
 	 * @param source
 	 * @return
 	 */
-	public static IParseRootNode parse(String contentTypeId, String source)
+	public static IParseRootNode parse(String contentTypeId, String source) throws Exception
 	{
 		ParseState parseState = new ParseState();
 
@@ -183,7 +183,7 @@ public class ParserPoolFactory
 	 * @param source
 	 * @return
 	 */
-	public static IParseRootNode parse(String contentTypeId, IParseState parseState)
+	public static IParseRootNode parse(String contentTypeId, IParseState parseState) throws Exception
 	{
 		if (contentTypeId == null)
 		{
@@ -203,11 +203,6 @@ public class ParserPoolFactory
 				{
 					result = parser.parse(parseState);
 				}
-				catch (Exception e)
-				{
-					// just like in FileService ... "not logging the parsing error here since
-					// the source could be in an intermediate state of being edited by the user"
-				}
 				finally
 				{
 					pool.checkIn(parser);
@@ -221,8 +216,12 @@ public class ParserPoolFactory
 		}
 		else
 		{
-			String message = MessageFormat.format(Messages.ParserPoolFactory_Cannot_Acquire_Parser_Pool, contentTypeId);
-			ParsingPlugin.logInfo(message);
+			if (IdeLog.isInfoEnabled(ParsingPlugin.getDefault(), null))
+			{
+				String message = MessageFormat.format(Messages.ParserPoolFactory_Cannot_Acquire_Parser_Pool,
+						contentTypeId);
+				ParsingPlugin.logInfo(message);
+			}
 		}
 
 		return result;

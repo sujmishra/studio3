@@ -28,7 +28,16 @@ public class Messages extends NLS
 	public static String PortIsEmpty;
 	public static String PortShouldBeInRange;
 	public static String MinValueInvalid;
-	
+	// Text field validator
+	public static String FieldIsEmpty;
+
+	// Formatter OFF/ON
+	public static String FormatterModifyDialog_OffOnTags;
+	public static String FormatterOnOffPage_formatterOffOnInfo;
+	public static String FormatterOnOffPage_formatterEnableOffOn;
+	public static String FormatterOnOffPage_formatterOffTag;
+	public static String FormatterOnOffPage_formatterOnTag;
+
 	static
 	{
 		// initialize resource bundle

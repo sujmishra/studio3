@@ -20,7 +20,6 @@ import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
-import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.debug.internal.ui.views.memory.IMemoryViewPane;
 import org.eclipse.debug.internal.ui.views.memory.MemoryView;
 import org.eclipse.debug.ui.IDebugView;
@@ -55,9 +54,11 @@ import org.eclipse.ui.IPartListener2;
 import org.eclipse.ui.IStartup;
 import org.eclipse.ui.IViewPart;
 import org.eclipse.ui.IViewReference;
+import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.internal.console.ConsoleView;
 import org.eclipse.ui.internal.progress.ProgressView;
 import org.eclipse.ui.internal.views.markers.ExtendedMarkersView;
 import org.eclipse.ui.part.IPage;
@@ -172,7 +173,7 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener2, IPre
 
 	private void applyThemeToConsole(Theme currentTheme, boolean revertToDefaults, IProgressMonitor monitor)
 	{
-		IEclipsePreferences prefs = new InstanceScope().getNode("org.eclipse.debug.ui"); //$NON-NLS-1$
+		IEclipsePreferences prefs = EclipseUtil.instanceScope().getNode("org.eclipse.debug.ui"); //$NON-NLS-1$
 		if (revertToDefaults)
 		{
 			prefs.remove("org.eclipse.debug.ui.errorColor"); //$NON-NLS-1$
@@ -341,6 +342,11 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener2, IPre
 			}
 			return;
 		}
+		else if (view instanceof ConsoleView)
+		{
+			hijackConsole(view);
+			return;
+		}
 		else if (view.getClass().getName().equals("org.eclipse.search2.internal.ui.SearchView")) //$NON-NLS-1$
 		{
 			hijackSearchView(view, revertToDefaults);
@@ -375,6 +381,11 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener2, IPre
 			return;
 		}
 		else if (view.getClass().getName().endsWith("CallHierarchyViewPart")) //$NON-NLS-1$
+		{
+			hijackCallHierarchy(view, revertToDefaults);
+			return;
+		}
+		else if (view.getClass().getName().endsWith("TypeHierarchyViewPart")) //$NON-NLS-1$
 		{
 			hijackCallHierarchy(view, revertToDefaults);
 			return;
@@ -526,13 +537,13 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener2, IPre
 	protected void applyThemeToJDTEditor(Theme theme, boolean revertToDefaults, IProgressMonitor monitor)
 	{
 		// Set prefs for all editors
-		setHyperlinkValues(theme, new InstanceScope().getNode("org.eclipse.ui.workbench"), revertToDefaults); //$NON-NLS-1$
-		setHyperlinkValues(theme, new InstanceScope().getNode(ThemePlugin.PLUGIN_ID), revertToDefaults);
+		setHyperlinkValues(theme, EclipseUtil.instanceScope().getNode("org.eclipse.ui.workbench"), revertToDefaults); //$NON-NLS-1$
+		setHyperlinkValues(theme, EclipseUtil.instanceScope().getNode(ThemePlugin.PLUGIN_ID), revertToDefaults);
 
-		setGitAndMercurialValues(theme, new InstanceScope().getNode("org.eclipse.ui.workbench"), revertToDefaults); //$NON-NLS-1$
+		setGitAndMercurialValues(theme, EclipseUtil.instanceScope().getNode("org.eclipse.ui.workbench"), revertToDefaults); //$NON-NLS-1$
 
-		setGeneralEditorValues(theme, new InstanceScope().getNode("org.eclipse.ui.texteditor"), revertToDefaults); //$NON-NLS-1$
-		setEditorValues(theme, new InstanceScope().getNode("org.eclipse.ui.editors"), revertToDefaults); //$NON-NLS-1$
+		setGeneralEditorValues(theme, EclipseUtil.instanceScope().getNode("org.eclipse.ui.texteditor"), revertToDefaults); //$NON-NLS-1$
+		setEditorValues(theme, EclipseUtil.instanceScope().getNode("org.eclipse.ui.editors"), revertToDefaults); //$NON-NLS-1$
 
 		if (monitor.isCanceled())
 		{
@@ -540,7 +551,7 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener2, IPre
 		}
 
 		// PDE
-		IEclipsePreferences pdePrefs = new InstanceScope().getNode("org.eclipse.pde.ui"); //$NON-NLS-1$
+		IEclipsePreferences pdePrefs = EclipseUtil.instanceScope().getNode("org.eclipse.pde.ui"); //$NON-NLS-1$
 		setGeneralEditorValues(theme, pdePrefs, revertToDefaults);
 		setPDEEditorValues(theme, pdePrefs, revertToDefaults);
 
@@ -550,7 +561,7 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener2, IPre
 		}
 
 		// Ant
-		IEclipsePreferences antPrefs = new InstanceScope().getNode("org.eclipse.ant.ui"); //$NON-NLS-1$
+		IEclipsePreferences antPrefs = EclipseUtil.instanceScope().getNode("org.eclipse.ant.ui"); //$NON-NLS-1$
 		setGeneralEditorValues(theme, antPrefs, revertToDefaults);
 		setAntEditorValues(theme, antPrefs, revertToDefaults);
 
@@ -560,11 +571,11 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener2, IPre
 		}
 
 		// Now set for JDT...
-		IEclipsePreferences prefs = new InstanceScope().getNode("org.eclipse.jdt.ui"); //$NON-NLS-1$
+		IEclipsePreferences prefs = EclipseUtil.instanceScope().getNode("org.eclipse.jdt.ui"); //$NON-NLS-1$
 		setGeneralEditorValues(theme, prefs, revertToDefaults);
 
 		// Set prefs for JDT so it's various tokens get colors that match up to our theme!
-		// prefs = new InstanceScope().getNode("org.eclipse.jdt.ui");
+		// prefs = EclipseUtil.instanceScope().getNode("org.eclipse.jdt.ui");
 		setToken(prefs, theme, "string.quoted.double.java", "java_string", revertToDefaults); //$NON-NLS-1$ //$NON-NLS-2$
 		setToken(prefs, theme, "source.java", "java_default", revertToDefaults); //$NON-NLS-1$ //$NON-NLS-2$
 		setToken(prefs, theme, "keyword", "java_keyword", revertToDefaults); //$NON-NLS-1$ //$NON-NLS-2$
@@ -772,8 +783,10 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener2, IPre
 
 	protected void setHyperlinkValues(Theme theme, IEclipsePreferences prefs, boolean revertToDefaults)
 	{
-		if (prefs == null)
+		if (prefs == null || theme == null)
+		{
 			return;
+		}
 		if (revertToDefaults)
 		{
 			// Console preferences
@@ -1044,15 +1057,31 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener2, IPre
 		}
 	}
 
+	protected void hijackConsole(IViewPart view)
+	{
+		if (view instanceof ConsoleView)
+		{
+			IPage currentPage = ((ConsoleView) view).getCurrentPage();
+			if (currentPage != null)
+			{
+				hookTheme(currentPage.getControl(), false);
+			}
+		}
+	}
+
 	protected void hijackOutline()
 	{
-		IViewReference[] refs = UIUtils.getActivePage().getViewReferences();
-		for (IViewReference ref : refs)
+		IWorkbenchPage page = UIUtils.getActivePage();
+		if (page != null)
 		{
-			if (ref.getId().equals(IPageLayout.ID_OUTLINE))
+			IViewReference[] refs = page.getViewReferences();
+			for (IViewReference ref : refs)
 			{
-				hijackView(ref.getView(false), false);
-				return;
+				if (ref.getId().equals(IPageLayout.ID_OUTLINE))
+				{
+					hijackView(ref.getView(false), false);
+					return;
+				}
 			}
 		}
 	}
@@ -1063,7 +1092,9 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener2, IPre
 	public synchronized void earlyStartup()
 	{
 		if (ranEarlyStartup)
+		{
 			return;
+		}
 		ranEarlyStartup = true;
 		if (invasiveThemesEnabled())
 		{
@@ -1074,15 +1105,14 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener2, IPre
 	public void apply()
 	{
 		earlyStartup();
-		IEclipsePreferences prefs = new InstanceScope().getNode(ThemePlugin.PLUGIN_ID);
+		IEclipsePreferences prefs = EclipseUtil.instanceScope().getNode(ThemePlugin.PLUGIN_ID);
 		prefs.addPreferenceChangeListener(this);
 	}
 
 	public void dispose()
 	{
-		IEclipsePreferences prefs = new InstanceScope().getNode(ThemePlugin.PLUGIN_ID);
+		IEclipsePreferences prefs = EclipseUtil.instanceScope().getNode(ThemePlugin.PLUGIN_ID);
 		prefs.removePreferenceChangeListener(this);
-
 		pageListener = null;
 	}
 
@@ -1091,9 +1121,11 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener2, IPre
 		if (partRef instanceof IViewReference)
 		{
 			IViewReference viewRef = (IViewReference) partRef;
-			final IViewPart part = viewRef.getView(false);
-			if (part.getClass().getName().endsWith("CallHierarchyViewPart")) //$NON-NLS-1$
+			String id = viewRef.getId();
+			if ("org.eclipse.ui.console.ConsoleView".equals(id) || "org.eclipse.jdt.ui.TypeHierarchy".equals(id) //$NON-NLS-1$ //$NON-NLS-2$
+					|| "org.eclipse.jdt.callhierarchy.view".equals(id)) //$NON-NLS-1$
 			{
+				final IViewPart part = viewRef.getView(false);
 				Display.getCurrent().asyncExec(new Runnable()
 				{
 					public void run()
@@ -1101,6 +1133,7 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener2, IPre
 						hijackView(part, false);
 					}
 				});
+				return;
 			}
 		}
 		if (partRef instanceof IEditorReference)
@@ -1185,6 +1218,7 @@ public class InvasiveThemeHijacker extends UIJob implements IPartListener2, IPre
 
 	public void partVisible(IWorkbenchPartReference partRef)
 	{
+		partActivated(partRef);
 	}
 
 	public void partInputChanged(IWorkbenchPartReference partRef)

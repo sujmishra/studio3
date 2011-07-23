@@ -51,7 +51,7 @@
 		}
 	}
 
-	private final IRecoveryStrategy[] recoveryStrategies;
+	private final List<IRecoveryStrategy> recoveryStrategies;
 	private JSScanner fScanner;
 
 	/**
@@ -120,6 +120,10 @@
 				if (node instanceof JSGroupNode && node.getFirstChild() instanceof JSFunctionNode)
 				{
 					((JSNode) node.getFirstChild()).setDocumentation(block);
+				}
+				else if (node instanceof JSIdentifierNode && node.getParent() instanceof JSNameValuePairNode && node.getNextSibling() instanceof JSFunctionNode)
+				{
+					((JSNode) node.getNextSibling()).setDocumentation(block);
 				}
 				else
 				{
@@ -221,7 +225,7 @@
 			// parse
 			ParseRootNode result = (ParseRootNode) parse(fScanner);
 			int start = parseState.getStartingOffset();
-			int end = start + source.length();
+			int end = start + source.length() - 1;
 			result.setLocation(start, end);
 
 			// store results in the parse state
@@ -378,7 +382,7 @@
 			// try the strategies, 3) try these after the mapped strategies
 			for (IRecoveryStrategy strategy : this.recoveryStrategies)
 			{
-				if (strategy.recover(this, token, in))
+				if (strategy.recover(this, getLastSymbol(), token, in))
 				{
 					success = true;
 					break;
@@ -396,144 +400,32 @@
 %init {:
 		report = new JSEvents();
 
-		recoveryStrategies = new IRecoveryStrategy[] {
-			new IRecoveryStrategy() {
-				public boolean recover(IParser parser, Symbol token, TokenStream in) throws IOException
+		// @formatter:off
+		recoveryStrategies = new ArrayList<IRecoveryStrategy>();
+
+		recoveryStrategies.add(new JSInsertionRecoveryStrategy(JSTokenType.SEMICOLON, ";"));
+		recoveryStrategies.add(new JSInsertionRecoveryStrategy(JSTokenType.RPAREN, ")", JSTokenType.SEMICOLON, ";"));
+		recoveryStrategies.add(new JSInsertionRecoveryStrategy(JSTokenType.IDENTIFIER, "", JSTokenType.SEMICOLON, ";", JSTokenType.DOT, JSTokenType.NEW, JSTokenType.EQUAL));
+		recoveryStrategies.add(new JSInsertionRecoveryStrategy(JSTokenType.IDENTIFIER, "", JSTokenType.DOT, JSTokenType.NEW, JSTokenType.EQUAL));
+		recoveryStrategies.add(new IRecoveryStrategy()
+		{
+			public boolean recover(IParser parser, Symbol lastToken, Symbol currentToken, TokenStream in) throws IOException
+			{
+				boolean result = false;
+
+				if (top >= 2)
 				{
-					boolean result = false;
+					Symbol symbol1 = _symbols[top - 2];
+					Symbol symbol2 = _symbols[top - 1];
 
-					Symbol term = new Symbol(JSTokenType.SEMICOLON.getIndex(), token.getStart(), token.getStart() - 1, ";");
-					Simulator sim = new Simulator();
-
-					in.alloc(2);
-					in.insert(term, token);
-					in.rewind();
-
-					if (sim.parse(in))
+					if (lastToken.getId() == JSTokenType.COMMA.getIndex() && symbol2.value instanceof List<?> && symbol1.getId() == JSTokenType.LPAREN.getIndex())
 					{
-						result = true;
-
-						in.rewind();
-
-						report.missingTokenInserted(term);
-					}
-
-					return result;
-				}
-			},
-			new IRecoveryStrategy() {
-				public boolean recover(IParser parser, Symbol token, TokenStream in) throws IOException
-				{
-					Symbol lastSymbol = getLastSymbol();
-					int type = lastSymbol.getId();
-					boolean result = false;
-
-					if (type == JSTokenType.DOT.getIndex() || type == JSTokenType.NEW.getIndex())
-					{
-						Symbol term1 = new Symbol(JSTokenType.IDENTIFIER.getIndex(), token.getStart(), token.getStart() - 1, "");
-						Symbol term2 = new Symbol(JSTokenType.SEMICOLON.getIndex(), token.getStart(), token.getStart() - 1, ";");
-
-						Simulator sim = new Simulator();
-
-						in.alloc(3);
-						in.insert(token);
-						in.insert(term2);
-						in.insert(term1);
-						in.rewind();
-
-						if (sim.parse(in))
-						{
-							result = true;
-
-							in.rewind();
-
-							report.missingTokenInserted(term1);
-							report.missingTokenInserted(term2);
-						}
-					}
-
-					return result;
-				}
-			},
-			new IRecoveryStrategy() {
-				public boolean recover(IParser parser, Symbol token, TokenStream in) throws IOException
-				{
-					Symbol lastSymbol = getLastSymbol();
-					int type = lastSymbol.getId();
-					boolean result = false;
-
-					if (type == JSTokenType.DOT.getIndex() || type == JSTokenType.NEW.getIndex())
-					{
-						Symbol term1 = new Symbol(JSTokenType.IDENTIFIER.getIndex(), token.getStart(), token.getStart() - 1, "");
-
+						Symbol term = new Symbol(JSTokenType.IDENTIFIER.getIndex(), currentToken.getStart(), currentToken.getStart() - 1, "");
 						Simulator sim = new Simulator();
 
 						in.alloc(2);
-						in.insert(token);
-						in.insert(term1);
+						in.insert(term, currentToken);
 						in.rewind();
-
-						if (sim.parse(in))
-						{
-							result = true;
-
-							in.rewind();
-
-							report.missingTokenInserted(term1);
-						}
-					}
-
-					return result;
-				}
-			},
-			new IRecoveryStrategy() {
-				public boolean recover(IParser parser, Symbol token, TokenStream in) throws IOException
-				{
-					Symbol lastSymbol = getLastSymbol();
-					boolean result = false;
-
-					if (top >= 2)
-					{
-						Symbol symbol1 = _symbols[top - 2];
-						Symbol symbol2 = _symbols[top - 1];
-
-						if (lastSymbol.getId() == JSTokenType.COMMA.getIndex() && symbol2.value instanceof List<?> && symbol1.getId() == JSTokenType.LPAREN.getIndex())
-						{
-							Symbol term = new Symbol(JSTokenType.IDENTIFIER.getIndex(), token.getStart(), token.getStart() - 1, "");
-							Simulator sim = new Simulator();
-
-							in.alloc(2);
-							in.insert(term, token);
-							in.rewind();
-
-							if (sim.parse(in))
-							{
-								result = true;
-
-								in.rewind();
-
-								report.missingTokenInserted(term);
-							}
-						}
-					}
-
-					return result;
-				}
-			},
-			new IRecoveryStrategy() {
-				public boolean recover(IParser parser, Symbol token, TokenStream in) throws IOException
-				{
-					int type = token.getId();
-					boolean result = false;
-
-					if (type == JSTokenType.RCURLY.getIndex())
-					{
-						Symbol term = new Symbol(JSTokenType.IDENTIFIER.getIndex(), token.getStart(), token.getStart() - 1, "");
-						Simulator sim = new Simulator();
-
-						in.alloc(2);
-						in.insert(token);
-						in.insert(term);
 
 						if (sim.parse(in))
 						{
@@ -544,42 +436,20 @@
 							report.missingTokenInserted(term);
 						}
 					}
-
-					return result;
 				}
-			},
-			new IRecoveryStrategy() {
-				public boolean recover(IParser parser, Symbol token, TokenStream in) throws IOException
-				{
-					int type = token.getId();
-					boolean result = false;
 
-					if (type == JSTokenType.RCURLY.getIndex())
-					{
-						Symbol term1 = new Symbol(JSTokenType.COLON.getIndex(), token.getStart(), token.getStart() - 1, ":");
-						Symbol term2 = new Symbol(JSTokenType.IDENTIFIER.getIndex(), token.getStart(), token.getStart() - 1, "");
-						Simulator sim = new Simulator();
-
-						in.alloc(3);
-						in.insert(token);
-						in.insert(term2);
-						in.insert(term1);
-
-						if (sim.parse(in))
-						{
-							result = true;
-
-							in.rewind();
-
-							report.missingTokenInserted(term1);
-							report.missingTokenInserted(term2);
-						}
-					}
-
-					return result;
-				}
+				return result;
 			}
-		};
+		});
+
+		JSInsertionRecoveryStrategy completeProperty = new JSInsertionRecoveryStrategy(JSTokenType.IDENTIFIER, "");
+		completeProperty.addCurrentTokenTypes(JSTokenType.RCURLY);
+		recoveryStrategies.add(completeProperty);
+
+		JSInsertionRecoveryStrategy completeProperty2 = new JSInsertionRecoveryStrategy(JSTokenType.COLON, ":", JSTokenType.IDENTIFIER, "");
+		completeProperty2.addCurrentTokenTypes(JSTokenType.RCURLY);
+		recoveryStrategies.add(completeProperty2);
+		// @formatter:on
 :};
 
 %terminals FUNCTION, IDENTIFIER, STRING, NUMBER, NULL, TRUE, FALSE, REGEX;

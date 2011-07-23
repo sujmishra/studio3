@@ -8,10 +8,8 @@
 package com.aptana.debug.core;
 
 import org.eclipse.core.runtime.IAdapterManager;
-import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Plugin;
-import org.eclipse.core.runtime.Status;
 import org.eclipse.debug.core.DebugPlugin;
 import org.osgi.framework.BundleContext;
 
@@ -80,22 +78,6 @@ public class DebugCorePlugin extends Plugin {
 		return remoteSourceCacheManager;
 	}
 
-	public static void log(Throwable e) {
-		log(new Status(IStatus.ERROR, PLUGIN_ID, IStatus.ERROR, e.getLocalizedMessage(), e));
-	}
-
-	public static void log(String msg) {
-		log(new Status(IStatus.INFO, PLUGIN_ID, IStatus.OK, msg, null));
-	}
-
-	public static void log(String msg, Throwable e) {
-		log(new Status(IStatus.ERROR, PLUGIN_ID, IStatus.OK, msg, e));
-	}
-
-	public static void log(IStatus status) {
-		getDefault().getLog().log(status);
-	}
-
 	/**
 	 * Forces to open source element in default editor
 	 * 
@@ -119,5 +101,4 @@ public class DebugCorePlugin extends Plugin {
 		}
 		return adapter;
 	}
-
 }

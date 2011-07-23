@@ -86,6 +86,10 @@ module Ruble
       @jobj.display_name
     end
 
+    def project_build_path
+      BuildPathProxy.new(@jobj, @path)
+    end
+
     def repository
       @jobj.repository
     end
@@ -165,7 +169,7 @@ module Ruble
     end
 
     def to_env
-      { :TM_BUNDLE_SUPPORT => File.join(File.dirname(path), "lib") }
+      { :TM_BUNDLE_SUPPORT => File.join(File.dirname(path), "lib"), :TM_BUNDLE_PATH => File.dirname(path) }
     end
 
     def to_s
@@ -174,6 +178,20 @@ module Ruble
         author: #{author}
       )
       EOS
+    end
+
+    class BuildPathProxy
+      def initialize(jobj, path)
+        @jobj = jobj
+        @path = path
+      end
+
+      def []=(name, path)
+        child = com.aptana.scripting.model.BuildPathElement.new(@path)
+        child.display_name = name
+        child.build_path = path
+        @jobj.add_child child
+      end
     end
 
     class << self

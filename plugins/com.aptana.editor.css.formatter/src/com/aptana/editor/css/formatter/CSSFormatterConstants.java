@@ -42,4 +42,22 @@ public interface CSSFormatterConstants
 	public static final String LINES_AFTER_DECLARATION = FORMATTER_ID + ".line.after.declaration"; //$NON-NLS-1$
 	public static final String PRESERVED_LINES = FORMATTER_ID + ".line.preserve"; //$NON-NLS-1$
 
+	// Spaces
+	public static final String SPACES_BEFORE_COMMAS = FORMATTER_ID + ".spaces.before.commas"; //$NON-NLS-1$
+	public static final String SPACES_AFTER_COMMAS = FORMATTER_ID + ".spaces.after.commas"; //$NON-NLS-1$
+	public static final String SPACES_BEFORE_PARENTHESES = FORMATTER_ID + ".spaces.before.parentheses"; //$NON-NLS-1$
+	public static final String SPACES_AFTER_PARENTHESES = FORMATTER_ID + ".spaces.after.parentheses"; //$NON-NLS-1$
+	public static final String SPACES_BEFORE_COLON = FORMATTER_ID + ".spaces.before.colon"; //$NON-NLS-1$
+	public static final String SPACES_AFTER_COLON = FORMATTER_ID + ".spaces.after.colon"; //$NON-NLS-1$
+	public static final String SPACES_BEFORE_SEMICOLON = FORMATTER_ID + ".spaces.before.semicolon"; //$NON-NLS-1$
+	public static final String SPACES_AFTER_SEMICOLON = FORMATTER_ID + ".spaces.after.semicolon"; //$NON-NLS-1$
+	public static final String SPACES_BEFORE_CHILD_COMBINATOR = FORMATTER_ID + ".spaces.before.child.combinator"; //$NON-NLS-1$
+	public static final String SPACES_AFTER_CHILD_COMBINATOR = FORMATTER_ID + ".spaces.after.child.combinator"; //$NON-NLS-1$
+
+	// OFF/ON
+	public static final String FORMATTER_OFF_ON_ENABLED = FORMATTER_ID + ".formatter.on.off.enabled"; //$NON-NLS-1$
+	public static final String FORMATTER_ON = FORMATTER_ID + ".formatter.on"; //$NON-NLS-1$
+	public static final String FORMATTER_OFF = FORMATTER_ID + ".formatter.off"; //$NON-NLS-1$
+	public static final String DEFAULT_FORMATTER_OFF = "@formatter:off"; //$NON-NLS-1$
+	public static final String DEFAULT_FORMATTER_ON = "@formatter:on"; //$NON-NLS-1$
 }

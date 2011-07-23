@@ -15,8 +15,12 @@ import org.eclipse.jface.text.rules.IToken;
 import org.eclipse.jface.text.rules.MultiLineRule;
 import org.eclipse.jface.text.rules.Token;
 
-public class TagRule extends MultiLineRule
-{
+/**
+ * 
+ * @author Max Stepanov
+ *
+ */
+public class TagRule extends ResumableMultiLineRule {
 
 	private static final IToken singleQuoteStringTOKEN = new Token("SQS"); //$NON-NLS-1$
 	private static final IPredicateRule singleQuoteStringRule = new MultiLineRule("'", "'", singleQuoteStringTOKEN, '\\'); //$NON-NLS-1$ //$NON-NLS-2$
@@ -26,119 +30,78 @@ public class TagRule extends MultiLineRule
 	private static final IPredicateRule doubleQuoteStringRule = new MultiLineRule("\"", "\"", doubleQuoteStringTOKEN, '\\'); //$NON-NLS-1$ //$NON-NLS-2$
 	private static final IPredicateRule doubleQuoteStringEOLRule = new EndOfLineRule("\"", doubleQuoteStringTOKEN, '\\'); //$NON-NLS-1$
 
-	private boolean fIgnoreCase;
+	private final boolean fIgnoreCase;
 
-	public TagRule(IToken token)
-	{
+	public TagRule(IToken token) {
 		this("", token); //$NON-NLS-1$
 	}
 
-	public TagRule(String tag, IToken token)
-	{
+	public TagRule(String tag, IToken token) {
 		this(tag, token, false);
 	}
 
-	public TagRule(String tag, IToken token, boolean ignoreCase)
-	{
+	public TagRule(String tag, IToken token, boolean ignoreCase) {
 		this("<" + tag, ">", token, ignoreCase); //$NON-NLS-1$ //$NON-NLS-2$
 	}
 
-	protected TagRule(String startSequence, String endSequence, IToken token, boolean ignoreCase)
-	{
-		super(startSequence, endSequence, token);
+	protected TagRule(String startSequence, String endSequence, IToken token, boolean ignoreCase) {
+		super(startSequence, endSequence, token, (char) 0, true);
 		fIgnoreCase = ignoreCase;
-	}
-
-	@Override
-	protected boolean sequenceDetected(ICharacterScanner scanner, char[] sequence, boolean eofAllowed)
-	{
-		boolean detected = true;
-		for (int i = 1; i < sequence.length; ++i)
-		{
-			int c = scanner.read();
-			if (c == ICharacterScanner.EOF && eofAllowed)
-			{
-				break;
-			}
-			if ((fIgnoreCase && Character.toLowerCase(c) != Character.toLowerCase(sequence[i]))
-					|| (!fIgnoreCase && c != sequence[i]))
-			{
-				// Non-matching character detected, rewind the scanner back to the start.
-				// Do not unread the first character.
-				scanner.unread();
-				for (int j = i - 1; j > 0; --j)
-				{
-					scanner.unread();
-				}
-				detected = false;
-				break;
-			}
-		}
-
-		if (!detected)
-		{
-			return detected;
-		}
-		if ((sequence.length == 1 && sequence[0] == '<')
-				|| (sequence.length == 2 && sequence[0] == '<' && sequence[1] == '/'))
-		{
-			int nextChar = scanner.read();
-			if (nextChar == ICharacterScanner.EOF)
-			{
-				return false;
-			}
-			scanner.unread();
-			return Character.isJavaIdentifierStart(nextChar);
-		}
-		return detected;
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.eclipse.jface.text.rules.PatternRule#endSequenceDetected(org.eclipse.jface.text.rules.ICharacterScanner)
+	 * @see org.eclipse.jface.text.rules.PatternRule#sequenceDetected(org.eclipse.jface.text.rules.ICharacterScanner, char[], boolean)
 	 */
-	protected boolean endSequenceDetected(ICharacterScanner scanner)
-	{
-		CollectingCharacterScanner collectingCharacterScanner = new CollectingCharacterScanner(scanner, String.valueOf(fStartSequence));
-		int c;
-		while ((c = collectingCharacterScanner.read()) != ICharacterScanner.EOF)
-		{
-			if (c == '\'')
-			{
-				collectingCharacterScanner.unread();
-				IToken token = singleQuoteStringRule.evaluate(collectingCharacterScanner);
-				if (token.isUndefined())
-				{
-					token = singleQuoteStringEOLRule.evaluate(collectingCharacterScanner);
-				}
+	@Override
+	protected boolean sequenceDetected(ICharacterScanner scanner, char[] sequence, boolean eofAllowed) {
+		for (int i = 1; i < sequence.length; ++i) {
+			int c = scanner.read();
+			if (c == ICharacterScanner.EOF && eofAllowed) {
+				break;
 			}
-			else if (c == '"')
-			{
-				collectingCharacterScanner.unread();
-				IToken token = doubleQuoteStringRule.evaluate(collectingCharacterScanner);
-				if (token.isUndefined())
-				{
-					token = doubleQuoteStringEOLRule.evaluate(collectingCharacterScanner);
+			if ((fIgnoreCase && Character.toLowerCase(c) != Character.toLowerCase(sequence[i])) || (!fIgnoreCase && c != sequence[i])) {
+				// Non-matching character detected, rewind the scanner back to
+				// the start.
+				// Do not unread the first character.
+				scanner.unread();
+				for (int j = i - 1; j > 0; --j) {
+					scanner.unread();
 				}
-			}
-			else if (c == fEndSequence[0])
-			{
-				if (fToken instanceof ExtendedToken) {
-					((ExtendedToken) fToken).setContents(collectingCharacterScanner.getContents());
-				}
-				return true;
+				return false;
 			}
 		}
-		if (scanner instanceof SequenceCharacterScanner && ((SequenceCharacterScanner) scanner).foundSequence())
-		{
-			// this means the EOF came from seeing a switching sequence, so assumes the end is detected and no need to
-			// rewind one character
-			if (fToken instanceof ExtendedToken) {
-				((ExtendedToken) fToken).setContents(collectingCharacterScanner.getContents());
-			}
-			return true;
-		}
-		collectingCharacterScanner.unread();
-		return false;
+		return true;
 	}
+
+	/* (non-Javadoc)
+	 * @see com.aptana.editor.common.text.rules.ResumableMultiLineRule#doDetectEndSequence(org.eclipse.jface.text.rules.ICharacterScanner)
+	 */
+	@Override
+	protected boolean doDetectEndSequence(ICharacterScanner scanner) {
+		int c;
+		while ((c = scanner.read()) != ICharacterScanner.EOF) {
+			if (c == '\'') {
+				scanner.unread();
+				IToken token = singleQuoteStringRule.evaluate(scanner);
+				if (token.isUndefined()) {
+					token = singleQuoteStringEOLRule.evaluate(scanner);
+				}
+			} else if (c == '"') {
+				scanner.unread();
+				IToken token = doubleQuoteStringRule.evaluate(scanner);
+				if (token.isUndefined()) {
+					token = doubleQuoteStringEOLRule.evaluate(scanner);
+				}
+			} else if ((c == fEndSequence[0] && sequenceDetected(scanner, fEndSequence, fBreaksOnEOF))
+					|| c == fStartSequence[0]) {
+				if (c == fStartSequence[0]) {
+					scanner.unread();
+				}
+				break;
+			}
+		}
+		return true;
+	}
+
 }

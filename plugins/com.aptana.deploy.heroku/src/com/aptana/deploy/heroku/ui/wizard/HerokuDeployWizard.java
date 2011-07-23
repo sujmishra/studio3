@@ -20,7 +20,6 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
-import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.wizard.IWizardPage;
@@ -37,6 +36,8 @@ import org.eclipse.ui.internal.browser.WebBrowserEditor;
 import org.eclipse.ui.internal.browser.WebBrowserEditorInput;
 import org.osgi.service.prefs.BackingStoreException;
 
+import com.aptana.core.logging.IdeLog;
+import com.aptana.core.util.EclipseUtil;
 import com.aptana.core.util.IOUtil;
 import com.aptana.deploy.heroku.HerokuAPI;
 import com.aptana.deploy.heroku.HerokuDeployProvider;
@@ -111,7 +112,7 @@ public class HerokuDeployWizard extends AbstractDeployWizard
 			}
 			catch (Exception e)
 			{
-				HerokuPlugin.logError(e);
+				IdeLog.logError(HerokuPlugin.getDefault(), e.getMessage(), e);
 			}
 		}
 		return true;
@@ -124,7 +125,7 @@ public class HerokuDeployWizard extends AbstractDeployWizard
 		final boolean publishImmediately = page.publishImmediately();
 
 		// persists the auto-publish setting
-		IEclipsePreferences prefs = (new InstanceScope()).getNode(HerokuPlugin.getPluginIdentifier());
+		IEclipsePreferences prefs = (EclipseUtil.instanceScope()).getNode(HerokuPlugin.getPluginIdentifier());
 		prefs.putBoolean(IPreferenceConstants.HEROKU_AUTO_PUBLISH, publishImmediately);
 		try
 		{
@@ -225,9 +226,10 @@ public class HerokuDeployWizard extends AbstractDeployWizard
 					if (responseCode != HttpURLConnection.HTTP_OK)
 					{
 						// Log an error
-						HerokuPlugin.logError(
+						IdeLog.logError(
+								HerokuPlugin.getDefault(),
 								MessageFormat.format(Messages.DeployWizard_FailureToGrabHerokuSignupJSError,
-										builder.toString()), null);
+										builder.toString()), (Throwable) null);
 					}
 					else
 					{
@@ -335,7 +337,7 @@ public class HerokuDeployWizard extends AbstractDeployWizard
 		}
 		catch (Exception e)
 		{
-			HerokuPlugin.logError(e);
+			IdeLog.logError(HerokuPlugin.getDefault(), e.getMessage(), e);
 		}
 	}
 }

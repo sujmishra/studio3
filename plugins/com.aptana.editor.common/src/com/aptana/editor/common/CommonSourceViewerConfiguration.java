@@ -7,7 +7,10 @@
  */
 package com.aptana.editor.common;
 
+import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -15,7 +18,6 @@ import org.eclipse.core.expressions.EvaluationContext;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
-import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.internal.text.html.HTMLTextPresenter;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.text.BadLocationException;
@@ -38,6 +40,8 @@ import org.eclipse.jface.text.hyperlink.IHyperlinkPresenter;
 import org.eclipse.jface.text.hyperlink.MultipleHyperlinkPresenter;
 import org.eclipse.jface.text.information.IInformationPresenter;
 import org.eclipse.jface.text.information.InformationPresenter;
+import org.eclipse.jface.text.presentation.IPresentationReconciler;
+import org.eclipse.jface.text.presentation.PresentationReconciler;
 import org.eclipse.jface.text.reconciler.IReconciler;
 import org.eclipse.jface.text.reconciler.IReconcilingStrategy;
 import org.eclipse.jface.text.source.Annotation;
@@ -51,34 +55,45 @@ import org.eclipse.ui.ISources;
 import org.eclipse.ui.editors.text.EditorsUI;
 import org.eclipse.ui.editors.text.TextSourceViewerConfiguration;
 import org.eclipse.ui.texteditor.AbstractDecoratedTextEditorPreferenceConstants;
+import org.eclipse.ui.texteditor.spelling.SpellingService;
 
+import com.aptana.core.logging.IdeLog;
+import com.aptana.core.util.EclipseUtil;
 import com.aptana.editor.common.contentassist.ContentAssistant;
+import com.aptana.editor.common.contentassist.ICommonContentAssistProcessor;
 import com.aptana.editor.common.hover.CommonAnnotationHover;
 import com.aptana.editor.common.hover.ThemedInformationControl;
 import com.aptana.editor.common.internal.formatter.CommonMultiPassContentFormatter;
 import com.aptana.editor.common.internal.hover.TextHoverDescriptor;
 import com.aptana.editor.common.preferences.IPreferenceConstants;
+import com.aptana.editor.common.scripting.IContentTypeTranslator;
 import com.aptana.editor.common.scripting.QualifiedContentType;
+import com.aptana.editor.common.spelling.MultiRegionSpellingReconcileStrategy;
 import com.aptana.editor.common.text.CommonDoubleClickStrategy;
 import com.aptana.editor.common.text.RubyRegexpAutoIndentStrategy;
-import com.aptana.editor.common.text.reconciler.CommonCompositeReconcilingStrategy;
+import com.aptana.editor.common.text.reconciler.CommonPresentationReconciler;
 import com.aptana.editor.common.text.reconciler.CommonReconciler;
+import com.aptana.editor.common.text.reconciler.CommonReconcilingStrategy;
+import com.aptana.editor.common.text.reconciler.CompositeReconcilingStrategy;
 import com.aptana.formatter.ScriptFormatterManager;
 import com.aptana.theme.IThemeManager;
 import com.aptana.theme.Theme;
 import com.aptana.theme.ThemePlugin;
 
 @SuppressWarnings("restriction")
-public abstract class CommonSourceViewerConfiguration extends TextSourceViewerConfiguration implements ITopContentTypesProvider
-{
+public abstract class CommonSourceViewerConfiguration extends TextSourceViewerConfiguration implements ITopContentTypesProvider {
+
+	public static final int DEFAULT_CONTENT_ASSIST_DELAY = 0;
+	public static final int LONG_CONTENT_ASSIST_DELAY = 1000;
+
+	public static final String CONTENTTYPE_HTML_PREFIX = "com.aptana.contenttype.html"; //$NON-NLS-1$
+
 	private AbstractThemeableEditor fTextEditor;
 	private CommonDoubleClickStrategy fDoubleClickStrategy;
 	private IPreferenceChangeListener fThemeChangeListener;
 	private IPreferenceChangeListener fAutoActivationListener;
-	private IReconcilingStrategy fReconcilingStrategy;
-	protected static final String CONTENTTYPE_HTML_PREFIX = "com.aptana.contenttype.html"; //$NON-NLS-1$
-	public static final int DEFAULT_CONTENT_ASSIST_DELAY = 0;
-	public static final int LONG_CONTENT_ASSIST_DELAY = 1000;
+	private CommonReconciler fReconciler;
+	ArrayList<IContentAssistProcessor> fCAProcessors = new ArrayList<IContentAssistProcessor>();
 
 	/**
 	 * CommonSourceViewerConfiguration
@@ -86,8 +101,7 @@ public abstract class CommonSourceViewerConfiguration extends TextSourceViewerCo
 	 * @param preferenceStore
 	 * @param editor
 	 */
-	public CommonSourceViewerConfiguration(IPreferenceStore preferenceStore, AbstractThemeableEditor editor)
-	{
+	public CommonSourceViewerConfiguration(IPreferenceStore preferenceStore, AbstractThemeableEditor editor) {
 		super(preferenceStore);
 
 		fTextEditor = editor;
@@ -96,20 +110,27 @@ public abstract class CommonSourceViewerConfiguration extends TextSourceViewerCo
 	/**
 	 * dispose
 	 */
-	public void dispose()
-	{
+	public void dispose() {
 		fTextEditor = null;
 		fDoubleClickStrategy = null;
-		if (fAutoActivationListener != null)
-		{
-			new InstanceScope().getNode(CommonEditorPlugin.PLUGIN_ID).removePreferenceChangeListener(
-					fAutoActivationListener);
+		fReconciler = null;
+		if (fAutoActivationListener != null) {
+			EclipseUtil.instanceScope().getNode(CommonEditorPlugin.PLUGIN_ID).removePreferenceChangeListener(fAutoActivationListener);
 			fAutoActivationListener = null;
 		}
-		if (fThemeChangeListener != null)
-		{
-			new InstanceScope().getNode(ThemePlugin.PLUGIN_ID).removePreferenceChangeListener(fThemeChangeListener);
+		if (fThemeChangeListener != null) {
+			EclipseUtil.instanceScope().getNode(ThemePlugin.PLUGIN_ID).removePreferenceChangeListener(fThemeChangeListener);
 			fThemeChangeListener = null;
+		}
+
+		if (fCAProcessors != null) {
+			for (IContentAssistProcessor cap : fCAProcessors) {
+				// disposes of unused resources, particularly preference change listeners
+				if (cap instanceof ICommonContentAssistProcessor) {
+					((ICommonContentAssistProcessor) cap).dispose();
+				}
+			}
+			fCAProcessors = null;
 		}
 	}
 
@@ -177,6 +198,7 @@ public abstract class CommonSourceViewerConfiguration extends TextSourceViewerCo
 			if (processor != null)
 			{
 				assistant.setContentAssistProcessor(processor, type);
+				fCAProcessors.add(processor);
 			}
 		}
 
@@ -197,7 +219,7 @@ public abstract class CommonSourceViewerConfiguration extends TextSourceViewerCo
 				setAutoActivationOptions(assistant);
 			}
 		};
-		new InstanceScope().getNode(CommonEditorPlugin.PLUGIN_ID).addPreferenceChangeListener(fAutoActivationListener);
+		EclipseUtil.instanceScope().getNode(CommonEditorPlugin.PLUGIN_ID).addPreferenceChangeListener(fAutoActivationListener);
 
 		assistant.setContextInformationPopupOrientation(IContentAssistant.CONTEXT_INFO_BELOW);
 		assistant.setContextInformationPopupBackground(getThemeBackground());
@@ -213,10 +235,12 @@ public abstract class CommonSourceViewerConfiguration extends TextSourceViewerCo
 					assistant.setProposalSelectorBackground(getThemeBackground());
 					assistant.setProposalSelectorForeground(getThemeForeground());
 					assistant.setProposalSelectorSelectionColor(getThemeSelection());
+					assistant.setContextInformationPopupBackground(getThemeBackground());
+					assistant.setContextInformationPopupForeground(getThemeForeground());
 				}
 			}
 		};
-		new InstanceScope().getNode(ThemePlugin.PLUGIN_ID).addPreferenceChangeListener(fThemeChangeListener);
+		EclipseUtil.instanceScope().getNode(ThemePlugin.PLUGIN_ID).addPreferenceChangeListener(fThemeChangeListener);
 
 		return assistant;
 	}
@@ -281,8 +305,8 @@ public abstract class CommonSourceViewerConfiguration extends TextSourceViewerCo
 				}
 				else
 				{
-					CommonEditorPlugin
-							.logWarning("Could not located an expected code formatter for '" + CONTENTTYPE_HTML_PREFIX + "'"); //$NON-NLS-1$ //$NON-NLS-2$
+					IdeLog.logWarning(CommonEditorPlugin.getDefault(), MessageFormat.format(
+							"Could not located an expected code formatter for ''{0}''", CONTENTTYPE_HTML_PREFIX)); //$NON-NLS-1$
 				}
 			}
 			String contentType = contentTypeArr[contentTypeArr.length - 1];
@@ -360,9 +384,33 @@ public abstract class CommonSourceViewerConfiguration extends TextSourceViewerCo
 		return "\t"; //$NON-NLS-1$
 	}
 
+	/* (non-Javadoc)
+	 * @see org.eclipse.jface.text.source.SourceViewerConfiguration#getPresentationReconciler(org.eclipse.jface.text.source.ISourceViewer)
+	 */
+	@Override
+	public IPresentationReconciler getPresentationReconciler(ISourceViewer sourceViewer) {
+		PresentationReconciler reconciler = new CommonPresentationReconciler();
+		reconciler.setDocumentPartitioning(getConfiguredDocumentPartitioning(sourceViewer));
+		return reconciler;
+	}
+
+	private final String[] getSpellingContentTypes(ISourceViewer sourceViewer) {
+		Set<String> set = new HashSet<String>();
+		IContentTypeTranslator contentTypeTranslator = CommonEditorPlugin.getDefault().getContentTypeTranslator();
+		String topContentType = getTopContentTypes()[0][0];
+		for (String contentType : getConfiguredContentTypes(sourceViewer)) {
+			if (CommonEditorPlugin.getDefault().getSpellingPreferences().isSpellingEnabledFor(contentTypeTranslator.translate(new QualifiedContentType(topContentType, contentType)))) {
+				set.add(contentType);
+			}
+		}
+		return set.toArray(new String[set.size()]);
+	}
+
 	/*
 	 * (non-Javadoc)
-	 * @see org.eclipse.jface.text.source.SourceViewerConfiguration#getInformationControlCreator(org.eclipse.jface.text.source.ISourceViewer)
+	 * @see
+	 * org.eclipse.jface.text.source.SourceViewerConfiguration#getInformationControlCreator(org.eclipse.jface.text.source
+	 * .ISourceViewer)
 	 */
 	@Override
 	public IInformationControlCreator getInformationControlCreator(ISourceViewer sourceViewer)
@@ -394,8 +442,11 @@ public abstract class CommonSourceViewerConfiguration extends TextSourceViewerCo
 		return ThemePlugin.getDefault().getColorManager().getColor(bg);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.ui.editors.text.TextSourceViewerConfiguration#getTextHover(org.eclipse.jface.text.source.ISourceViewer, java.lang.String)
+	/*
+	 * (non-Javadoc)
+	 * @see
+	 * org.eclipse.ui.editors.text.TextSourceViewerConfiguration#getTextHover(org.eclipse.jface.text.source.ISourceViewer
+	 * , java.lang.String)
 	 */
 	@Override
 	public ITextHover getTextHover(ISourceViewer sourceViewer, String contentType)
@@ -410,7 +461,9 @@ public abstract class CommonSourceViewerConfiguration extends TextSourceViewerCo
 
 	/*
 	 * (non-Javadoc)
-	 * @see org.eclipse.jface.text.source.SourceViewerConfiguration#getInformationPresenter(org.eclipse.jface.text.source.ISourceViewer)
+	 * @see
+	 * org.eclipse.jface.text.source.SourceViewerConfiguration#getInformationPresenter(org.eclipse.jface.text.source
+	 * .ISourceViewer)
 	 */
 	@Override
 	public IInformationPresenter getInformationPresenter(ISourceViewer sourceViewer)
@@ -465,22 +518,26 @@ public abstract class CommonSourceViewerConfiguration extends TextSourceViewerCo
 	 * )
 	 */
 	@Override
-	public IReconciler getReconciler(ISourceViewer sourceViewer)
-	{
-		if (fTextEditor != null && fTextEditor.isEditable())
-		{
-			fReconcilingStrategy = new CommonCompositeReconcilingStrategy(fTextEditor,
-					getConfiguredDocumentPartitioning(sourceViewer));
-			CommonReconciler reconciler = new CommonReconciler(fTextEditor, fReconcilingStrategy, false);
-
+	public IReconciler getReconciler(ISourceViewer sourceViewer) {
+		if (fTextEditor != null && fTextEditor.isEditable()) {
+			IReconcilingStrategy reconcilingStrategy = new CommonReconcilingStrategy(fTextEditor);
+			CommonReconciler reconciler = new CommonReconciler(reconcilingStrategy);
+			reconciler.setDocumentPartitioning(getConfiguredDocumentPartitioning(sourceViewer));
 			reconciler.setIsIncrementalReconciler(false);
 			reconciler.setIsAllowedToModifyDocument(false);
 			reconciler.setProgressMonitor(new NullProgressMonitor());
 			reconciler.setDelay(500);
-
-			return reconciler;
+			if (EditorsUI.getPreferenceStore().getBoolean(SpellingService.PREFERENCE_SPELLING_ENABLED)) {
+				SpellingService spellingService = EditorsUI.getSpellingService();
+				if (spellingService.getActiveSpellingEngineDescriptor(fPreferenceStore) != null) {
+					reconciler.setReconcilingStrategy(new CompositeReconcilingStrategy(
+							reconcilingStrategy,
+							new MultiRegionSpellingReconcileStrategy(sourceViewer, spellingService)),
+						getSpellingContentTypes(sourceViewer));
+				}
+			}
+			return fReconciler = reconciler;
 		}
-
 		return null;
 	}
 
@@ -494,9 +551,9 @@ public abstract class CommonSourceViewerConfiguration extends TextSourceViewerCo
 	 */
 	public void forceReconcile()
 	{
-		if (fReconcilingStrategy != null)
+		if (fReconciler != null)
 		{
-			fReconcilingStrategy.reconcile(null);
+			fReconciler.forceReconciling();
 		}
 	}
 
@@ -517,10 +574,27 @@ public abstract class CommonSourceViewerConfiguration extends TextSourceViewerCo
 		return ThemePlugin.getDefault().getThemeManager().getCurrentTheme();
 	}
 
+	private List<TextHoverDescriptor> getEnabledTextHoverDescriptors(ITextViewer textViewer, int offset) {
+		List<TextHoverDescriptor> result = new ArrayList<TextHoverDescriptor>();
+		try {
+			QualifiedContentType contentType = CommonEditorPlugin.getDefault().getDocumentScopeManager().getContentType(textViewer.getDocument(), offset);
+			EvaluationContext context = new EvaluationContext(null, textViewer);
+			context.addVariable(ISources.ACTIVE_EDITOR_ID_NAME, fTextEditor.getSite().getId());
+			for (TextHoverDescriptor descriptor : TextHoverDescriptor.getContributedHovers()) {
+				if (descriptor.isEnabledFor(contentType, context)) {
+					result.add(descriptor);
+				}
+			}
+		} catch (BadLocationException e) {
+		}
+		return result;
+	}
+
+
 	private class TextHover extends DefaultTextHover implements ITextHoverExtension, ITextHoverExtension2 {
 
 		private ITextHover activeTextHover;
-		
+
 		public TextHover(ISourceViewer sourceViewer) {
 			super(sourceViewer);
 		}
@@ -531,29 +605,48 @@ public abstract class CommonSourceViewerConfiguration extends TextSourceViewerCo
 		 */
 		@SuppressWarnings("deprecation")
 		public Object getHoverInfo2(ITextViewer textViewer, IRegion hoverRegion) {
-			activeTextHover = null;
-			try {
-				QualifiedContentType contentType = CommonEditorPlugin.getDefault().getDocumentScopeManager().getContentType(textViewer.getDocument(), hoverRegion.getOffset());
-				EvaluationContext context = new EvaluationContext(null, textViewer);
-				context.addVariable(ISources.ACTIVE_EDITOR_ID_NAME, fTextEditor.getSite().getId());
-				for (TextHoverDescriptor descriptor : TextHoverDescriptor.getContributedHovers()) {
-					if (descriptor.isEnabledFor(contentType, context)) {
-						ITextHover textHover = descriptor.createTextHover();
-						Object info = null;
-						if (textHover instanceof ITextHoverExtension2) {
-							info = ((ITextHoverExtension2) textHover).getHoverInfo2(textViewer, hoverRegion);
-						} else if (textHover != null) {
-							info = textHover.getHoverInfo(textViewer, hoverRegion);
-						}
-						if (info != null) {
-							activeTextHover = textHover;
-							return info;
-						}
-					}
-				}
-			} catch (BadLocationException e) {
+			Object info = null;
+			if (activeTextHover instanceof ITextHoverExtension2) {
+				info = ((ITextHoverExtension2) activeTextHover).getHoverInfo2(textViewer, hoverRegion);
+			} else if (activeTextHover != null) {
+				info = activeTextHover.getHoverInfo(textViewer, hoverRegion);
+			}
+			if (info != null) {
+				return info;
 			}
 			return super.getHoverInfo(textViewer, hoverRegion);
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * @see org.eclipse.jface.text.DefaultTextHover#getHoverRegion(org.eclipse.jface.text.ITextViewer, int)
+		 */
+		@SuppressWarnings("deprecation")
+		@Override
+		public IRegion getHoverRegion(ITextViewer textViewer, int offset) {
+			activeTextHover = null;
+			List<TextHoverDescriptor> descriptors = getEnabledTextHoverDescriptors(textViewer, offset);
+			for (TextHoverDescriptor descriptor : descriptors) {
+				ITextHover textHover = descriptor.createTextHover();
+				IRegion region = null;
+				if (textHover != null) {
+					region = textHover.getHoverRegion(textViewer, offset);
+				}
+				if (region != null) {
+					if (descriptors.size() > 1) {
+						if (textHover instanceof ITextHoverExtension2) {
+							if (((ITextHoverExtension2) textHover).getHoverInfo2(textViewer, region) == null) {
+								continue;
+							}
+						} else if (textHover.getHoverInfo(textViewer, region) == null) {
+							continue;
+						}
+					}
+					activeTextHover = textHover;
+					return region;
+				}
+			}
+			return super.getHoverRegion(textViewer, offset);
 		}
 
 		/*

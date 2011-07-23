@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -24,13 +23,15 @@ import java.util.StringTokenizer;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
-import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.osgi.service.prefs.BackingStoreException;
 
+import com.aptana.core.logging.IdeLog;
+import com.aptana.core.util.EclipseUtil;
 import com.aptana.core.util.ExecutableUtil;
 import com.aptana.core.util.PlatformUtil;
 import com.aptana.core.util.ProcessUtil;
@@ -70,6 +71,7 @@ public final class ShellExecutable {
 	private static IPath shellPath = null;
 	private static IPath shellRCPath = null;
 	private static Map<String, String> shellEnvironment;
+	private static Map<IPath, Map<String, String>> workingDirToEnvCache = new HashMap<IPath, Map<String, String>>();
 
 	/**
 	 * 
@@ -91,16 +93,13 @@ public final class ShellExecutable {
 				initializing = true;
 				shellPath = getPreferenceShellPath();
 				if (shellPath == null) {
-					shellPath = ExecutableUtil.find(isWin32 ? SH_EXE : BASH,
-							false, getPossibleShellLocations());
+					shellPath = ExecutableUtil.find(isWin32 ? SH_EXE : BASH, false, getPossibleShellLocations());
 				}
 			} finally {
 				initializing = false;
 			}
 			if (shellPath == null) {
-				throw new CoreException(new Status(Status.ERROR,
-						CorePlugin.PLUGIN_ID,
-						"Shell executable could not be found.")); //$NON-NLS-1$
+				throw new CoreException(new Status(Status.ERROR, CorePlugin.PLUGIN_ID, "Shell executable could not be found.")); //$NON-NLS-1$
 			}
 		}
 		return shellPath;
@@ -122,8 +121,7 @@ public final class ShellExecutable {
 
 	public static synchronized IPath getShellRCPath() {
 		if (shellRCPath == null) {
-			URL url = FileLocator.find(CorePlugin.getDefault().getBundle(),
-					Path.fromPortableString(RCFILE), null);
+			URL url = FileLocator.find(CorePlugin.getDefault().getBundle(), Path.fromPortableString(RCFILE), null);
 			if (url != null) {
 				File file = ResourceUtil.resourcePathToFile(url);
 				if (file != null && file.exists()) {
@@ -135,8 +133,7 @@ public final class ShellExecutable {
 	}
 
 	private static IPath getPreferenceShellPath() {
-		String pref = new InstanceScope().getNode(CorePlugin.PLUGIN_ID).get(
-				ICorePreferenceConstants.PREF_SHELL_EXECUTABLE_PATH, null);
+		String pref = EclipseUtil.instanceScope().getNode(CorePlugin.PLUGIN_ID).get(ICorePreferenceConstants.PREF_SHELL_EXECUTABLE_PATH, null);
 		if (pref != null && !StringUtil.isEmpty(pref)) {
 			IPath path = Path.fromOSString(pref);
 			if (path.toFile().isDirectory()) {
@@ -146,14 +143,13 @@ public final class ShellExecutable {
 			if (ExecutableUtil.isExecutable(path)) {
 				return path;
 			}
-			CorePlugin
-					.logWarning("Shell executable path preference point to an invalid location"); //$NON-NLS-1$
+			IdeLog.logWarning(CorePlugin.getDefault(), "Shell executable path preference point to an invalid location"); //$NON-NLS-1$
 		}
 		return null;
 	}
 
 	public static void setPreferenceShellPath(IPath path) {
-		IEclipsePreferences prefs = new InstanceScope().getNode(CorePlugin.PLUGIN_ID);
+		IEclipsePreferences prefs = EclipseUtil.instanceScope().getNode(CorePlugin.PLUGIN_ID);
 		if (path != null) {
 			prefs.put(ICorePreferenceConstants.PREF_SHELL_EXECUTABLE_PATH, path.toOSString());
 		} else {
@@ -162,7 +158,7 @@ public final class ShellExecutable {
 		try {
 			prefs.flush();
 		} catch (BackingStoreException e) {
-			CorePlugin.logError("Saving preferences failed.", e); //$NON-NLS-1$
+			IdeLog.logError(CorePlugin.getDefault(), "Saving preferences failed.", e); //$NON-NLS-1$
 		}
 		shellPath = null;
 		shellEnvironment = null;
@@ -185,40 +181,51 @@ public final class ShellExecutable {
 		return shellEnvironment;
 	}
 
-	public synchronized static Map<String, String> getEnvironment(
-			IPath workingDirectory) {
+	public synchronized static Map<String, String> getEnvironment(IPath workingDirectory) {
 		if (workingDirectory == null && shellEnvironment != null) {
 			return shellEnvironment;
 		}
 
-		// Do we have a shell to run "env" in?
-		IPath shellPath;
-		try {
-			// Force detection of shell. Must have one before we try "env"
-			shellPath = getPath();
-			if (shellPath == null) {
+		if (!workingDirToEnvCache.containsKey(workingDirectory)) {
+			// Do we have a shell to run "env" in?
+			IPath shellPath = null;
+			try {
+				// Force detection of shell. Must have one before we try "env"
+				shellPath = getPath();
+			} catch (CoreException e) {
+				// handled by null check below
+			}
+
+			Map<String, String> result = null;
+			if (shellPath != null) {
+				// OK, we do have a shell.
+				String envCommand = "env"; //$NON-NLS-1$
+				if (Platform.OS_WIN32.equals(Platform.getOS())) {
+					IPath envPath = shellPath.removeLastSegments(1).append("env.exe"); //$NON-NLS-1$
+					if (envPath.toFile().isFile()) {
+						envCommand = envPath.toPortableString();
+					}
+				}
+				try {
+					IStatus status = ProcessUtil.processResult(run(envCommand, workingDirectory, null));
+					if (status.isOK()) {
+						result = buildEnvironment(status.getMessage());
+					}
+				} catch (Exception e) {
+					IdeLog.logError(CorePlugin.getDefault(), "Get shell environment failed.", e); //$NON-NLS-1$
+					// failed to generate an env, we'll use JVM env and not
+					// cache, see below...
+				}
+			}
+
+			if (result == null) {
+				// Grabbing the environment from shell failed, just use env we
+				// have in JVM, but don't cache it!
 				return System.getenv();
 			}
-		} catch (CoreException e) {
-			// There may be no shell!
-			return System.getenv();
+			workingDirToEnvCache.put(workingDirectory, result);
 		}
-
-		// OK, we do have a shell.
-		String envCommand = "env"; //$NON-NLS-1$
-		if (Platform.OS_WIN32.equals(Platform.getOS())) {
-			IPath envPath = shellPath.removeLastSegments(1).append("env.exe"); //$NON-NLS-1$
-			if (envPath.toFile().isFile()) {
-				envCommand = envPath.toPortableString();
-			}
-		}
-		try {
-			return buildEnvironment(ProcessUtil.outputForProcess(
-					run(envCommand, workingDirectory, null)));
-		} catch (Exception e) {
-			CorePlugin.logError("Get shell environment failed.", e); //$NON-NLS-1$
-		}
-		return Collections.emptyMap();
+		return workingDirToEnvCache.get(workingDirectory);
 	}
 
 	private static Map<String, String> buildEnvironment(String envp) {
@@ -229,15 +236,13 @@ public final class ShellExecutable {
 			String envstring = tok.nextToken();
 			int eqlsign = envstring.indexOf('=');
 			if (eqlsign != -1) {
-				env.put(envstring.substring(0, eqlsign),
-						envstring.substring(eqlsign + 1));
+				env.put(envstring.substring(0, eqlsign), envstring.substring(eqlsign + 1));
 			}
 		}
 		for (String var : ENV_FILTER) {
 			if (var.charAt(var.length() - 1) == '*') {
 				String prefix = var.substring(0, var.length() - 1);
-				for (Iterator<Entry<String, String>> i = env.entrySet()
-						.iterator(); i.hasNext();) {
+				for (Iterator<Entry<String, String>> i = env.entrySet().iterator(); i.hasNext();) {
 					if (i.next().getKey().startsWith(prefix)) {
 						i.remove();
 					}
@@ -260,7 +265,7 @@ public final class ShellExecutable {
 		shellCommand.add("-c"); //$NON-NLS-1$
 		StringBuffer sb = new StringBuffer();
 		for (String arg : command) {
-			sb.append(arg.replaceAll("\"|\'", "\\$0")).append(' '); //$NON-NLS-1$ //$NON-NLS-2$
+			sb.append(arg.replaceAll("\"|\'| ", "\\\\$0")).append(' '); //$NON-NLS-1$ //$NON-NLS-2$
 		}
 		shellCommand.add(sb.toString().trim());
 		return shellCommand;
@@ -285,16 +290,14 @@ public final class ShellExecutable {
 	}
 
 	public static Process run(List<String> command, IPath workingDirectory, Map<String, String> environment) throws IOException, CoreException {
-		ProcessBuilder processBuilder = new ProcessBuilder(
-				toShellCommand(command));
-		if (workingDirectory != null) {
+		ProcessBuilder processBuilder = new ProcessBuilder(toShellCommand(command));
+		if (workingDirectory != null && workingDirectory.toFile().isDirectory()) {
 			processBuilder.directory(workingDirectory.toFile());
 		}
 		if (environment != null && !environment.isEmpty()) {
 			processBuilder.environment().putAll(environment);
 		}
-		processBuilder.environment().putAll(
-				toShellEnvironment(processBuilder.environment()));
+		processBuilder.environment().putAll(toShellEnvironment(processBuilder.environment()));
 		return processBuilder.start();
 	}
 

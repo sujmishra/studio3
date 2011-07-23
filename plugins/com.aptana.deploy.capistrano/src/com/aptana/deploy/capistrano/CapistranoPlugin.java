@@ -7,8 +7,6 @@
  */
 package com.aptana.deploy.capistrano;
 
-import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.Status;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
@@ -60,10 +58,4 @@ public class CapistranoPlugin extends AbstractUIPlugin
 	{
 		return plugin;
 	}
-
-	public static void logError(Throwable t)
-	{
-		getDefault().getLog().log(new Status(IStatus.ERROR, PLUGIN_ID, t.getMessage(), t));
-	}
-
 }

@@ -19,22 +19,20 @@ import org.eclipse.core.filesystem.provider.FileSystem;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
-import org.eclipse.core.runtime.Status;
 
+import com.aptana.core.logging.IdeLog;
 import com.aptana.ide.core.io.CoreIOPlugin;
 
 /**
  * @author Max Stepanov
- *
  */
 public class WorkspaceFileSystem extends FileSystem {
 
 	protected static final String SCHEME_WORKSPACE = "workspace"; //$NON-NLS-1$
 
-	private static WorkspaceFileSystem instance;
-	
+	private static IFileSystem instance;
+
 	/**
 	 * 
 	 */
@@ -42,7 +40,7 @@ public class WorkspaceFileSystem extends FileSystem {
 		super();
 		setInstance(this);
 	}
-	
+
 	private static void setInstance(WorkspaceFileSystem object) {
 		instance = object;
 	}
@@ -50,15 +48,17 @@ public class WorkspaceFileSystem extends FileSystem {
 	public static IFileSystem getInstance() {
 		if (instance == null) {
 			try {
-				EFS.getFileSystem(SCHEME_WORKSPACE);
+				instance = EFS.getFileSystem(SCHEME_WORKSPACE);
 			} catch (CoreException e) {
 				throw new Error(e);
 			}
 		}
 		return instance;
 	}
-	
-	/* (non-Javadoc)
+
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see org.eclipse.core.filesystem.provider.FileSystem#attributes()
 	 */
 	@Override
@@ -66,7 +66,9 @@ public class WorkspaceFileSystem extends FileSystem {
 		return EFS.getLocalFileSystem().attributes();
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see org.eclipse.core.filesystem.provider.FileSystem#canDelete()
 	 */
 	@Override
@@ -74,7 +76,9 @@ public class WorkspaceFileSystem extends FileSystem {
 		return EFS.getLocalFileSystem().canDelete();
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see org.eclipse.core.filesystem.provider.FileSystem#canWrite()
 	 */
 	@Override
@@ -82,32 +86,48 @@ public class WorkspaceFileSystem extends FileSystem {
 		return EFS.getLocalFileSystem().canWrite();
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.core.filesystem.provider.FileSystem#fromLocalFile(java.io.File)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.eclipse.core.filesystem.provider.FileSystem#fromLocalFile(java.io
+	 * .File)
 	 */
 	@Override
 	public IFileStore fromLocalFile(File file) {
 		return WorkspaceFile.fromLocalFile(file);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.core.filesystem.provider.FileSystem#getStore(org.eclipse.core.runtime.IPath)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.eclipse.core.filesystem.provider.FileSystem#getStore(org.eclipse.
+	 * core.runtime.IPath)
 	 */
 	@Override
 	public IFileStore getStore(IPath path) {
 		return new WorkspaceFile(path);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.core.filesystem.provider.FileSystem#getStore(java.net.URI)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.eclipse.core.filesystem.provider.FileSystem#getStore(java.net.URI)
 	 */
 	@Override
 	public IFileStore getStore(URI uri) {
 		return new WorkspaceFile(new Path(uri.getPath()));
 	}
 
-	/* (non-Javadoc)
-	 * @see org.eclipse.core.filesystem.provider.FileSystem#fetchFileTree(org.eclipse.core.filesystem.IFileStore, org.eclipse.core.runtime.IProgressMonitor)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.eclipse.core.filesystem.provider.FileSystem#fetchFileTree(org.eclipse
+	 * .core.filesystem.IFileStore,
+	 * org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	@Override
 	public IFileTree fetchFileTree(IFileStore root, IProgressMonitor monitor) {
@@ -117,13 +137,15 @@ public class WorkspaceFileSystem extends FileSystem {
 			} catch (CoreException e) {
 				// TODO: this exception could be thrown after 3.6M1
 				// https://bugs.eclipse.org/bugs/show_bug.cgi?id=280944
-				CoreIOPlugin.log(new Status(IStatus.WARNING, CoreIOPlugin.PLUGIN_ID, Messages.WorkspaceFileSystem_FetchingTreeError, e));
+				IdeLog.logWarning(CoreIOPlugin.getDefault(), Messages.WorkspaceFileSystem_FetchingTreeError, e, null);
 			}
 		}
 		return null;
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see org.eclipse.core.filesystem.provider.FileSystem#isCaseSensitive()
 	 */
 	@Override

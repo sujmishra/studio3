@@ -7,8 +7,6 @@
  */
 package com.aptana.deploy.ftp;
 
-import org.eclipse.core.runtime.IStatus;
-import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
@@ -45,12 +43,7 @@ public class FTPDeployPlugin extends AbstractUIPlugin
 		return PLUGIN_ID;
 	}
 
-	public static void logError(Throwable t)
-	{
-		getDefault().getLog().log(new Status(IStatus.ERROR, getPluginIdentifier(), t.getMessage(), t));
-	}
-
-	private static FTPDeployPlugin getDefault()
+	public static FTPDeployPlugin getDefault()
 	{
 		return instance;
 	}
@@ -66,5 +59,4 @@ public class FTPDeployPlugin extends AbstractUIPlugin
 		getDefault().getImageRegistry().put(path, desc);
 		return desc;
 	}
-
 }

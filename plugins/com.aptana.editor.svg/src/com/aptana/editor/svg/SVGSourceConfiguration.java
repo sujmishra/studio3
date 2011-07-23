@@ -17,17 +17,18 @@ import org.eclipse.jface.text.rules.IToken;
 import org.eclipse.jface.text.rules.ITokenScanner;
 import org.eclipse.jface.text.rules.MultiLineRule;
 import org.eclipse.jface.text.rules.RuleBasedScanner;
-import org.eclipse.jface.text.rules.Token;
 import org.eclipse.jface.text.source.ISourceViewer;
 
 import com.aptana.editor.common.AbstractThemeableEditor;
 import com.aptana.editor.common.CommonEditorPlugin;
+import com.aptana.editor.common.CommonUtil;
 import com.aptana.editor.common.IPartitioningConfiguration;
 import com.aptana.editor.common.ISourceViewerConfiguration;
 import com.aptana.editor.common.TextUtils;
 import com.aptana.editor.common.scripting.IContentTypeTranslator;
 import com.aptana.editor.common.scripting.QualifiedContentType;
 import com.aptana.editor.common.text.rules.CommentScanner;
+import com.aptana.editor.common.text.rules.ExtendedToken;
 import com.aptana.editor.common.text.rules.ISubPartitionScanner;
 import com.aptana.editor.common.text.rules.TagRule;
 import com.aptana.editor.common.text.rules.ThemeingDamagerRepairer;
@@ -56,16 +57,7 @@ public class SVGSourceConfiguration implements IPartitioningConfiguration, ISour
 	public final static String SCRIPT = PREFIX + "script"; //$NON-NLS-1$
 	public final static String STYLE = PREFIX + "style"; //$NON-NLS-1$
 
-	public static final String[] CONTENT_TYPES = new String[] { //
-		DEFAULT, //
-		COMMENT, //
-		CDATA, //
-		PRE_PROCESSOR, //
-		DOCTYPE, //
-		SCRIPT, //
-		STYLE, //
-		TAG, //
-	};
+	public static final String[] CONTENT_TYPES = new String[] { DEFAULT, COMMENT, CDATA, PRE_PROCESSOR, DOCTYPE, SCRIPT, STYLE, TAG };
 
 	private static final String[][] TOP_CONTENT_TYPES = new String[][] { //
 		{ ISVGConstants.CONTENT_TYPE_SVG }, //
@@ -74,14 +66,14 @@ public class SVGSourceConfiguration implements IPartitioningConfiguration, ISour
 	};
 
 	private IPredicateRule[] partitioningRules = new IPredicateRule[] { //
-		new MultiLineRule("<!DOCTYPE", ">", new Token(CDATA)), //$NON-NLS-1$ //$NON-NLS-2$
-		new MultiLineRule("<?", "?>", new Token(PRE_PROCESSOR)), //$NON-NLS-1$ //$NON-NLS-2$
-		new MultiLineRule("<!--", "-->", new Token(COMMENT), (char) 0, true), //$NON-NLS-1$ //$NON-NLS-2$
-		new MultiLineRule("<![CDATA[", "]]>", new Token(CDATA)), //$NON-NLS-1$ //$NON-NLS-2$
-		new TagRule("script", new Token(SCRIPT)), //$NON-NLS-1$
-		new TagRule("style", new Token(STYLE)), //$NON-NLS-1$
-		new TagRule("/", new Token(TAG)), //$NON-NLS-1$
-		new TagRule(new Token(TAG)) //
+		new MultiLineRule("<!DOCTYPE", ">", getToken(CDATA)), //$NON-NLS-1$ //$NON-NLS-2$
+		new MultiLineRule("<?", "?>", getToken(PRE_PROCESSOR)), //$NON-NLS-1$ //$NON-NLS-2$
+		new MultiLineRule("<!--", "-->", getToken(COMMENT), (char) 0, true), //$NON-NLS-1$ //$NON-NLS-2$
+		new MultiLineRule("<![CDATA[", "]]>", getToken(CDATA)), //$NON-NLS-1$ //$NON-NLS-2$
+		new TagRule("script", new ExtendedToken(getToken(SCRIPT))), //$NON-NLS-1$
+		new TagRule("style", new ExtendedToken(getToken(STYLE))), //$NON-NLS-1$
+		new TagRule("/", getToken(TAG)), //$NON-NLS-1$
+		new TagRule(new ExtendedToken(getToken(TAG))) //
 	};
 
 	private static SVGSourceConfiguration instance;
@@ -166,13 +158,7 @@ public class SVGSourceConfiguration implements IPartitioningConfiguration, ISour
 	 */
 	public String[] getContentTypes()
 	{
-		return TextUtils.combine( //
-			new String[][] { //
-				CONTENT_TYPES, //
-				JSSourceConfiguration.CONTENT_TYPES, //
-				CSSSourceConfiguration.CONTENT_TYPES //
-			} //
-		);
+		return TextUtils.combine(new String[][] { CONTENT_TYPES, JSSourceConfiguration.CONTENT_TYPES, CSSSourceConfiguration.CONTENT_TYPES });
 	}
 
 	/*
@@ -227,9 +213,9 @@ public class SVGSourceConfiguration implements IPartitioningConfiguration, ISour
 	 * @param tokenName
 	 * @return
 	 */
-	private IToken getToken(String tokenName)
+	private static IToken getToken(String tokenName)
 	{
-		return new Token(tokenName);
+		return CommonUtil.getToken(tokenName);
 	}
 
 	/*

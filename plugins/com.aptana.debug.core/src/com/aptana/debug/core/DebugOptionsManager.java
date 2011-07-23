@@ -22,7 +22,6 @@ import org.eclipse.core.runtime.ListenerList;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
-import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.debug.core.DebugEvent;
 import org.eclipse.debug.core.DebugPlugin;
 import org.eclipse.debug.core.IBreakpointManager;
@@ -31,7 +30,9 @@ import org.eclipse.debug.core.model.IBreakpoint;
 import org.eclipse.debug.core.model.IDebugTarget;
 import org.osgi.service.prefs.BackingStoreException;
 
+import com.aptana.core.logging.IdeLog;
 import com.aptana.core.resources.IUniformResourceMarker;
+import com.aptana.core.util.EclipseUtil;
 import com.aptana.core.util.StringUtil;
 
 /**
@@ -74,7 +75,7 @@ public final class DebugOptionsManager implements IDebugEventSetListener {
 	public void startup() {
 		DebugPlugin.getDefault().addDebugEventListener(this);
 		populateDetailFormattersMap();
-		new InstanceScope().getNode(DebugCorePlugin.PLUGIN_ID).addPreferenceChangeListener(preferenceChangeListener = new IPreferenceChangeListener() {
+		EclipseUtil.instanceScope().getNode(DebugCorePlugin.PLUGIN_ID).addPreferenceChangeListener(preferenceChangeListener = new IPreferenceChangeListener() {
 			public void preferenceChange(PreferenceChangeEvent event) {
 				if (getDetailFormattersPrefName().equals(event.getKey())) {
 					populateDetailFormattersMap();
@@ -89,7 +90,7 @@ public final class DebugOptionsManager implements IDebugEventSetListener {
 	 */
 	public void shutdown() {
 		DebugPlugin.getDefault().removeDebugEventListener(this);
-		new InstanceScope().getNode(DebugCorePlugin.PLUGIN_ID).removePreferenceChangeListener(preferenceChangeListener);
+		EclipseUtil.instanceScope().getNode(DebugCorePlugin.PLUGIN_ID).removePreferenceChangeListener(preferenceChangeListener);
 	}
 	
 	public static boolean isDebuggerActive(String modelIdentifier) {
@@ -222,7 +223,7 @@ public final class DebugOptionsManager implements IDebugEventSetListener {
 	 */
 	private void populateDetailFormattersMap() {
 		String[] detailFormattersList = DebugOptionsManager.parseList(
-				new InstanceScope().getNode(DebugCorePlugin.PLUGIN_ID).get(getDetailFormattersPrefName(), StringUtil.EMPTY));
+				EclipseUtil.instanceScope().getNode(DebugCorePlugin.PLUGIN_ID).get(getDetailFormattersPrefName(), StringUtil.EMPTY));
 		fDetailFormattersMap = new HashMap<String, DetailFormatter>(detailFormattersList.length / 3);
 		for (int i = 0, length = detailFormattersList.length; i < length;) {
 			String typeName = detailFormattersList[i++];
@@ -241,12 +242,12 @@ public final class DebugOptionsManager implements IDebugEventSetListener {
 			values[i++] = detailFormatter.isEnabled() ? DETAIL_FORMATTER_IS_ENABLED : DETAIL_FORMATTER_IS_DISABLED;
 		}
 		String value = DebugOptionsManager.serializeList(values);
-		IEclipsePreferences preferences = new InstanceScope().getNode(DebugCorePlugin.PLUGIN_ID);
+		IEclipsePreferences preferences = EclipseUtil.instanceScope().getNode(DebugCorePlugin.PLUGIN_ID);
 		preferences.put(getDetailFormattersPrefName(), value);
 		try {
 			preferences.flush();
 		} catch (BackingStoreException e) {
-			DebugCorePlugin.log(e);
+			IdeLog.logError(DebugCorePlugin.getDefault(), e.getMessage(), e);
 		}
 	}
 
@@ -298,9 +299,8 @@ public final class DebugOptionsManager implements IDebugEventSetListener {
 					breakpoint.delete();
 				}
 			} catch (CoreException e) {
-				DebugCorePlugin.log(e);
+				IdeLog.logError(DebugCorePlugin.getDefault(), e.getMessage(), e);
 			}
 		}
 	}
-
 }

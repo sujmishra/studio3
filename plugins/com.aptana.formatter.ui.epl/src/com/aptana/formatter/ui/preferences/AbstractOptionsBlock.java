@@ -25,6 +25,7 @@ import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.dialogs.PreferenceLinkArea;
 import org.eclipse.ui.preferences.IWorkbenchPreferenceContainer;
 
+import com.aptana.formatter.preferences.IFieldValidator;
 import com.aptana.formatter.preferences.IPreferenceDelegate;
 import com.aptana.formatter.preferences.PreferenceKey;
 import com.aptana.formatter.ui.dialogs.PropToPrefLinkArea;
@@ -88,54 +89,6 @@ public abstract class AbstractOptionsBlock extends OptionsConfigurationBlock imp
 	protected final void bindControl(Combo combo, PreferenceKey key, String[] itemValues)
 	{
 		bindManager.bindControl(combo, key, itemValues);
-	}
-
-	/**
-	 * Returns the string that should be used as the title in the popup box that indicates a build needs to occur.
-	 * <p>
-	 * Default implementation returns null. Clients should override to return context appropriate title. Clients must
-	 * also override <code>getFullBuildDialogMessage()</code> and <code>getProjectBuildDialogMessage()</code> in order
-	 * to trigger the popup box.
-	 * </p>
-	 * 
-	 * @deprecated
-	 * @see #getPreferenceChangeRebuildPrompt(boolean, Collection)
-	 */
-	protected final String getBuildDialogTitle()
-	{
-		return null;
-	}
-
-	/**
-	 * Returns the string that should be used in the popup box that indicates a full build needs to occur.
-	 * <p>
-	 * Default implementation returns null. Clients should override to return context appropriate message. Clients must
-	 * also override <code>getBuildDialogTitle()</code> and <code>getProjectBuildDialogMessage()</code> in order to
-	 * trigger the popup box.
-	 * </p>
-	 * 
-	 * @deprecated
-	 * @see #getPreferenceChangeRebuildPrompt(boolean, Collection)
-	 */
-	protected final String getFullBuildDialogMessage()
-	{
-		return null;
-	}
-
-	/**
-	 * Returns the string that should be used in the popup box that indicates a project build needs to occur.
-	 * <p>
-	 * Default implementation returns null. Clients should override to return context appropriate message. Clients must
-	 * also override <code>getBuildDialogTitle()</code> and <code>getFullBuildDialogMessage()</code> in order to trigger
-	 * the popup box.
-	 * </p>
-	 * 
-	 * @deprecated
-	 * @see #getPreferenceChangeRebuildPrompt(boolean, Collection)
-	 */
-	protected final String getProjectBuildDialogMessage()
-	{
-		return null;
 	}
 
 	protected final boolean isProjectPreferencePage()

@@ -14,8 +14,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
+import org.eclipse.core.runtime.Platform;
+
 import beaver.Symbol;
 
+import com.aptana.core.util.StringUtil;
+import com.aptana.editor.html.HTMLPlugin;
+import com.aptana.editor.html.preferences.IPreferenceConstants;
 import com.aptana.parsing.ast.INameNode;
 import com.aptana.parsing.ast.IParseNode;
 import com.aptana.parsing.lexer.IRange;
@@ -31,6 +36,7 @@ public class HTMLElementNode extends HTMLNode
 	private Map<String, String> fAttributes;
 	private List<IParseNode> fCSSStyleNodes;
 	private List<IParseNode> fJSAttributeNodes;
+	private boolean fIsSelfClosing;
 
 	public HTMLElementNode(Symbol tagSymbol, int start, int end)
 	{
@@ -49,6 +55,7 @@ public class HTMLElementNode extends HTMLNode
 				{
 					// self-closing
 					tag = getTagName(tag.substring(1, tag.length() - 2));
+					fIsSelfClosing = true;
 				}
 				else
 				{
@@ -95,18 +102,75 @@ public class HTMLElementNode extends HTMLNode
 		return fNameNode;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see com.aptana.parsing.ast.ParseNode#getNodeAtOffset(int)
+	 */
+	@Override
+	public IParseNode getNodeAtOffset(int offset)
+	{
+		IParseNode result = super.getNodeAtOffset(offset);
+
+		if (result == this)
+		{
+			for (IParseNode node : fJSAttributeNodes)
+			{
+				if (node.contains(offset))
+				{
+					result = node.getNodeAtOffset(offset);
+					break;
+				}
+			}
+		}
+
+		if (result == this)
+		{
+			for (IParseNode node : fCSSStyleNodes)
+			{
+				if (node.contains(offset))
+				{
+					result = node.getNodeAtOffset(offset);
+					break;
+				}
+			}
+		}
+
+		return result;
+	}
+
 	@Override
 	public String getText()
 	{
 		StringBuilder text = new StringBuilder();
 		text.append(getName());
-		if (getID() != null)
+		List<String> attributes = getAttributesToShow();
+		for (String attribute : attributes)
 		{
-			text.append("#").append(getID()); //$NON-NLS-1$
-		}
-		if (getCSSClass() != null)
-		{
-			text.append(".").append(getCSSClass()); //$NON-NLS-1$
+			// we show id and class differently from other attributes in the outline
+			if (ID.equals(attribute))
+			{
+				String id = getID();
+				if (id != null)
+				{
+					text.append("#").append(id); //$NON-NLS-1$
+				}
+			}
+			else if (CLASS.equals(attribute))
+			{
+				String cssClass = getCSSClass();
+				if (cssClass != null)
+				{
+					text.append(".").append(cssClass); //$NON-NLS-1$
+				}
+			}
+			else
+			{
+				String value = fAttributes.get(attribute);
+				if (value != null)
+				{
+					text.append(" ").append(value); //$NON-NLS-1$
+				}
+			}
 		}
 		return text.toString();
 	}
@@ -149,6 +213,11 @@ public class HTMLElementNode extends HTMLNode
 	public IParseNode[] getJSAttributeNodes()
 	{
 		return fJSAttributeNodes.toArray(new IParseNode[fJSAttributeNodes.size()]);
+	}
+
+	public boolean isSelfClosing()
+	{
+		return fIsSelfClosing;
 	}
 
 	@Override
@@ -203,5 +272,18 @@ public class HTMLElementNode extends HTMLNode
 	{
 		StringTokenizer token = new StringTokenizer(tag);
 		return token.nextToken();
+	}
+
+	private static List<String> getAttributesToShow()
+	{
+		String value = Platform.getPreferencesService().getString(HTMLPlugin.PLUGIN_ID,
+				IPreferenceConstants.HTML_OUTLINE_TAG_ATTRIBUTES_TO_SHOW, StringUtil.EMPTY, null);
+		StringTokenizer st = new StringTokenizer(value);
+		List<String> attributes = new ArrayList<String>();
+		while (st.hasMoreTokens())
+		{
+			attributes.add(st.nextToken());
+		}
+		return attributes;
 	}
 }

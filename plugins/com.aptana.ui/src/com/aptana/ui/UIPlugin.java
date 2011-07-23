@@ -13,7 +13,6 @@ import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
-import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.graphics.Image;
@@ -29,6 +28,7 @@ import org.eclipse.ui.progress.UIJob;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.prefs.BackingStoreException;
 
+import com.aptana.core.logging.IdeLog;
 import com.aptana.core.util.EclipseUtil;
 import com.aptana.ui.internal.WebPerspectiveFactory;
 import com.aptana.ui.preferences.IPreferenceConstants;
@@ -59,7 +59,7 @@ public class UIPlugin extends AbstractUIPlugin
 				{
 					resetPerspective(page);
 					// we will only ask once regardless if user chose to update the perspective
-					IEclipsePreferences prefs = (new InstanceScope()).getNode(PLUGIN_ID);
+					IEclipsePreferences prefs = (EclipseUtil.instanceScope()).getNode(PLUGIN_ID);
 					prefs.putInt(IPreferenceConstants.PERSPECTIVE_VERSION, WebPerspectiveFactory.VERSION);
 					try
 					{
@@ -162,26 +162,6 @@ public class UIPlugin extends AbstractUIPlugin
 		return plugin;
 	}
 
-	public static void log(Throwable e)
-	{
-		log(new Status(IStatus.ERROR, PLUGIN_ID, IStatus.ERROR, e.getLocalizedMessage(), e));
-	}
-
-	public static void log(String msg)
-	{
-		log(new Status(IStatus.INFO, PLUGIN_ID, IStatus.OK, msg, null));
-	}
-
-	public static void log(String msg, Throwable e)
-	{
-		log(new Status(IStatus.INFO, PLUGIN_ID, IStatus.OK, msg, e));
-	}
-
-	public static void log(IStatus status)
-	{
-		getDefault().getLog().log(status);
-	}
-
 	public static Image getImage(String string)
 	{
 		if (getDefault().getImageRegistry().get(string) == null)
@@ -210,24 +190,23 @@ public class UIPlugin extends AbstractUIPlugin
 
 	private void addPerspectiveListener()
 	{
-		IWorkbench workbench = null;
 		try
 		{
-			workbench = PlatformUI.getWorkbench();
+			IWorkbench workbench = PlatformUI.getWorkbench();
+			if (workbench != null)
+			{
+				IWorkbenchWindow[] windows = workbench.getWorkbenchWindows();
+				for (IWorkbenchWindow window : windows)
+				{
+					window.addPerspectiveListener(perspectiveListener);
+				}
+				// listens on any future windows
+				PlatformUI.getWorkbench().addWindowListener(windowListener);
+			}
 		}
 		catch (Exception e)
 		{
 			// ignore, may be running headless, like in tests
-		}
-		if (workbench != null)
-		{
-			IWorkbenchWindow[] windows = workbench.getWorkbenchWindows();
-			for (IWorkbenchWindow window : windows)
-			{
-				window.addPerspectiveListener(perspectiveListener);
-			}
-			// listens on any future windows
-			PlatformUI.getWorkbench().addWindowListener(windowListener);
 		}
 	}
 
@@ -260,7 +239,7 @@ public class UIPlugin extends AbstractUIPlugin
 				IPreferenceConstants.IDE_HAS_LAUNCHED_BEFORE, false, null);
 		if (!hasStartedBefore)
 		{
-			IEclipsePreferences prefs = (new InstanceScope()).getNode(PLUGIN_ID);
+			IEclipsePreferences prefs = (EclipseUtil.instanceScope()).getNode(PLUGIN_ID);
 			prefs.putInt(IPreferenceConstants.PERSPECTIVE_VERSION, WebPerspectiveFactory.VERSION);
 			prefs.putBoolean(IPreferenceConstants.IDE_HAS_LAUNCHED_BEFORE, true);
 			try
@@ -269,7 +248,7 @@ public class UIPlugin extends AbstractUIPlugin
 			}
 			catch (BackingStoreException e)
 			{
-				log(new Status(IStatus.ERROR, PLUGIN_ID, Messages.UIPlugin_ERR_FailToSetPref, e));
+				IdeLog.logError(getDefault(), Messages.UIPlugin_ERR_FailToSetPref, e);
 			}
 		}
 	}

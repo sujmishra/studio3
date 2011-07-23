@@ -101,7 +101,7 @@ public class WizardNewFilePage extends WizardNewFileCreationPage
 		final String filename = getFileName();
 		List<CommandElement> commands = BundleManager.getInstance().getExecutableCommands(new IModelFilter()
 		{
-			@SuppressWarnings("nls")
+
 			public boolean include(AbstractElement element)
 			{
 				if (element instanceof TemplateElement)
@@ -110,11 +110,11 @@ public class WizardNewFilePage extends WizardNewFileCreationPage
 					String filetype = te.getFiletype();
 					if (filetype == null)
 						return false;
-					filetype = filetype.replaceAll("\\.", "\\\\.");
-					filetype = filetype.replaceAll("\\*", ".*");
-					filetype = filetype.replaceAll("\\?", ".");
-					filetype += "$";
-					filetype = "^" + filetype;
+					filetype = filetype.replaceAll("\\.", "\\\\."); //$NON-NLS-1$ //$NON-NLS-2$
+					filetype = filetype.replaceAll("\\*", ".*"); //$NON-NLS-1$ //$NON-NLS-2$
+					filetype = filetype.replaceAll("\\?", "."); //$NON-NLS-1$ //$NON-NLS-2$
+					filetype += "$"; //$NON-NLS-1$
+					filetype = "^" + filetype; //$NON-NLS-1$
 					return Pattern.matches(filetype, filename);
 				}
 				return false;

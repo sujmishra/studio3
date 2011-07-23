@@ -8,7 +8,8 @@
 package com.aptana.commandline.launcher;
 
 import java.io.File;
-import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
@@ -36,7 +37,9 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.progress.WorkbenchJob;
 
+import com.aptana.core.logging.IdeLog;
 import com.aptana.core.resources.IProjectContext;
+import com.aptana.core.util.FileUtil;
 
 /**
  * Process command line arguments.
@@ -50,14 +53,14 @@ public class CommandlineArgumentsHandler
 	 * 
 	 * @param arguments
 	 */
-	public static ArrayList<File> processCommandLineArgs(final String[] arguments)
+	public static List<File> processCommandLineArgs(final String[] arguments)
 	{
 		if (arguments == null || arguments.length == 0)
 		{
-			return null;
+			return Collections.emptyList();
 		}
 
-		final ArrayList<File> files = gatherFiles(arguments);
+		final List<File> files = FileUtil.gatherFilesFromCommandLineArguments(arguments);
 
 		WorkbenchJob workbenchJob = new WorkbenchJob("Processing command line args.") //$NON-NLS-1$
 		{
@@ -75,28 +78,6 @@ public class CommandlineArgumentsHandler
 		workbenchJob.setSystem(true);
 		workbenchJob.setPriority(WorkbenchJob.INTERACTIVE);
 		workbenchJob.schedule();
-
-		return files;
-	}
-
-	/**
-	 * Comb through the list of command-line arguments, and pull out the items that are files
-	 * 
-	 * @param arguments
-	 * @return
-	 */
-	public static ArrayList<File> gatherFiles(final String[] arguments)
-	{
-		final ArrayList<File> files = new ArrayList<File>();
-
-		for (String argument : arguments)
-		{
-			File file = new File(argument);
-			if (file.exists())
-			{
-				files.add(file);
-			}
-		}
 
 		return files;
 	}
@@ -141,7 +122,7 @@ public class CommandlineArgumentsHandler
 			}
 			catch (CoreException e)
 			{
-				CommandlineLauncherPlugin.logError(e);
+				IdeLog.logError(CommandlineLauncherPlugin.getDefault(), e.getMessage(), e);
 			}
 		}
 
@@ -189,7 +170,7 @@ public class CommandlineArgumentsHandler
 		}
 		catch (CoreException e)
 		{
-			CommandlineLauncherPlugin.logError(e);
+			IdeLog.logError(CommandlineLauncherPlugin.getDefault(), e.getMessage(), e);
 		}
 	}
 
@@ -248,8 +229,7 @@ public class CommandlineArgumentsHandler
 		}
 		catch (PartInitException e)
 		{
-			CommandlineLauncherPlugin.logError(e);
+			IdeLog.logError(CommandlineLauncherPlugin.getDefault(), e.getMessage(), e);
 		}
 	}
-
 }

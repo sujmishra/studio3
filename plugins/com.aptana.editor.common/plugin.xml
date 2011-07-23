@@ -322,7 +322,23 @@
             categoryId="org.eclipse.ui.category.window"
             defaultHandler="com.aptana.editor.common.internal.commands.ToggleWordWrapHandler"
             id="com.aptana.editor.toggleWordWrapCommand"
-            name="Toggle Word Wrap">
+            name="%command.wordwrap.name">
+         <state
+         	id="org.eclipse.ui.commands.toggleState">
+            <class
+                  class="org.eclipse.ui.handlers.RegistryToggleState">
+               <parameter
+                     name="persisted"
+                     value="false">
+               </parameter>
+            </class>
+   </state> 
+      </command>
+      <command
+            categoryId="com.aptana.ui.category"
+            description="%mark.occurrence.description"
+            id="com.aptana.editor.common.toggleMarkOccurrences"
+            name="%mark.occurrence.command">
       </command>
    </extension>
    <extension
@@ -344,6 +360,19 @@
             contextId="org.eclipse.ui.contexts.window"
             schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
             sequence="CTRL+SHIFT+R">
+      </key>
+      <key
+            commandId="com.aptana.editor.common.toggleMarkOccurrences"
+            contextId="com.aptana.editor.context"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+            sequence="M2+M3+O">
+      </key>
+      <key
+            commandId="com.aptana.editor.common.toggleMarkOccurrences"
+            contextId="com.aptana.editor.context"
+            platform="carbon"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+            sequence="COMMAND+ALT+O">
       </key>
    </extension>
    <extension
@@ -444,6 +473,22 @@
             </command>
          </menu>
       </menuContribution>
+      <menuContribution
+            locationURI="popup:org.eclipse.ui.popup.any?after=additions">
+         <command
+               commandId="com.aptana.editor.toggleWordWrapCommand"
+               style="toggle">
+            <visibleWhen
+                  checkEnabled="false">
+               <with
+                     variable="activePart">
+                  <instanceof
+                        value="com.aptana.editor.common.AbstractThemeableEditor">
+                  </instanceof>
+               </with>
+            </visibleWhen>
+         </command>
+      </menuContribution>
    </extension>
    <extension
          point="org.eclipse.ui.commands">
@@ -489,6 +534,11 @@
                class="com.aptana.ui.commands.OpenFileManagerContributionItem"
                id="com.aptana.editor.common.open.in.file.manager">
          </dynamic>
+         <command
+               commandId="com.aptana.terminal.commands.openTerminal"
+               label="%command.terminal.label"
+               style="push">
+         </command>
       </menuContribution>
       <menuContribution
             locationURI="menu:file?before=new.ext">
@@ -576,6 +626,34 @@
       </type>
    </extension>
    <extension
+         point="org.eclipse.ui.editors.markerAnnotationSpecification">
+      <specification
+            annotationType="com.aptana.editor.common.occurrence"
+            colorPreferenceKey="OccurrenceIndicationColor"
+            colorPreferenceValue="212,212,212"
+            contributesToHeader="false"
+            highlightPreferenceKey="OccurrenceHighlighting"
+            highlightPreferenceValue="true"
+            icon="icons/full/obj16/searchm_obj.gif"
+            isGoToNextNavigationTarget="false"
+            isGoToNextNavigationTargetKey="isOccurrenceGoToNextNavigationTarget"
+            isGoToPreviousNavigationTarget="false"
+            isGoToPreviousNavigationTargetKey="isOccurrenceGoToPreviousNavigationTarget"
+            label="%occurrence.marker"
+            overviewRulerPreferenceKey="OccurrenceIndicationInOverviewRuler"
+            overviewRulerPreferenceValue="true"
+            presentationLayer="4"
+            showInNextPrevDropdownToolbarAction="true"
+            showInNextPrevDropdownToolbarActionKey="showOccurrenceInNextPrevDropdownToolbarAction"
+            textPreferenceKey="OccurrenceIndication"
+            textPreferenceValue="false"
+            textStylePreferenceKey="OccurrenceTextStyle"
+            textStylePreferenceValue="NONE"
+            verticalRulerPreferenceKey="OccurrenceIndicationInVerticalRuler"
+            verticalRulerPreferenceValue="false">
+      </specification>
+   </extension>
+   <extension
          point="org.eclipse.ui.preferencePages">
       <page
             category="com.aptana.ui.AptanaPreferencePage"
@@ -583,5 +661,43 @@
             id="com.aptana.editor.common.ValidationPreferencePage"
             name="%page.validation.name">
       </page>
+      <page
+            category="com.aptana.ui.AptanaPreferencePage"
+            class="com.aptana.editor.common.spelling.SpellingPreferencePage"
+            id="com.aptana.editor.common.spelling"
+            name="%page.spelling.name">
+         <keywordReference
+               id="org.eclipse.ui.editors.spelling">
+         </keywordReference>
+      </page>
+   </extension>
+   <extension
+         point="org.eclipse.ui.actionSets">
+      <actionSet
+            id="com.aptana.editor.common.presentation"
+            label="%editor.presentation"
+            visible="false">
+         <action
+               allowLabelUpdate="true"
+               definitionId="com.aptana.editor.common.toggleMarkOccurrences"
+               disabledIcon="icons/full/dtool16/mark_occurrences.gif"
+               icon="icons/full/etool16/mark_occurrences.gif"
+               id="com.aptana.editor.common.toggleMarkOccurrences"
+               label="%presentation.label"
+               retarget="true"
+               style="toggle"
+               toolbarPath="org.eclipse.ui.edit.text.actionSet.presentation/Presentation"
+               tooltip="%presentation.tooltip">
+         </action>
+      </actionSet>
+   </extension>
+   <extension
+         point="org.eclipse.ui.perspectiveExtensions">
+      <perspectiveExtension
+            targetID="com.aptana.ui.WebPerspective">
+         <actionSet
+               id="com.aptana.editor.common.presentation">
+         </actionSet>
+      </perspectiveExtension>
    </extension>
 </plugin>

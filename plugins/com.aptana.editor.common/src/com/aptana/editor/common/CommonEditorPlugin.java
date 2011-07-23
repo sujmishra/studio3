@@ -13,13 +13,16 @@ import java.util.Map;
 
 import org.eclipse.core.commands.Command;
 import org.eclipse.core.commands.State;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
+import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.resource.ImageRegistry;
+import org.eclipse.jface.resource.StringConverter;
 import org.eclipse.jface.text.templates.ContextTypeRegistry;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.IEditorPart;
@@ -37,14 +40,21 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.commands.ICommandService;
 import org.eclipse.ui.editors.text.templates.ContributionTemplateStore;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
+import org.eclipse.ui.progress.UIJob;
 import org.osgi.framework.BundleContext;
+import org.osgi.service.prefs.BackingStoreException;
 
+import com.aptana.core.logging.IdeLog;
 import com.aptana.core.util.EclipseUtil;
 import com.aptana.editor.common.internal.scripting.ContentTypeTranslation;
 import com.aptana.editor.common.internal.scripting.DocumentScopeManager;
 import com.aptana.editor.common.scripting.IContentTypeTranslator;
 import com.aptana.editor.common.scripting.IDocumentScopeManager;
+import com.aptana.editor.common.spelling.SpellingPreferences;
 import com.aptana.index.core.IndexPlugin;
+import com.aptana.theme.IThemeManager;
+import com.aptana.theme.Theme;
+import com.aptana.theme.ThemePlugin;
 import com.aptana.usage.EventLogger;
 
 /**
@@ -213,7 +223,10 @@ public class CommonEditorPlugin extends AbstractUIPlugin
 			window.addPerspectiveListener(fPerspectiveListener);
 		}
 	};
+
 	private DocumentScopeManager fDocumentScopeManager;
+	private IPreferenceChangeListener fThemeChangeListener;
+	private SpellingPreferences spellingPreferences;
 
 	/**
 	 * The constructor
@@ -231,13 +244,67 @@ public class CommonEditorPlugin extends AbstractUIPlugin
 		super.start(context);
 		plugin = this;
 
+		// Update occurrence colors
+		listenForThemeChanges();
+
 		// Activate indexing
 		IndexPlugin.getDefault();
 
 		differentiator = new FilenameDifferentiator();
 		differentiator.schedule();
+		spellingPreferences = new SpellingPreferences();
 
 		addPartListener();
+	}
+
+	/**
+	 * Hook up a listener for theme changes, and change the PHP occurrence colors!
+	 */
+	private void listenForThemeChanges()
+	{
+		Job job = new UIJob("Set occurrence colors to theme") //$NON-NLS-1$
+		{
+			private void setOccurrenceColors()
+			{
+				IEclipsePreferences prefs = EclipseUtil.instanceScope().getNode("org.eclipse.ui.editors"); //$NON-NLS-1$
+				Theme theme = ThemePlugin.getDefault().getThemeManager().getCurrentTheme();
+
+				prefs.put("OccurrenceIndicationColor", StringConverter.asString(theme.getSearchResultColor())); //$NON-NLS-1$
+
+				try
+				{
+					prefs.flush();
+				}
+				catch (BackingStoreException e)
+				{
+					// ignore
+				}
+			}
+
+			@Override
+			public IStatus runInUIThread(IProgressMonitor monitor)
+			{
+				fThemeChangeListener = new IPreferenceChangeListener()
+				{
+					public void preferenceChange(PreferenceChangeEvent event)
+					{
+						if (event.getKey().equals(IThemeManager.THEME_CHANGED))
+						{
+							setOccurrenceColors();
+						}
+					}
+				};
+
+				setOccurrenceColors();
+
+				EclipseUtil.instanceScope().getNode(ThemePlugin.PLUGIN_ID).addPreferenceChangeListener(fThemeChangeListener);
+
+				return Status.OK_STATUS;
+			}
+		};
+
+		job.setSystem(true);
+		job.schedule();
 	}
 
 	/*
@@ -248,13 +315,24 @@ public class CommonEditorPlugin extends AbstractUIPlugin
 	{
 		try
 		{
+			if (fThemeChangeListener != null)
+			{
+				EclipseUtil.instanceScope().getNode(ThemePlugin.PLUGIN_ID).removePreferenceChangeListener(fThemeChangeListener);
+
+				fThemeChangeListener = null;
+			}
+
 			differentiator.dispose();
 
 			removePartListener();
-			
+
 			if (fDocumentScopeManager != null)
 			{
 				fDocumentScopeManager.dispose();
+			}
+			if (spellingPreferences != null) {
+				spellingPreferences.dispose();
+				spellingPreferences = null;
 			}
 		}
 		finally
@@ -274,40 +352,6 @@ public class CommonEditorPlugin extends AbstractUIPlugin
 	public static CommonEditorPlugin getDefault()
 	{
 		return plugin;
-	}
-
-	public static void logError(Throwable e)
-	{
-		if (e instanceof CoreException)
-			logError((CoreException) e);
-		else
-			getDefault().getLog().log(new Status(IStatus.ERROR, PLUGIN_ID, e.getMessage(), e));
-	}
-
-	public static void logError(CoreException e)
-	{
-		getDefault().getLog().log(e.getStatus());
-	}
-
-	public static void trace(String string)
-	{
-		if (getDefault() != null && getDefault().isDebugging())
-			getDefault().getLog().log(new Status(IStatus.OK, PLUGIN_ID, string));
-	}
-	
-	public static void logError(String string, Throwable t)
-	{
-		getDefault().getLog().log(new Status(IStatus.ERROR, PLUGIN_ID, string, t));
-	}
-
-	public static void logWarning(String message)
-	{
-		getDefault().getLog().log(new Status(IStatus.WARNING, PLUGIN_ID, message, null));
-	}
-
-	public static void logInfo(String message)
-	{
-		getDefault().getLog().log(new Status(IStatus.INFO, PLUGIN_ID, message, null));
 	}
 
 	public static Image getImage(String path)
@@ -346,6 +390,13 @@ public class CommonEditorPlugin extends AbstractUIPlugin
 		return getImageRegistry().get(imageID);
 	}
 
+	/**
+	 * @return the spellingPreferences
+	 */
+	public SpellingPreferences getSpellingPreferences() {
+		return spellingPreferences;
+	}
+
 	public ContributionTemplateStore getTemplateStore(ContextTypeRegistry contextTypeRegistry)
 	{
 		if (fTemplateStoreMap == null)
@@ -363,7 +414,7 @@ public class CommonEditorPlugin extends AbstractUIPlugin
 			}
 			catch (IOException e)
 			{
-				logError(e.getMessage(), e);
+				IdeLog.logError(CommonEditorPlugin.getDefault(), e.getMessage(), e);
 			}
 		}
 		return store;
@@ -385,31 +436,30 @@ public class CommonEditorPlugin extends AbstractUIPlugin
 
 	private void addPartListener()
 	{
-		IWorkbench workbench = null;
 		try
 		{
-			workbench = PlatformUI.getWorkbench();
+			IWorkbench workbench = PlatformUI.getWorkbench();
+			if (workbench != null)
+			{
+				IWorkbenchWindow[] windows = workbench.getWorkbenchWindows();
+				IPartService partService;
+				for (IWorkbenchWindow window : windows)
+				{
+					partService = window.getPartService();
+					if (partService != null)
+					{
+						partService.addPartListener(fPartListener);
+					}
+					window.addPerspectiveListener(fPerspectiveListener);
+				}
+
+				// Listen on any future windows
+				PlatformUI.getWorkbench().addWindowListener(fWindowListener);
+			}
 		}
 		catch (Exception e)
 		{
 			// ignore, may be running headless, like in tests
-		}
-		if (workbench != null)
-		{
-			IWorkbenchWindow[] windows = workbench.getWorkbenchWindows();
-			IPartService partService;
-			for (IWorkbenchWindow window : windows)
-			{
-				partService = window.getPartService();
-				if (partService != null)
-				{
-					partService.addPartListener(fPartListener);
-				}
-				window.addPerspectiveListener(fPerspectiveListener);
-			}
-
-			// Listen on any future windows
-			PlatformUI.getWorkbench().addWindowListener(fWindowListener);
 		}
 	}
 

@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
@@ -19,6 +20,8 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 
 import com.aptana.core.CorePlugin;
+import com.aptana.core.IDebugScopes;
+import com.aptana.core.logging.IdeLog;
 
 /**
  * A Utility for launching process synch and async via ProcessBuilder. Does not go through the Eclipse launching
@@ -92,6 +95,18 @@ public abstract class ProcessUtil
 		return result.getMessage();
 	}
 
+	/**
+	 * reads the stdout and stderr from process, returns an IStatus with the exit code, and results. Cast to
+	 * ProcessStatus to get at each stream's output separately.
+	 * 
+	 * @param process
+	 * @return
+	 */
+	public static IStatus processResult(Process process)
+	{
+		return processData(process, null);
+	}
+
 	private static IStatus processData(Process process, String input)
 	{
 		String lineSeparator = ResourceUtil.getLineSeparatorValue(null);
@@ -133,7 +148,7 @@ public abstract class ProcessUtil
 		}
 		catch (InterruptedException e)
 		{
-			CorePlugin.logError(e.getMessage(), e);
+			IdeLog.logError(CorePlugin.getDefault(), e.getMessage(), e);
 		}
 		return null;
 	}
@@ -236,9 +251,19 @@ public abstract class ProcessUtil
 		{
 			processBuilder.directory(workingDirectory.toFile());
 		}
+
+		TreeMap<String, String> map = null;
 		if (environment != null && !environment.isEmpty())
 		{
+			map = new TreeMap<String, String>(environment);
 			processBuilder.environment().putAll(environment);
+		}
+		if (IdeLog.isInfoEnabled(CorePlugin.getDefault(), IDebugScopes.SHELL))
+		{
+			IdeLog.logInfo(
+					CorePlugin.getDefault(),
+					StringUtil.format(Messages.ProcessUtil_RunningProcess,
+							new Object[] { StringUtil.join("\" \"", command), workingDirectory, map }), IDebugScopes.SHELL); //$NON-NLS-1$
 		}
 		return processBuilder.start();
 	}

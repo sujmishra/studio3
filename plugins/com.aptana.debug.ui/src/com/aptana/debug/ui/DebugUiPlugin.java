@@ -16,12 +16,14 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
+import com.aptana.core.logging.IdeLog;
 import com.aptana.ui.util.UIUtils;
 
 /**
  * The main plugin class to be used in the desktop.
  */
-public class DebugUiPlugin extends AbstractUIPlugin {
+public class DebugUiPlugin extends AbstractUIPlugin
+{
 	/**
 	 * ID
 	 */
@@ -33,7 +35,8 @@ public class DebugUiPlugin extends AbstractUIPlugin {
 	/**
 	 * The constructor.
 	 */
-	public DebugUiPlugin() {
+	public DebugUiPlugin()
+	{
 	}
 
 	/**
@@ -42,7 +45,8 @@ public class DebugUiPlugin extends AbstractUIPlugin {
 	 * @param context
 	 * @throws Exception
 	 */
-	public void start(BundleContext context) throws Exception {
+	public void start(BundleContext context) throws Exception
+	{
 		super.start(context);
 		plugin = this;
 	}
@@ -53,7 +57,8 @@ public class DebugUiPlugin extends AbstractUIPlugin {
 	 * @param context
 	 * @throws Exception
 	 */
-	public void stop(BundleContext context) throws Exception {
+	public void stop(BundleContext context) throws Exception
+	{
 		super.stop(context);
 		plugin = null;
 	}
@@ -63,49 +68,35 @@ public class DebugUiPlugin extends AbstractUIPlugin {
 	 * 
 	 * @return DebugUiPlugin
 	 */
-	public static DebugUiPlugin getDefault() {
+	public static DebugUiPlugin getDefault()
+	{
 		return plugin;
 	}
 
 	/**
-	 * Returns an image descriptor for the image file at the given plug-in
-	 * relative path.
+	 * Returns an image descriptor for the image file at the given plug-in relative path.
 	 * 
 	 * @param path
 	 *            the path
 	 * @return the image descriptor
 	 */
-	public static ImageDescriptor getImageDescriptor(String path) {
+	public static ImageDescriptor getImageDescriptor(String path)
+	{
 		return AbstractUIPlugin.imageDescriptorFromPlugin(PLUGIN_ID, path);
 	}
 
-	public static void log(Throwable e) {
-		log(new Status(IStatus.ERROR, PLUGIN_ID, IStatus.ERROR, e.getLocalizedMessage(), e));
-	}
-
-	public static void log(String msg) {
-		log(new Status(IStatus.INFO, PLUGIN_ID, IStatus.OK, msg, null));
-	}
-
-	public static void log(String msg, Throwable e) {
-		log(new Status(IStatus.ERROR, PLUGIN_ID, IStatus.OK, msg, e));
-	}
-
-	public static void log(IStatus status) {
-		getDefault().getLog().log(status);
-	}
-
 	/**
-	 * Returns the standard display to be used. The method first checks, if the
-	 * thread calling this method has an associated display. If so, this display
-	 * is returned. Otherwise the method returns the default display.
+	 * Returns the standard display to be used. The method first checks, if the thread calling this method has an
+	 * associated display. If so, this display is returned. Otherwise the method returns the default display.
 	 * 
 	 * @return Display
 	 */
-	public static Display getStandardDisplay() {
+	public static Display getStandardDisplay()
+	{
 		Display display;
 		display = Display.getCurrent();
-		if (display == null) {
+		if (display == null)
+		{
 			display = Display.getDefault();
 		}
 		return display;
@@ -117,14 +108,15 @@ public class DebugUiPlugin extends AbstractUIPlugin {
 	 * @param message
 	 * @param t
 	 */
-	public static void errorDialog(String message, Throwable t) {
-		log(t);
+	public static void errorDialog(String message, Throwable t)
+	{
+		IdeLog.logError(getDefault(), t.getMessage(), t);
 		Shell shell = UIUtils.getActiveShell();
-		if (shell != null) {
+		if (shell != null)
+		{
 			IStatus status = new Status(IStatus.ERROR, PLUGIN_ID, IStatus.ERROR,
-					"Error logged from Aptana Debug UI: ", t); //$NON-NLS-1$	
+					"Error logged from Studio Debug UI: ", t); //$NON-NLS-1$	
 			ErrorDialog.openError(shell, "Error", message, status); //$NON-NLS-1$
 		}
 	}
-
 }

@@ -20,7 +20,6 @@ import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent;
-import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.dialogs.MessageDialogWithToggle;
 import org.eclipse.jface.dialogs.ProgressMonitorDialog;
@@ -38,6 +37,8 @@ import org.eclipse.ui.progress.UIJob;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.prefs.BackingStoreException;
 
+import com.aptana.core.logging.IdeLog;
+import com.aptana.core.util.EclipseUtil;
 import com.aptana.core.util.PlatformUtil;
 import com.aptana.git.core.IPreferenceConstants;
 import com.aptana.git.core.model.GitExecutable;
@@ -90,7 +91,7 @@ public class GitUIPlugin extends AbstractUIPlugin
 
 						public void run()
 						{
-							IEclipsePreferences prefs = new InstanceScope().getNode("org.eclipse.ui.editors"); //$NON-NLS-1$
+							IEclipsePreferences prefs = EclipseUtil.instanceScope().getNode("org.eclipse.ui.editors"); //$NON-NLS-1$
 							// Quick Diff colors
 							prefs.put("changeIndicationColor", StringConverter.asString(GitColors.greenBG().getRGB())); //$NON-NLS-1$
 							prefs.put("additionIndicationColor", StringConverter.asString(GitColors.greenBG().getRGB())); //$NON-NLS-1$
@@ -110,7 +111,7 @@ public class GitUIPlugin extends AbstractUIPlugin
 				}
 			}
 		};
-		new InstanceScope().getNode(ThemePlugin.PLUGIN_ID).addPreferenceChangeListener(themeChangeListener);
+		EclipseUtil.instanceScope().getNode(ThemePlugin.PLUGIN_ID).addPreferenceChangeListener(themeChangeListener);
 		checkHasGit();
 	}
 
@@ -124,7 +125,7 @@ public class GitUIPlugin extends AbstractUIPlugin
 		{
 			if (themeChangeListener != null)
 			{
-				new InstanceScope().getNode(ThemePlugin.PLUGIN_ID).removePreferenceChangeListener(themeChangeListener);
+				EclipseUtil.instanceScope().getNode(ThemePlugin.PLUGIN_ID).removePreferenceChangeListener(themeChangeListener);
 			}
 			themeChangeListener = null;
 		}
@@ -137,7 +138,8 @@ public class GitUIPlugin extends AbstractUIPlugin
 
 	private void checkHasGit()
 	{
-		if (getPreferenceStore().getBoolean(IPreferenceConstants.IGNORE_NO_GIT)) {
+		if (getPreferenceStore().getBoolean(IPreferenceConstants.IGNORE_NO_GIT))
+		{
 			return;
 		}
 		if (Platform.WS_WIN32.equals(Platform.getOS()))
@@ -151,17 +153,19 @@ public class GitUIPlugin extends AbstractUIPlugin
 					{
 						while (true)
 						{
-							MessageDialogWithToggle dlg = new MessageDialogWithToggle(PlatformUI.getWorkbench().getActiveWorkbenchWindow()
-									.getShell(), Messages.GitUIPlugin_1, null, Messages.GitUIPlugin_2,
-									MessageDialog.WARNING, new String[] { IDialogConstants.SKIP_LABEL,
-											Messages.GitUIPlugin_3, IDialogConstants.BROWSE_LABEL }, IDialogConstants.INTERNAL_ID+1,
+							MessageDialogWithToggle dlg = new MessageDialogWithToggle(PlatformUI.getWorkbench()
+									.getActiveWorkbenchWindow().getShell(), Messages.GitUIPlugin_1, null,
+									Messages.GitUIPlugin_2, MessageDialog.WARNING, new String[] {
+											IDialogConstants.SKIP_LABEL, Messages.GitUIPlugin_3,
+											IDialogConstants.BROWSE_LABEL }, IDialogConstants.INTERNAL_ID + 1,
 									Messages.GitUIPlugin_ToggleMessage, false);
 							switch (dlg.open())
 							{
 								case SWT.DEFAULT:
 									return Status.OK_STATUS;
 								case 5:
-									getPreferenceStore().setValue(IPreferenceConstants.IGNORE_NO_GIT, dlg.getToggleState());
+									getPreferenceStore().setValue(IPreferenceConstants.IGNORE_NO_GIT,
+											dlg.getToggleState());
 									return Status.OK_STATUS;
 								case IDialogConstants.INTERNAL_ID:
 									if (installPortableGit(monitor))
@@ -169,7 +173,7 @@ public class GitUIPlugin extends AbstractUIPlugin
 										return Status.OK_STATUS;
 									}
 									break;
-								case IDialogConstants.INTERNAL_ID+1:
+								case IDialogConstants.INTERNAL_ID + 1:
 									if (browseGitLocation())
 									{
 										return Status.OK_STATUS;
@@ -282,24 +286,41 @@ public class GitUIPlugin extends AbstractUIPlugin
 		return PLUGIN_ID;
 	}
 
+	/**
+	 * @deprecated
+	 * @param msg
+	 * @param e
+	 */
 	public static void logError(String msg, Throwable e)
 	{
-		getDefault().getLog().log(new Status(IStatus.ERROR, getPluginId(), msg, e));
+		IdeLog.logError(getDefault(), msg, e);
 	}
 
+	/**
+	 * @deprecated
+	 * @param e
+	 */
 	public static void logError(CoreException e)
 	{
-		getDefault().getLog().log(e.getStatus());
+		IdeLog.log(getDefault(), e.getStatus());
 	}
 
+	/**
+	 * @deprecated
+	 * @param e
+	 */
 	public static void logError(Exception e)
 	{
-		getDefault().getLog().log(new Status(IStatus.ERROR, getPluginId(), e.getLocalizedMessage(), e));
+		IdeLog.logError(getDefault(), e.getLocalizedMessage(), e);
 	}
 
+	/**
+	 * @deprecated
+	 * @param msg
+	 */
 	public static void logWarning(String msg)
 	{
-		getDefault().getLog().log(new Status(IStatus.WARNING, getPluginId(), msg));
+		IdeLog.logWarning(getDefault(), msg);
 	}
 
 	public static Image getImage(String string)
