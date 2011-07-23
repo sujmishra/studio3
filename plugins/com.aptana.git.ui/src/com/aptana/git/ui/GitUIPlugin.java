@@ -200,7 +200,6 @@ public class GitUIPlugin extends AbstractUIPlugin
 		{
 			dlg.run(true, false, new IRunnableWithProgress()
 			{
-
 				public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException
 				{
 					try
